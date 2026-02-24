@@ -20,6 +20,12 @@
 - [ ] **VIZ-04**: User can see sessions grouped by Claude project directory with color-coding and legend
 - [ ] **VIZ-05**: User can hover over a session bar to see tooltip (session ID, ticket, branch, working time, wall-clock span, message count)
 
+### Component System
+- [ ] **COMP-01**: App has a custom component library with consistent theming (colors, spacing, typography, states)
+- [ ] **COMP-02**: A hidden preview page (`/components`) displays every component and its variants/states
+- [ ] **COMP-03**: New components must be added to the component library and preview page before use in app features
+- [ ] **COMP-04**: Component library includes at minimum: Button, DatePicker, Checkbox, Tooltip, ProgressBar, Badge/Tag (components needed for v1 features)
+
 ### Navigation & Filtering
 - [ ] **NAV-01**: App opens to today's date by default
 - [ ] **NAV-02**: User can navigate to previous/next day
@@ -61,6 +67,10 @@
 | DATA-03 | — | Pending |
 | DATA-04 | — | Pending |
 | DATA-05 | — | Pending |
+| COMP-01 | — | Pending |
+| COMP-02 | — | Pending |
+| COMP-03 | — | Pending |
+| COMP-04 | — | Pending |
 | VIZ-01 | — | Pending |
 | VIZ-02 | — | Pending |
 | VIZ-03 | — | Pending |

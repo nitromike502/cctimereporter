@@ -77,6 +77,7 @@ A user can run one command and immediately see a clear visual timeline of their 
 | Lightweight index before full import | Validate performance before committing architecture | — Pending |
 | Rolling 30-day default window | Fast first launch, lean database | — Pending |
 | Reimplement PoC logic in JS (not wrap Python) | Single runtime, cleaner distribution | — Pending |
+| Custom component library (no PrimeVue/Vuetify) | Keep package lean; component preview page at /components; all components approved before use in features; easier future migration if needed | — Pending |
 
 ---
 *Last updated: 2026-02-22 after initialization*
