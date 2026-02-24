@@ -27,12 +27,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Success Criteria** (what must be TRUE):
   1. Running `node bin/cli.js` exits cleanly (no errors) with a help message or version output
   2. `npm pack --dry-run` output is under 15MB and contains no `node_modules/`, no Vite build tooling in the production file list
-  3. The SQLite database initializes at `~/.claude/transcripts.db` with all schema tables present (verified via `.tables` in sqlite3 CLI)
+  3. The SQLite database initializes at `~/.cctimereporter/data.db` with all schema tables present
   4. Node version check at startup rejects Node < 22 with a clear error message
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Package skeleton, CLI entry point, and node:sqlite database layer with minimal v1 schema
 
 ---
 
@@ -110,7 +110,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/1 | Planning complete | - |
 | 2. Import Pipeline | 0/TBD | Not started | - |
 | 3. Server and CLI | 0/TBD | Not started | - |
 | 4. Component Library | 0/TBD | Not started | - |
