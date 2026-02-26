@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 2 of 5 (Import Pipeline)
-Plan: 2 of TBD in current phase
-Status: In progress
-Last activity: 2026-02-26 — Completed 02-02-PLAN.md (parser, fork detector, ticket scorer)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-26 — Completed 02-03-PLAN.md (project discovery + import orchestrator)
 
-Progress: [████░░░░░░] 30%
+Progress: [████████░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~2 min
-- Total execution time: ~6 min
+- Total plans completed: 4
+- Average duration: ~2-4 min
+- Total execution time: ~10 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 1 | ~2 min | ~2 min |
-| 02-import-pipeline | 2 | ~4 min | ~2 min |
+| 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 02-01 (2 min), 02-02 (2 min)
+- Last 5 plans: 01-01 (2 min), 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min)
 - Trend: steady
 
 *Updated after each plan completion*
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - 02-02: TICKET_PATTERN is generic [a-zA-Z]{2,8}-\d+ (locked in CONTEXT.md), not AILASUP-specific
 - 02-02: extractContentText lives in parser.js and is imported by ticket-scorer.js to avoid duplication
 - 02-02: Fork DFS is iterative (stack-based) to avoid recursion depth issues on large message trees
+- 02-03: Size-based skip (file_size comparison) preferred over mtime — deterministic and reliable
+- 02-03: Orphaned directories not decoded — encoding is lossy, raw dir name used as projectPath
+- 02-03: Dual-source discovery merges ~/.claude.json + filesystem scan, deduplicated by transcriptDir
 
 ### Pending Todos
 
@@ -64,10 +67,10 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 5: `hy-vue-gantt` ability to render faded idle-gap segments within bars (not just solid bars) is unverified — fallback is D3.js custom SVG. Needs spike at start of Phase 5 planning.
-- Phase 2: `TranscriptIndexer` fast first/last-line scan assumes well-formed JSONL with `timestamp` fields — validate against real transcript data early.
+- Phase 2: `TranscriptIndexer` fast first/last-line scan assumes well-formed JSONL with `timestamp` fields — validate against real transcript data early. (Note: this concern was not relevant; full parse approach used instead.)
 
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 02-02-PLAN.md — parser, fork detector, ticket scorer all working against real transcripts
+Stopped at: Completed 02-03-PLAN.md — full import pipeline functional, Phase 2 complete
 Resume file: None
