@@ -12,7 +12,7 @@ A working Python proof-of-concept is the foundation — the Node.js port moves l
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - npm package skeleton, node:sqlite database layer, schema DDL
+- [x] **Phase 1: Foundation** - npm package skeleton, node:sqlite database layer, schema DDL
 - [ ] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
 - [ ] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
 - [ ] **Phase 4: Component Library** - Custom component system, preview page, approved component set
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Package skeleton, CLI entry point, and node:sqlite database layer with minimal v1 schema
+- [x] 01-01-PLAN.md — Package skeleton, CLI entry point, and node:sqlite database layer with minimal v1 schema
 
 ---
 
@@ -110,7 +110,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/1 | Planning complete | - |
+| 1. Foundation | 1/1 | Complete | 2026-02-25 |
 | 2. Import Pipeline | 0/TBD | Not started | - |
 | 3. Server and CLI | 0/TBD | Not started | - |
 | 4. Component Library | 0/TBD | Not started | - |

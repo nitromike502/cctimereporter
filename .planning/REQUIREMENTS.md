@@ -61,7 +61,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DIST-01 | Phase 3 | Pending |
-| DIST-02 | Phase 1 | Pending |
+| DIST-02 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |
