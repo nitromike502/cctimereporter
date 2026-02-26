@@ -13,7 +13,7 @@ A working Python proof-of-concept is the foundation — the Node.js port moves l
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - npm package skeleton, node:sqlite database layer, schema DDL
-- [ ] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
+- [x] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
 - [ ] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
 - [ ] **Phase 4: Component Library** - Custom component system, preview page, approved component set
 - [ ] **Phase 5: Timeline UI** - Gantt visualization, date navigation, project filtering, import trigger
@@ -48,9 +48,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Schema migration v1->v2 and database writer module
-- [ ] 02-02-PLAN.md — JSONL parser, fork detector, and ticket scorer
-- [ ] 02-03-PLAN.md — Project discovery and import orchestrator
+- [x] 02-01-PLAN.md — Schema migration v1->v2 and database writer module
+- [x] 02-02-PLAN.md — JSONL parser, fork detector, and ticket scorer
+- [x] 02-03-PLAN.md — Project discovery and import orchestrator
 
 ---
 
@@ -113,7 +113,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/1 | Complete | 2026-02-25 |
-| 2. Import Pipeline | 0/TBD | Not started | - |
+| 2. Import Pipeline | 3/3 | Complete | 2026-02-26 |
 | 3. Server and CLI | 0/TBD | Not started | - |
 | 4. Component Library | 0/TBD | Not started | - |
 | 5. Timeline UI | 0/TBD | Not started | - |

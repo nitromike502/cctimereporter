@@ -7,10 +7,10 @@
 - [ ] **DIST-02**: App requires Node 22 LTS minimum, enforced via `engines` field
 
 ### Data Pipeline
-- [ ] **DATA-01**: App auto-discovers all projects under ~/.claude/projects/
-- [ ] **DATA-02**: App imports JSONL transcripts into SQLite with fork detection (parent→children tree)
-- [ ] **DATA-03**: App scores and assigns tickets to sessions (slash commands, branch patterns, content mentions)
-- [ ] **DATA-04**: App skips unchanged files on re-import (idempotent)
+- [x] **DATA-01**: App auto-discovers all projects under ~/.claude/projects/
+- [x] **DATA-02**: App imports JSONL transcripts into SQLite with fork detection (parent→children tree)
+- [x] **DATA-03**: App scores and assigns tickets to sessions (slash commands, branch patterns, content mentions)
+- [x] **DATA-04**: App skips unchanged files on re-import (idempotent)
 - [ ] **DATA-05**: User can trigger import from the UI with visible progress feedback
 
 ### Visualization
@@ -62,10 +62,10 @@
 |-------------|-------|--------|
 | DIST-01 | Phase 3 | Pending |
 | DIST-02 | Phase 1 | Complete |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Complete |
+| DATA-02 | Phase 2 | Complete |
+| DATA-03 | Phase 2 | Complete |
+| DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 5 | Pending |
 | COMP-01 | Phase 4 | Pending |
 | COMP-02 | Phase 4 | Pending |
