@@ -45,10 +45,12 @@ Plans:
   2. Re-running the importer a second time produces no duplicate sessions (idempotent — same row counts as after first run)
   3. A session with a `/prep-ticket AILASUP-123` slash command is assigned that ticket as its primary ticket (verifiable via SQLite query)
   4. A JSONL file that has not changed since last import is skipped (verified by log output or import_log table mtime check)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Schema migration v1->v2 and database writer module
+- [ ] 02-02-PLAN.md — JSONL parser, fork detector, and ticket scorer
+- [ ] 02-03-PLAN.md — Project discovery and import orchestrator
 
 ---
 
