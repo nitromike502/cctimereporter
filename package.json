@@ -1,0 +1,19 @@
+{
+  "name": "cctimereporter",
+  "version": "0.1.0",
+  "description": "Visual timeline of Claude Code sessions",
+  "type": "module",
+  "bin": {
+    "cctimereporter": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node bin/cli.js"
+  }
+}
