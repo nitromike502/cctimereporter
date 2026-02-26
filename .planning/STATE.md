@@ -10,28 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 2 of 5 (Import Pipeline)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-25 — Phase 1 complete, verified ✓
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-26 — Completed 02-01-PLAN.md (schema v2 + db-writer)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: ~2 min
-- Total execution time: ~2 min
+- Total execution time: ~4 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 1 | ~2 min | ~2 min |
+| 02-import-pipeline | 1 | ~2 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min)
-- Trend: —
+- Last 5 plans: 01-01 (2 min), 02-01 (2 min)
+- Trend: steady
 
 *Updated after each plan completion*
 
@@ -49,6 +50,9 @@ Recent decisions affecting current work:
 - 01-01: PRAGMA user_version for schema versioning (not a schema_version table)
 - 01-01: Minimal 3-table schema only (projects, sessions, messages) — deferred fork_points, tool_uses, tickets, views
 - 01-01: Inline version guard in bin/cli.js (ESM import hoisting workaround)
+- 02-01: MIGRATION_V1_TO_V2 exported as string constant; migrateV1toV2() wraps each ALTER TABLE in try/catch for idempotency
+- 02-01: node:sqlite has no db.transaction() — all batch ops use db.exec('BEGIN')/db.exec('COMMIT')
+- 02-01: upsertSession uses INSERT OR REPLACE; upsertTickets uses INSERT OR IGNORE to preserve is_primary
 
 ### Pending Todos
 
@@ -61,6 +65,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25
-Stopped at: Phase 1 complete and verified — ready to plan Phase 2
+Last session: 2026-02-26
+Stopped at: Completed 02-01-PLAN.md — schema v2 active, db-writer module created
 Resume file: None
