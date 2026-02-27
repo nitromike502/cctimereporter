@@ -64,10 +64,11 @@ Plans:
   3. `curl http://localhost:<port>/api/timeline?date=<date>` returns a valid JSON response with session data for any date that has imported data
   4. `curl http://localhost:<port>/api/projects` returns a JSON list of known project directories
   5. `curl -X POST http://localhost:<port>/api/import` triggers an import and returns a progress/completion response
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Fastify server factory and API routes (timeline, projects, import)
+- [ ] 03-02-PLAN.md — CLI entry point wiring (port fallback, browser open, graceful shutdown)
 
 ---
 
