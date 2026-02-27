@@ -81,10 +81,12 @@ Plans:
   2. The preview page includes working examples of: Button, DatePicker, Checkbox, Tooltip, ProgressBar, and Badge/Tag
   3. All components share consistent design tokens (colors, spacing, typography) defined in one place — changing a token updates all components
   4. Each component renders correctly in its disabled, loading, and error states (where applicable), visible on the preview page
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Vue/Vite scaffold, design tokens, Fastify static serving
+- [ ] 04-02-PLAN.md — Five core components (Button, Badge, Checkbox, Tooltip, ProgressBar) + ComponentsPage preview layout
+- [ ] 04-03-PLAN.md — DatePicker component with vendor CSS overrides + visual verification
 
 ---
 
