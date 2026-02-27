@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** Phase 3 — Server and CLI
+**Current focus:** Phase 4 — Component Library
 
 ## Current Position
 
-Phase: 3 of 5 (Server and CLI)
-Plan: 1 of TBD in current phase
-Status: In progress
-Last activity: 2026-02-27 — Completed 03-01-PLAN.md (Fastify server and API routes)
+Phase: 3 of 5 (Server and CLI) — COMPLETE
+Plan: 2 of 2 complete
+Status: Phase complete — ready for Phase 4
+Last activity: 2026-02-27 — Completed 03-02-PLAN.md (CLI entry point, browser open, graceful shutdown)
 
-Progress: [█████████░] 45%
+Progress: [██████████░] 50%
 
 ## Performance Metrics
 
@@ -29,11 +29,11 @@ Progress: [█████████░] 45%
 |-------|-------|-------|----------|
 | 01-foundation | 1 | ~2 min | ~2 min |
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
-| 03-server-and-cli | 1 | ~11 min | ~11 min |
+| 03-server-and-cli | 2 | ~12 min | ~6 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min)
-- Trend: slightly higher for server route work (more endpoint verification)
+- Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
+- Trend: CLI wiring was quick (1 min) — server routes (03-01) was heaviest at 11 min
 
 *Updated after each plan completion*
 
@@ -65,6 +65,9 @@ Recent decisions affecting current work:
 - 03-01: Prepared statements cached at plugin registration time (inside plugin body, outside handler)
 - 03-01: importRunning module-level guard — 409 Conflict on concurrent import, no queuing
 - 03-01: computeWorkingTime is module-private to timeline route — not exported
+- 03-02: Port fallback loop tries up to 10 ports (3847-3856) before fatal error
+- 03-02: Browser open is best-effort via spawn({ detached, stdio: 'ignore' }).unref() — URL printed to stdout as fallback
+- 03-02: SIGINT/SIGTERM share identical async handler registered via for...of — both close server then db then exit 0
 
 ### Pending Todos
 
@@ -78,5 +81,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 03-01-PLAN.md — Fastify server factory and API routes
+Stopped at: Completed 03-02-PLAN.md — CLI entry point with server lifecycle (Phase 3 complete)
 Resume file: None
