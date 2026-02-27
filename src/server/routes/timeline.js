@@ -1,0 +1,119 @@
+/**
+ * GET /api/timeline?date=YYYY-MM-DD
+ *
+ * Returns sessions grouped by project for the requested date.
+ * Each session includes working time computed using the idle-gap algorithm
+ * (gaps > 10 minutes are excluded from working time).
+ *
+ * Defaults to today if no date is provided.
+ */
+
+const IDLE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Compute working time from an array of ISO8601 timestamp strings.
+ * Consecutive message gaps <= IDLE_THRESHOLD_MS are counted as working time.
+ * Larger gaps (idle periods, overnight, etc.) are excluded.
+ *
+ * @param {string[]} timestamps - ISO8601 timestamp strings
+ * @returns {number} Working time in milliseconds
+ */
+function computeWorkingTime(timestamps) {
+  if (timestamps.length < 2) return 0;
+  const parsed = timestamps.map(t => new Date(t).getTime());
+  let workingMs = 0;
+  for (let i = 1; i < parsed.length; i++) {
+    const gap = parsed[i] - parsed[i - 1];
+    if (gap <= IDLE_THRESHOLD_MS) workingMs += gap;
+  }
+  return workingMs;
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * @param {import('fastify').FastifyInstance} fastify
+ * @param {{ db: import('node:sqlite').DatabaseSync }} opts
+ */
+export async function timelineRoute(fastify, opts) {
+  const { db } = opts;
+
+  // Cache prepared statements at registration time — avoids re-preparing on every request
+  const sessionStmt = db.prepare(`
+    SELECT
+      s.session_id,
+      s.primary_ticket,
+      s.working_branch,
+      s.first_message_at,
+      s.last_message_at,
+      s.message_count,
+      s.user_message_count,
+      s.fork_count,
+      s.real_fork_count,
+      p.project_path,
+      p.id AS project_id
+    FROM sessions s
+    JOIN projects p ON s.project_id = p.id
+    WHERE DATE(s.first_message_at) <= ? AND DATE(s.last_message_at) >= ?
+    ORDER BY s.first_message_at
+  `);
+
+  const messageStmt = db.prepare(`
+    SELECT timestamp
+    FROM messages
+    WHERE session_id = ?
+      AND type IN ('user', 'assistant')
+      AND timestamp IS NOT NULL
+    ORDER BY timestamp
+  `);
+
+  fastify.get('/api/timeline', async (request, reply) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const date = request.query.date ?? today;
+
+    if (!DATE_RE.test(date)) {
+      reply.code(400);
+      return { error: 'Invalid date format. Use YYYY-MM-DD.' };
+    }
+
+    const sessions = sessionStmt.all(date, date);
+
+    // Group sessions by project using a Map keyed by project_id
+    const projectMap = new Map();
+
+    for (const row of sessions) {
+      // Get message timestamps for working time computation
+      const msgRows = messageStmt.all(row.session_id);
+      const timestamps = msgRows.map(m => m.timestamp);
+      const workingTimeMs = computeWorkingTime(timestamps);
+
+      const sessionObj = {
+        sessionId: row.session_id,
+        startTime: row.first_message_at,
+        endTime: row.last_message_at,
+        workingTimeMs,
+        ticket: row.primary_ticket,
+        branch: row.working_branch,
+        messageCount: row.message_count,
+        userMessageCount: row.user_message_count,
+        forkCount: row.fork_count,
+        realForkCount: row.real_fork_count,
+      };
+
+      if (!projectMap.has(row.project_id)) {
+        projectMap.set(row.project_id, {
+          projectId: row.project_id,
+          projectPath: row.project_path,
+          displayName: row.project_path.split('/').pop(),
+          sessions: [],
+        });
+      }
+      projectMap.get(row.project_id).sessions.push(sessionObj);
+    }
+
+    return {
+      date,
+      projects: [...projectMap.values()],
+    };
+  });
+}

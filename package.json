@@ -15,5 +15,8 @@
   },
   "scripts": {
     "start": "node bin/cli.js"
+  },
+  "dependencies": {
+    "fastify": "^5.7.4"
   }
 }
