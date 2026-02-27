@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 3 of 5 (Server and CLI)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-26 — Phase 2 complete, verified ✓
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-27 — Completed 03-01-PLAN.md (Fastify server and API routes)
 
-Progress: [████████░░] 40%
+Progress: [█████████░] 45%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: ~2-4 min
-- Total execution time: ~10 min
+- Total execution time: ~21 min
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [████████░░] 40%
 |-------|-------|-------|----------|
 | 01-foundation | 1 | ~2 min | ~2 min |
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
+| 03-server-and-cli | 1 | ~11 min | ~11 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min)
-- Trend: steady
+- Last 5 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min)
+- Trend: slightly higher for server route work (more endpoint verification)
 
 *Updated after each plan completion*
 
@@ -59,6 +60,11 @@ Recent decisions affecting current work:
 - 02-03: Size-based skip (file_size comparison) preferred over mtime — deterministic and reliable
 - 02-03: Orphaned directories not decoded — encoding is lossy, raw dir name used as projectPath
 - 02-03: Dual-source discovery merges ~/.claude.json + filesystem scan, deduplicated by transcriptDir
+- 03-01: createServer(db) is synchronous factory — does NOT call listen() (CLI's responsibility)
+- 03-01: Fastify({ logger: false }) — CLI tool prints its own output, no request logging noise
+- 03-01: Prepared statements cached at plugin registration time (inside plugin body, outside handler)
+- 03-01: importRunning module-level guard — 409 Conflict on concurrent import, no queuing
+- 03-01: computeWorkingTime is module-private to timeline route — not exported
 
 ### Pending Todos
 
@@ -71,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26
-Stopped at: Phase 2 complete and verified — ready to plan Phase 3
+Last session: 2026-02-27
+Stopped at: Completed 03-01-PLAN.md — Fastify server factory and API routes
 Resume file: None
