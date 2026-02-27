@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - npm package skeleton, node:sqlite database layer, schema DDL
 - [x] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
-- [ ] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
+- [x] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
 - [ ] **Phase 4: Component Library** - Custom component system, preview page, approved component set
 - [ ] **Phase 5: Timeline UI** - Gantt visualization, date navigation, project filtering, import trigger
 
@@ -67,8 +67,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Fastify server factory and API routes (timeline, projects, import)
-- [ ] 03-02-PLAN.md — CLI entry point wiring (port fallback, browser open, graceful shutdown)
+- [x] 03-01-PLAN.md — Fastify server factory and API routes (timeline, projects, import)
+- [x] 03-02-PLAN.md — CLI entry point wiring (port fallback, browser open, graceful shutdown)
 
 ---
 
@@ -115,6 +115,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/1 | Complete | 2026-02-25 |
 | 2. Import Pipeline | 3/3 | Complete | 2026-02-26 |
-| 3. Server and CLI | 0/TBD | Not started | - |
+| 3. Server and CLI | 2/2 | Complete | 2026-02-26 |
 | 4. Component Library | 0/TBD | Not started | - |
 | 5. Timeline UI | 0/TBD | Not started | - |

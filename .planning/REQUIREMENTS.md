@@ -3,7 +3,7 @@
 ## v1 Requirements
 
 ### Distribution
-- [ ] **DIST-01**: User can run `npx cctimereporter` to launch the app (starts server, opens browser)
+- [x] **DIST-01**: User can run `npx cctimereporter` to launch the app (starts server, opens browser)
 - [ ] **DIST-02**: App requires Node 22 LTS minimum, enforced via `engines` field
 
 ### Data Pipeline
@@ -60,7 +60,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIST-01 | Phase 3 | Pending |
+| DIST-01 | Phase 3 | Complete |
 | DIST-02 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Complete |
 | DATA-02 | Phase 2 | Complete |
