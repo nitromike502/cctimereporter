@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 
 ## Current Position
 
-Phase: 4 of 5 (Component Library) — Complete
-Plan: 3 of 3 complete
-Status: Phase 4 complete — Ready for Phase 5 (Timeline UI)
-Last activity: 2026-02-27 — Completed 04-03-PLAN.md (DatePicker + visual verification of all 6 components)
+Phase: 5 of 5 (Timeline UI) — In progress
+Plan: 1 of 3 complete
+Status: In progress — 05-01 complete, 05-02 and 05-03 remaining
+Last activity: 2026-02-28 — Completed 05-01-PLAN.md (timeline API idleGaps + TimelineToolbar)
 
-Progress: [██████████████] 100% of Phase 4 (overall: ~80%)
+Progress: [███████████████░░░] ~85% overall (7/9 plans complete)
 
 ## Performance Metrics
 
@@ -31,6 +31,7 @@ Progress: [██████████████] 100% of Phase 4 (overall:
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 | 03-server-and-cli | 2 | ~12 min | ~6 min |
 | 04-component-library | 3/3 | ~14 min | ~5 min |
+| 05-timeline-ui | 1/3 | ~2 min | ~2 min |
 
 **Recent Trend:**
 - Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
@@ -81,6 +82,10 @@ Recent decisions affecting current work:
 - 04-03: @vuepic/vue-datepicker v12 uses named export { VueDatePicker }, not default export
 - 04-03: Non-scoped CSS required for .dp__theme_light/.dp__theme_dark overrides — scoped CSS cannot penetrate vendor DOM
 - 04-03: matchMedia + addEventListener for reactive dark mode; both .dp__theme_* override same --dp-* vars (tokens.css handles switching)
+- 05-01: computeIdleGaps reuses same timestamps array as computeWorkingTime — no extra DB query
+- 05-01: idleGaps entries are { start, end } ISO strings matching session timestamp format
+- 05-01: TimelineToolbar emits navigate/import only — no router imports, parent owns data flow
+- 05-01: DST-safe date arithmetic via noon-anchored Date construction (dateStr + T12:00:00)
 
 ### Pending Todos
 
@@ -93,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed 04-03-PLAN.md — AppDatePicker + visual verification of all 6 components. Phase 4 complete.
+Last session: 2026-02-28
+Stopped at: Completed 05-01-PLAN.md — timeline API idleGaps + TimelineToolbar component. Phase 5 plan 1 of 3 done.
 Resume file: None
