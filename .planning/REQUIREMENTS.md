@@ -4,7 +4,7 @@
 
 ### Distribution
 - [x] **DIST-01**: User can run `npx cctimereporter` to launch the app (starts server, opens browser)
-- [ ] **DIST-02**: App requires Node 22 LTS minimum, enforced via `engines` field
+- [x] **DIST-02**: App requires Node 22 LTS minimum, enforced via `engines` field
 
 ### Data Pipeline
 - [x] **DATA-01**: App auto-discovers all projects under ~/.claude/projects/
