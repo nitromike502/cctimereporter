@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 
 ## Current Position
 
-Phase: 3 of 5 (Server and CLI) — COMPLETE ✓
-Plan: 2 of 2 complete
-Status: Phase complete, verified ✓ — ready for Phase 4
-Last activity: 2026-02-26 — Phase 3 complete, verified ✓
+Phase: 4 of 5 (Component Library) — In progress
+Plan: 1 of 3 complete
+Status: In progress — Plan 01 complete, ready for Plan 02
+Last activity: 2026-02-28 — Completed 04-01-PLAN.md (Vue 3 + Vite frontend scaffold)
 
-Progress: [██████████░░] 60%
+Progress: [████████████░░] 70%
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: [██████████░░] 60%
 | 01-foundation | 1 | ~2 min | ~2 min |
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 | 03-server-and-cli | 2 | ~12 min | ~6 min |
+| 04-component-library | 1/3 | ~3 min | ~3 min |
 
 **Recent Trend:**
 - Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
@@ -68,6 +69,11 @@ Recent decisions affecting current work:
 - 03-02: Port fallback loop tries up to 10 ports (3847-3856) before fatal error
 - 03-02: Browser open is best-effort via spawn({ detached, stdio: 'ignore' }).unref() — URL printed to stdout as fallback
 - 03-02: SIGINT/SIGTERM share identical async handler registered via for...of — both close server then db then exit 0
+- 04-01: Vite root is src/client (not project root) — outDir must be ../../dist to resolve to project root
+- 04-01: @fastify/static requires wildcard: false; setNotFoundHandler serves index.html as SPA catch-all
+- 04-01: API routes registered before @fastify/static in createServer() so JSON takes precedence over static
+- 04-01: tokens.css imported in main.js before createApp() for global CSS custom property availability
+- 04-01: 24 CSS custom properties — components consume only semantic aliases (--color-primary etc), not raw brand values
 
 ### Pending Todos
 
@@ -80,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Phase 3 complete and verified — ready to plan Phase 4
+Last session: 2026-02-28
+Stopped at: Completed 04-01-PLAN.md — Vue 3 + Vite frontend scaffold with design tokens and Fastify static serving
 Resume file: None
