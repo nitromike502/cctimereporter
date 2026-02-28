@@ -29,6 +29,25 @@ function computeWorkingTime(timestamps) {
   return workingMs;
 }
 
+/**
+ * Compute idle gap spans from an array of ISO8601 timestamp strings.
+ * Returns entries for consecutive message gaps > IDLE_THRESHOLD_MS.
+ *
+ * @param {string[]} timestamps - ISO8601 timestamp strings
+ * @returns {{ start: string, end: string }[]} Array of idle gap objects
+ */
+function computeIdleGaps(timestamps) {
+  if (timestamps.length < 2) return [];
+  const gaps = [];
+  for (let i = 1; i < timestamps.length; i++) {
+    const gap = new Date(timestamps[i]).getTime() - new Date(timestamps[i - 1]).getTime();
+    if (gap > IDLE_THRESHOLD_MS) {
+      gaps.push({ start: timestamps[i - 1], end: timestamps[i] });
+    }
+  }
+  return gaps;
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -44,6 +63,7 @@ export async function timelineRoute(fastify, opts) {
       s.session_id,
       s.primary_ticket,
       s.working_branch,
+      s.summary,
       s.first_message_at,
       s.last_message_at,
       s.message_count,
@@ -92,8 +112,10 @@ export async function timelineRoute(fastify, opts) {
         startTime: row.first_message_at,
         endTime: row.last_message_at,
         workingTimeMs,
+        idleGaps: computeIdleGaps(timestamps),
         ticket: row.primary_ticket,
         branch: row.working_branch,
+        summary: row.summary,
         messageCount: row.message_count,
         userMessageCount: row.user_message_count,
         forkCount: row.fork_count,
