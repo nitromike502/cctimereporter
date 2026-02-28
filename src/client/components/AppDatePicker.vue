@@ -19,7 +19,7 @@
  * @prop {boolean} disabled - Disables the picker
  * @prop {string} placeholder - Placeholder text when no date is selected
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 
@@ -45,6 +45,9 @@ const emit = defineEmits(['update:modelValue'])
 
 /** Two-way bound model value */
 const model = ref(props.modelValue)
+
+watch(model, (val) => emit('update:modelValue', val))
+watch(() => props.modelValue, (val) => { model.value = val })
 
 /** Dark mode detection via matchMedia */
 const isDark = ref(false)
