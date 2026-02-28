@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 
 ## Current Position
 
-Phase: 4 of 5 (Component Library) — In progress
-Plan: 2 of 3 complete
-Status: In progress — Plan 02 complete, ready for Plan 03
-Last activity: 2026-02-27 — Completed 04-02-PLAN.md (Five core components + ComponentsPage)
+Phase: 4 of 5 (Component Library) — Complete
+Plan: 3 of 3 complete
+Status: Phase 4 complete — Ready for Phase 5 (Timeline UI)
+Last activity: 2026-02-27 — Completed 04-03-PLAN.md (DatePicker + visual verification of all 6 components)
 
-Progress: [█████████████░] 75%
+Progress: [██████████████] 100% of Phase 4 (overall: ~80%)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [█████████████░] 75%
 | 01-foundation | 1 | ~2 min | ~2 min |
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 | 03-server-and-cli | 2 | ~12 min | ~6 min |
-| 04-component-library | 2/3 | ~9 min | ~4 min |
+| 04-component-library | 3/3 | ~14 min | ~5 min |
 
 **Recent Trend:**
 - Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
@@ -78,6 +78,9 @@ Recent decisions affecting current work:
 - 04-02: Sidebar uses position: sticky + height: 100vh — stays fixed while main area scrolls independently
 - 04-02: color-mix(in srgb, ...) for tinted badge/active-link backgrounds — correct in light and dark modes
 - 04-02: Reka UI Tooltip requires TooltipProvider wrapping Root for delay config; as-child on Trigger for slot passthrough
+- 04-03: @vuepic/vue-datepicker v12 uses named export { VueDatePicker }, not default export
+- 04-03: Non-scoped CSS required for .dp__theme_light/.dp__theme_dark overrides — scoped CSS cannot penetrate vendor DOM
+- 04-03: matchMedia + addEventListener for reactive dark mode; both .dp__theme_* override same --dp-* vars (tokens.css handles switching)
 
 ### Pending Todos
 
@@ -91,5 +94,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 04-02-PLAN.md — Five core components (Button, Badge, Checkbox, Tooltip, ProgressBar) + ComponentsPage with sidebar
+Stopped at: Completed 04-03-PLAN.md — AppDatePicker + visual verification of all 6 components. Phase 4 complete.
 Resume file: None
