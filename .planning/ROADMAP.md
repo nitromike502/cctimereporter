@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
 - [x] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
 - [x] **Phase 4: Component Library** - Custom component system, preview page, approved component set
-- [ ] **Phase 5: Timeline UI** - Gantt visualization, date navigation, project filtering, import trigger
+- [x] **Phase 5: Timeline UI** - Gantt visualization, date navigation, project filtering, import trigger
 
 ## Phase Details
 
@@ -102,10 +102,12 @@ Plans:
   5. The user can navigate to previous/next day, jump to Today or Yesterday via shortcuts, and the URL updates to `/timeline?date=YYYY-MM-DD` at each step
   6. The user can show or hide individual projects using a filter control, and those selections persist during the session
   7. Clicking an "Import" button in the UI triggers a fresh import and shows visible progress feedback while it runs
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [x] 05-01-PLAN.md — Timeline API extensions (idleGaps, summary) + TimelineToolbar component
+- [x] 05-02-PLAN.md — Four Gantt rendering components (GanttBar, GanttSwimlane, GanttChart, GanttLegend)
+- [x] 05-03-PLAN.md — TimelinePage assembly with data wiring, routing, filtering, and bug fixes
 
 ---
 
@@ -119,4 +121,4 @@ Plans:
 | 2. Import Pipeline | 3/3 | Complete | 2026-02-26 |
 | 3. Server and CLI | 2/2 | Complete | 2026-02-26 |
 | 4. Component Library | 3/3 | Complete | 2026-02-27 |
-| 5. Timeline UI | 0/TBD | Not started | - |
+| 5. Timeline UI | 3/3 | Complete | 2026-02-28 |

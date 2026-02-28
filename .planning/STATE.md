@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** Phase 5 — Timeline UI
+**Current focus:** All phases complete — v1 milestone ready for audit
 
 ## Current Position
 
-Phase: 5 of 5 (Timeline UI) — In progress
-Plan: 2 of 3 complete
-Status: In progress — 05-01 and 05-02 complete, 05-03 (TimelinePage) remaining
-Last activity: 2026-02-28 — Completed 05-02-PLAN.md (GanttBar, GanttSwimlane, GanttChart, GanttLegend)
+Phase: 5 of 5 (Timeline UI) — Complete
+Plan: 3 of 3 complete
+Status: All phases complete. Verification passed (7/7 must-haves).
+Last activity: 2026-02-28 — Completed Phase 5 (Timeline UI)
 
-Progress: [████████████████░░] ~89% overall (8/9 plans complete)
+Progress: [████████████████████] 100% overall (9/9 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~2-4 min
-- Total execution time: ~21 min
+- Total plans completed: 9
+- Average duration: ~3-4 min
+- Total execution time: ~40 min
 
 **By Phase:**
 
@@ -31,11 +31,7 @@ Progress: [████████████████░░] ~89% overall 
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 | 03-server-and-cli | 2 | ~12 min | ~6 min |
 | 04-component-library | 3/3 | ~14 min | ~5 min |
-| 05-timeline-ui | 1/3 | ~2 min | ~2 min |
-
-**Recent Trend:**
-- Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
-- Trend: CLI wiring was quick (1 min) — server routes (03-01) was heaviest at 11 min
+| 05-timeline-ui | 3/3 | ~19 min | ~6 min |
 
 *Updated after each plan completion*
 
@@ -90,18 +86,26 @@ Recent decisions affecting current work:
 - 05-02: min-width dual-layer: CSS min-width:4px + Math.max(widthPct, 0.03) computed minimum
 - 05-02: BAR_ROW_HEIGHT = 36px (28px bar + 8px gap); lane height = subRows.length * 36 + 8
 - 05-02: No external Gantt library — pure percentage-based CSS positioning throughout
+- 05-03: Set-based hidden project tracking with full value replacement — more reliable Vue reactivity than Map or plain object
+- 05-03: Reka UI CheckboxRoot uses modelValue/update:modelValue, not checked/update:checked
+- 05-03: AppDatePicker max-date defaults to today — prevents future date selection
+- 05-03: Grid overlay div (left:140px, right:0) for fit-to-width chart — replaces per-line margin-left
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Phase 5: `hy-vue-gantt` ability to render faded idle-gap segments within bars (not just solid bars) is unverified — fallback is D3.js custom SVG. Needs spike at start of Phase 5 planning.
-- Phase 2: `TranscriptIndexer` fast first/last-line scan assumes well-formed JSONL with `timestamp` fields — validate against real transcript data early. (Note: this concern was not relevant; full parse approach used instead.)
+None — all phases complete.
+
+### Known Refinements (Post-v1)
+
+- Overnight sessions produce bars dominated by idle segments (95%+ faded), making active work portions nearly invisible
+- Click action on timeline bars for sidebar/modal detail view (deferred feature)
 
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 05-02-PLAN.md — GanttBar, GanttSwimlane, GanttChart, GanttLegend components. Phase 5 plan 2 of 3 done.
+Stopped at: All 5 phases complete. Milestone ready for audit.
 Resume file: None
