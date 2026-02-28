@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** Phase 4 — Component Library
+**Current focus:** Phase 5 — Timeline UI
 
 ## Current Position
 
 Phase: 5 of 5 (Timeline UI) — In progress
-Plan: 1 of 3 complete
-Status: In progress — 05-01 complete, 05-02 and 05-03 remaining
-Last activity: 2026-02-28 — Completed 05-01-PLAN.md (timeline API idleGaps + TimelineToolbar)
+Plan: 2 of 3 complete
+Status: In progress — 05-01 and 05-02 complete, 05-03 (TimelinePage) remaining
+Last activity: 2026-02-28 — Completed 05-02-PLAN.md (GanttBar, GanttSwimlane, GanttChart, GanttLegend)
 
-Progress: [███████████████░░░] ~85% overall (7/9 plans complete)
+Progress: [████████████████░░] ~89% overall (8/9 plans complete)
 
 ## Performance Metrics
 
@@ -86,6 +86,10 @@ Recent decisions affecting current work:
 - 05-01: idleGaps entries are { start, end } ISO strings matching session timestamp format
 - 05-01: TimelineToolbar emits navigate/import only — no router imports, parent owns data flow
 - 05-01: DST-safe date arithmetic via noon-anchored Date construction (dateStr + T12:00:00)
+- 05-02: Idle gap segment leftPct/widthPct are RELATIVE to the bar (0-100%), not chart — avoids precision loss for narrow bars
+- 05-02: min-width dual-layer: CSS min-width:4px + Math.max(widthPct, 0.03) computed minimum
+- 05-02: BAR_ROW_HEIGHT = 36px (28px bar + 8px gap); lane height = subRows.length * 36 + 8
+- 05-02: No external Gantt library — pure percentage-based CSS positioning throughout
 
 ### Pending Todos
 
@@ -99,5 +103,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 05-01-PLAN.md — timeline API idleGaps + TimelineToolbar component. Phase 5 plan 1 of 3 done.
+Stopped at: Completed 05-02-PLAN.md — GanttBar, GanttSwimlane, GanttChart, GanttLegend components. Phase 5 plan 2 of 3 done.
 Resume file: None
