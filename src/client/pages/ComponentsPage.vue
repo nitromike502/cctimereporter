@@ -192,6 +192,46 @@
         </div>
       </section>
 
+      <!-- ===== DATEPICKER SHOWCASE ===== -->
+      <section v-if="active === 'datepicker'" class="showcase-section">
+        <h2 class="showcase-heading">DatePicker</h2>
+        <p class="showcase-description">
+          Date picker wrapping <code>@vuepic/vue-datepicker</code> with Orases palette CSS overrides.
+          Supports <code>v-model</code>, <code>disabled</code>, and <code>placeholder</code> props.
+          Opens a calendar popup on click; colors adapt to the design system in light and dark modes.
+        </p>
+
+        <div class="showcase-group">
+          <h3 class="showcase-subheading">Default (no selection)</h3>
+          <div class="showcase-row">
+            <div class="datepicker-item">
+              <span class="datepicker-label">Click to select a date</span>
+              <AppDatePicker v-model="datePickerDefault" />
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-group">
+          <h3 class="showcase-subheading">Pre-selected (today)</h3>
+          <div class="showcase-row">
+            <div class="datepicker-item">
+              <span class="datepicker-label">Initialized to today's date</span>
+              <AppDatePicker v-model="datePickerPreset" />
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-group">
+          <h3 class="showcase-subheading">Disabled</h3>
+          <div class="showcase-row">
+            <div class="datepicker-item">
+              <span class="datepicker-label">Cannot be interacted with</span>
+              <AppDatePicker :disabled="true" />
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 </template>
@@ -203,6 +243,7 @@ import AppBadge from '../components/AppBadge.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
 import AppTooltip from '../components/AppTooltip.vue'
 import AppProgressBar from '../components/AppProgressBar.vue'
+import AppDatePicker from '../components/AppDatePicker.vue'
 
 /** Sidebar component registry */
 const components = [
@@ -211,6 +252,7 @@ const components = [
   { id: 'checkbox', label: 'Checkbox' },
   { id: 'tooltip', label: 'Tooltip' },
   { id: 'progress', label: 'ProgressBar' },
+  { id: 'datepicker', label: 'DatePicker' },
 ]
 
 /** Currently active component in the sidebar */
@@ -220,6 +262,10 @@ const active = ref('button')
 const checkA = ref(false)
 const checkB = ref(true)
 const checkC = ref(false)
+
+/** DatePicker showcase states */
+const datePickerDefault = ref(null)
+const datePickerPreset = ref(new Date())
 </script>
 
 <style scoped>
@@ -375,5 +421,17 @@ const checkC = ref(false)
   color: var(--color-muted);
   font-family: var(--font-mono);
   text-align: right;
+}
+
+/* ====== DatePicker showcase ====== */
+.datepicker-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.datepicker-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
 }
 </style>
