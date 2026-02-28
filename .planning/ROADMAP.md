@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - npm package skeleton, node:sqlite database layer, schema DDL
 - [x] **Phase 2: Import Pipeline** - JSONL parsing, fork detection, ticket scoring, idempotent import
 - [x] **Phase 3: Server and CLI** - Fastify API, npx entry point, browser launch
-- [ ] **Phase 4: Component Library** - Custom component system, preview page, approved component set
+- [x] **Phase 4: Component Library** - Custom component system, preview page, approved component set
 - [ ] **Phase 5: Timeline UI** - Gantt visualization, date navigation, project filtering, import trigger
 
 ## Phase Details
@@ -84,9 +84,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Vue/Vite scaffold, design tokens, Fastify static serving
-- [ ] 04-02-PLAN.md — Five core components (Button, Badge, Checkbox, Tooltip, ProgressBar) + ComponentsPage preview layout
-- [ ] 04-03-PLAN.md — DatePicker component with vendor CSS overrides + visual verification
+- [x] 04-01-PLAN.md — Vue/Vite scaffold, design tokens, Fastify static serving
+- [x] 04-02-PLAN.md — Five core components (Button, Badge, Checkbox, Tooltip, ProgressBar) + ComponentsPage preview layout
+- [x] 04-03-PLAN.md — DatePicker component with vendor CSS overrides + visual verification
 
 ---
 
@@ -118,5 +118,5 @@ Plans:
 | 1. Foundation | 1/1 | Complete | 2026-02-25 |
 | 2. Import Pipeline | 3/3 | Complete | 2026-02-26 |
 | 3. Server and CLI | 2/2 | Complete | 2026-02-26 |
-| 4. Component Library | 0/TBD | Not started | - |
+| 4. Component Library | 3/3 | Complete | 2026-02-27 |
 | 5. Timeline UI | 0/TBD | Not started | - |
