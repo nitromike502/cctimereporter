@@ -35,7 +35,7 @@
         <AppCheckbox
           v-for="p in colorizedProjects"
           :key="p.projectId"
-          :model-value="projectVisibility.get(p.projectId) !== false"
+          :model-value="!hiddenProjects.has(p.projectId)"
           :label="p.displayName"
           @update:model-value="toggleProject(p.projectId)"
         />
@@ -76,8 +76,8 @@ const timelineData = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const importRunning = ref(false)
-// Map: projectId → boolean (true = visible). Persists across date changes.
-const projectVisibility = ref(new Map())
+// Set of hidden projectIds. Persists across date changes. All visible by default.
+const hiddenProjects = ref(new Set())
 
 // --- Date management (URL-synced) ---
 
@@ -101,7 +101,7 @@ async function fetchTimeline() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     timelineData.value = data
-    initVisibility(data.projects)
+    // No visibility init needed — all projects visible by default (not in hiddenProjects set)
   } catch (e) {
     error.value = e.message
   } finally {
@@ -111,20 +111,14 @@ async function fetchTimeline() {
 
 // --- Project visibility ---
 
-function initVisibility(projects) {
-  for (const p of projects) {
-    // Only set default if this project hasn't been seen before — preserves user choice
-    if (!projectVisibility.value.has(p.projectId)) {
-      projectVisibility.value.set(p.projectId, true)
-    }
-  }
-}
-
 function toggleProject(projectId) {
-  const current = projectVisibility.value.get(projectId)
-  projectVisibility.value.set(projectId, !current)
-  // Trigger reactivity: replace Map with a new Map so Vue detects the change
-  projectVisibility.value = new Map(projectVisibility.value)
+  const next = new Set(hiddenProjects.value)
+  if (next.has(projectId)) {
+    next.delete(projectId)
+  } else {
+    next.add(projectId)
+  }
+  hiddenProjects.value = next
 }
 
 // --- Project color assignment (djb2 hash → palette) ---
@@ -152,7 +146,7 @@ const colorizedProjects = computed(() => {
 
 const visibleProjects = computed(() =>
   colorizedProjects.value.filter(
-    p => projectVisibility.value.get(p.projectId) !== false
+    p => !hiddenProjects.value.has(p.projectId)
   )
 )
 
@@ -188,8 +182,7 @@ watch(() => route.query.date, () => fetchTimeline())
 .timeline-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 .timeline-content {

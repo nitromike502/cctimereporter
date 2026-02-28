@@ -1,5 +1,5 @@
 <template>
-  <div class="gantt-chart" ref="chartRef">
+  <div class="gantt-chart">
     <!-- Time axis -->
     <div class="time-axis">
       <div
@@ -14,13 +14,15 @@
 
     <!-- Swim lanes -->
     <div class="lanes-container">
-      <!-- Vertical grid lines (match time axis ticks) -->
-      <div
-        v-for="tick in timeAxisTicks"
-        :key="'grid-' + tick.pct"
-        class="grid-line"
-        :style="{ left: (tick.pct * (100 - 0) / 100) + '%' }"
-      />
+      <!-- Grid overlay: positioned over the bar area (after 140px labels) -->
+      <div class="grid-overlay">
+        <div
+          v-for="tick in timeAxisTicks"
+          :key="'grid-' + tick.pct"
+          class="grid-line"
+          :style="{ left: tick.pct + '%' }"
+        />
+      </div>
 
       <!-- Project swim lanes with labels -->
       <div v-for="project in projects" :key="project.projectId" class="lane-row">
@@ -38,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { computed } from 'vue'
 import GanttSwimlane from './GanttSwimlane.vue'
 
 /**
@@ -61,8 +63,6 @@ const props = defineProps({
   },
 })
 
-const chartRef = ref(null)
-
 /**
  * Generates tick marks for the 24h time axis, one every 2 hours.
  * Labels use 12-hour format: 12a, 2a, 4a, ... 12p, 2p, ... 10p, 12a
@@ -81,41 +81,13 @@ const timeAxisTicks = computed(() => {
   return ticks
 })
 
-/**
- * Scrolls the lanes container to show the earliest active session,
- * with 30-minute padding before the first session.
- */
-function scrollToActiveRange() {
-  if (!chartRef.value || !props.projects.length) return
-  let earliest = Infinity
-  let latest = -Infinity
-  for (const p of props.projects) {
-    for (const s of p.sessions) {
-      const st = new Date(s.startTime).getTime()
-      const et = new Date(s.endTime).getTime()
-      if (st < earliest) earliest = st
-      if (et > latest) latest = et
-    }
-  }
-  if (earliest === Infinity) return
-  const dayStart = new Date(props.date + 'T00:00:00').getTime()
-  const dayMs = 24 * 60 * 60 * 1000
-  const paddingMs = 30 * 60 * 1000
-  const rangeStartPct = Math.max(0, (earliest - paddingMs - dayStart) / dayMs)
-  const container = chartRef.value.querySelector('.lanes-container')
-  if (container) {
-    container.scrollLeft = rangeStartPct * container.scrollWidth
-  }
-}
-
-onMounted(() => nextTick(scrollToActiveRange))
-watch(() => props.projects, () => nextTick(scrollToActiveRange), { deep: true })
 </script>
 
 <style scoped>
 .gantt-chart {
   width: 100%;
   overflow: hidden;
+  padding-right: 10px;
 }
 
 .time-axis {
@@ -140,8 +112,17 @@ watch(() => props.projects, () => nextTick(scrollToActiveRange), { deep: true })
 
 .lanes-container {
   position: relative;
-  overflow-x: auto;
   min-height: 100px;
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 140px;
+  right: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .grid-line {
@@ -151,9 +132,6 @@ watch(() => props.projects, () => nextTick(scrollToActiveRange), { deep: true })
   width: 1px;
   background: var(--color-border);
   opacity: 0.4;
-  pointer-events: none;
-  z-index: 0;
-  margin-left: 140px;
 }
 
 .lane-row {

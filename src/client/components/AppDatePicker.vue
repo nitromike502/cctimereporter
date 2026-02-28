@@ -4,6 +4,7 @@
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"
+      :max-date="maxDate"
       auto-apply
       :enable-time-picker="false"
       :dark="isDark"
@@ -38,6 +39,11 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: 'Select date',
+  },
+  /** Maximum selectable date (defaults to today) */
+  maxDate: {
+    type: [Date, String],
+    default: () => new Date(),
   },
 })
 

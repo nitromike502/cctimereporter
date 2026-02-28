@@ -2,9 +2,9 @@
   <label class="app-checkbox" :class="{ 'is-disabled': disabled }">
     <CheckboxRoot
       class="checkbox-root"
-      :checked="modelValue"
+      :model-value="modelValue"
       :disabled="disabled"
-      @update:checked="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <CheckboxIndicator class="checkbox-indicator">
         <!-- Checkmark SVG -->

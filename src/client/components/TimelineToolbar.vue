@@ -5,7 +5,7 @@
       <AppButton variant="ghost" size="sm" @click="emit('navigate', addDays(date, -1))">&larr; Prev</AppButton>
       <AppButton variant="secondary" size="sm" @click="emit('navigate', todayStr())">Today</AppButton>
       <AppButton variant="secondary" size="sm" @click="emit('navigate', yesterdayStr())">Yesterday</AppButton>
-      <AppButton variant="ghost" size="sm" @click="emit('navigate', addDays(date, 1))">Next &rarr;</AppButton>
+      <AppButton variant="ghost" size="sm" :disabled="date >= todayStr()" @click="emit('navigate', addDays(date, 1))">Next &rarr;</AppButton>
       <span class="date-display">{{ formatDate(date) }}</span>
     </div>
 
