@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 4 of 5 (Component Library) — In progress
-Plan: 1 of 3 complete
-Status: In progress — Plan 01 complete, ready for Plan 02
-Last activity: 2026-02-28 — Completed 04-01-PLAN.md (Vue 3 + Vite frontend scaffold)
+Plan: 2 of 3 complete
+Status: In progress — Plan 02 complete, ready for Plan 03
+Last activity: 2026-02-27 — Completed 04-02-PLAN.md (Five core components + ComponentsPage)
 
-Progress: [████████████░░] 70%
+Progress: [█████████████░] 75%
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [████████████░░] 70%
 | 01-foundation | 1 | ~2 min | ~2 min |
 | 02-import-pipeline | 3 | ~8 min | ~2-3 min |
 | 03-server-and-cli | 2 | ~12 min | ~6 min |
-| 04-component-library | 1/3 | ~3 min | ~3 min |
+| 04-component-library | 2/3 | ~9 min | ~4 min |
 
 **Recent Trend:**
 - Last 6 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (~4 min), 03-01 (11 min), 03-02 (1 min)
@@ -74,6 +74,10 @@ Recent decisions affecting current work:
 - 04-01: API routes registered before @fastify/static in createServer() so JSON takes precedence over static
 - 04-01: tokens.css imported in main.js before createApp() for global CSS custom property availability
 - 04-01: 24 CSS custom properties — components consume only semantic aliases (--color-primary etc), not raw brand values
+- 04-02: ProgressBar passes null (not 0) to Reka UI :value when indeterminate — triggers proper ARIA indeterminate state
+- 04-02: Sidebar uses position: sticky + height: 100vh — stays fixed while main area scrolls independently
+- 04-02: color-mix(in srgb, ...) for tinted badge/active-link backgrounds — correct in light and dark modes
+- 04-02: Reka UI Tooltip requires TooltipProvider wrapping Root for delay config; as-child on Trigger for slot passthrough
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 04-01-PLAN.md — Vue 3 + Vite frontend scaffold with design tokens and Fastify static serving
+Last session: 2026-02-27
+Stopped at: Completed 04-02-PLAN.md — Five core components (Button, Badge, Checkbox, Tooltip, ProgressBar) + ComponentsPage with sidebar
 Resume file: None
