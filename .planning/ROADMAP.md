@@ -123,10 +123,11 @@ Plans:
   4. Tooltip hover is removed from session bars (replaced by the detail panel)
   5. Overnight sessions that span the day boundary are clipped to the visible day's time range
   6. Dead code removed: suppressPickerEmit ref, null-timestamp messages filtered before insert
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md — Detail panel component with click-to-select, tooltip removal, and selected bar highlight
+- [ ] 06-02-PLAN.md — Overnight session clipping, dead code removal (suppressPickerEmit, null-timestamp filtering)
 
 ---
 
