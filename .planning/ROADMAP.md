@@ -126,14 +126,14 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Detail panel component with click-to-select, tooltip removal, and selected bar highlight
-- [ ] 06-02-PLAN.md — Overnight session clipping, dead code removal (suppressPickerEmit, null-timestamp filtering)
+- [x] 06-01-PLAN.md — Detail panel component with click-to-select, tooltip removal, and selected bar highlight
+- [x] 06-02-PLAN.md — Overnight session clipping, dead code removal (suppressPickerEmit, null-timestamp filtering)
 
 ---
 
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 → 4 → 5
+**Execution Order:** 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -142,4 +142,4 @@ Plans:
 | 3. Server and CLI | 2/2 | Complete | 2026-02-26 |
 | 4. Component Library | 3/3 | Complete | 2026-02-27 |
 | 5. Timeline UI | 3/3 | Complete | 2026-02-28 |
-| 6. Timeline Polish | 0/TBD | Not started | - |
+| 6. Timeline Polish | 2/2 | Complete | 2026-02-28 |
