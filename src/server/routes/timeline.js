@@ -101,18 +101,40 @@ export async function timelineRoute(fastify, opts) {
     // Group sessions by project using a Map keyed by project_id
     const projectMap = new Map();
 
+    // Day boundaries for clamping overnight sessions
+    const dayStartISO = date + 'T00:00:00';
+    const dayEndISO   = date + 'T23:59:59.999';
+
     for (const row of sessions) {
       // Get message timestamps for working time computation
       const msgRows = messageStmt.all(row.session_id);
-      const timestamps = msgRows.map(m => m.timestamp);
-      const workingTimeMs = computeWorkingTime(timestamps);
+      const allTimestamps = msgRows.map(m => m.timestamp);
+
+      // Clamp timestamps to the requested day so overnight sessions
+      // don't pollute working time with activity from adjacent days
+      const clampedTimestamps = allTimestamps.filter(t => t >= dayStartISO && t <= dayEndISO);
+      const workingTimeMs = computeWorkingTime(clampedTimestamps);
+
+      // Clamp session boundaries to the visible day range
+      const clampedStart = row.first_message_at < dayStartISO ? dayStartISO : row.first_message_at;
+      const clampedEnd   = row.last_message_at  > dayEndISO   ? dayEndISO   : row.last_message_at;
+
+      // Compute idle gaps from clamped timestamps, then clip any gap that
+      // extends outside the day boundary (e.g. an overnight gap)
+      const rawIdleGaps = computeIdleGaps(clampedTimestamps);
+      const idleGaps = rawIdleGaps
+        .map(g => ({
+          start: g.start < dayStartISO ? dayStartISO : g.start,
+          end:   g.end   > dayEndISO   ? dayEndISO   : g.end,
+        }))
+        .filter(g => g.start < g.end);
 
       const sessionObj = {
         sessionId: row.session_id,
-        startTime: row.first_message_at,
-        endTime: row.last_message_at,
+        startTime: clampedStart,
+        endTime:   clampedEnd,
         workingTimeMs,
-        idleGaps: computeIdleGaps(timestamps),
+        idleGaps,
         ticket: row.primary_ticket,
         branch: row.working_branch,
         summary: row.summary,
