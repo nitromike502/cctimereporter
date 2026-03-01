@@ -18,6 +18,9 @@ import { extractContentText } from './parser.js';
 // Exported so importers and tests can reuse it.
 export const TICKET_PATTERN = /[a-zA-Z]{2,8}-\d+/gi;
 
+// Prefixes that look like tickets but aren't (e.g. SHUTDOWN-1772338997982)
+export const TICKET_PREFIX_DENYLIST = new Set(['SHUTDOWN']);
+
 // /prep-ticket slash command patterns
 const PREP_TICKET_INLINE = /\/prep-ticket\s+([a-zA-Z]{2,8}-\d+)/i;
 const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-args>([a-zA-Z]{2,8}-\d+)<\/command-args>/is;
@@ -99,6 +102,8 @@ export function scoreTickets(messages, workingBranch) {
 
   function addScore(ticket, points) {
     const key = ticket.toUpperCase();
+    const prefix = key.split('-')[0];
+    if (TICKET_PREFIX_DENYLIST.has(prefix)) return;
     ticketScores.set(key, (ticketScores.get(key) ?? 0) + points);
   }
 

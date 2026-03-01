@@ -8,10 +8,10 @@
  * import (size-based skip). Force re-import with options.force = true.
  */
 
-import { discoverProjects, findTranscriptFiles } from './discovery.js';
+import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
 import { parseTranscript } from './parser.js';
 import { detectForks } from './fork-detector.js';
-import { scoreTickets, determineWorkingBranch, TICKET_PATTERN } from './ticket-scorer.js';
+import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST } from './ticket-scorer.js';
 import {
   upsertSession,
   insertMessages,
@@ -60,8 +60,10 @@ function detectTicketsFromMessage(msg) {
       // Generic ticket mentions (TICKET-123 style)
       TICKET_PATTERN.lastIndex = 0;
       for (const match of text.matchAll(TICKET_PATTERN)) {
+        const key = match[0].toUpperCase();
+        if (TICKET_PREFIX_DENYLIST.has(key.split('-')[0])) continue;
         results.push({
-          ticket_key: match[0].toUpperCase(),
+          ticket_key: key,
           source: 'content',
           detected_at: msg.timestamp,
         });
@@ -73,8 +75,10 @@ function detectTicketsFromMessage(msg) {
   if (msg.gitBranch) {
     TICKET_PATTERN.lastIndex = 0;
     for (const match of msg.gitBranch.matchAll(TICKET_PATTERN)) {
+      const key = match[0].toUpperCase();
+      if (TICKET_PREFIX_DENYLIST.has(key.split('-')[0])) continue;
       results.push({
-        ticket_key: match[0].toUpperCase(),
+        ticket_key: key,
         source: 'branch',
         detected_at: msg.timestamp,
       });
@@ -191,7 +195,12 @@ async function importFile(db, file, projectId, options) {
   // 6. Tool use count
   const toolUseCount = countToolUses(messages);
 
-  // 7. Upsert session
+  // 7. Detect subagent (Pattern B: team-based)
+  // userType === "external" alone is NOT sufficient — team leaders also have it.
+  // The agentName check distinguishes subagents from team leaders.
+  const isSubagent = data.userType === 'external' && data.agentName != null;
+
+  // 8. Upsert session
   upsertSession(db, {
     session_id:              file.sessionId,
     project_id:              projectId,
@@ -213,9 +222,12 @@ async function importFile(db, file, projectId, options) {
     real_fork_count:         forkData.realForkCount,
     is_compacted:            data.hasCompactBoundary ? 1 : 0,
     has_subagents:           data.hasSubagents ? 1 : 0,
+    is_subagent:             isSubagent ? 1 : 0,
+    team_name:               data.teamName,
+    agent_name:              data.agentName,
   });
 
-  // 8. Insert messages
+  // 9. Insert messages
   const messagesForDb = messages.map(msg => ({
     uuid:          msg.uuid,
     type:          msg.type,
@@ -231,13 +243,11 @@ async function importFile(db, file, projectId, options) {
   const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
   insertMessages(db, file.sessionId, messagesWithTimestamps);
 
-  // 9. Collect and upsert tickets
+  // 10. Collect and upsert tickets (always call to clean up old tickets on re-import)
   const tickets = collectTickets(messages);
-  if (tickets.length > 0) {
-    upsertTickets(db, file.sessionId, tickets, primaryTicket);
-  }
+  upsertTickets(db, file.sessionId, tickets, primaryTicket);
 
-  // 10. Update import log
+  // 11. Update import log
   updateImportLog(db, file.path, file.sessionId, file.size, 'ok', null);
 
   if (verbose) {
@@ -310,6 +320,53 @@ export async function importAll(db, options = {}) {
           updateImportLog(db, file.path, file.sessionId, file.size, 'error', err.message);
         } catch (logErr) {
           // Don't propagate log errors
+        }
+      }
+    }
+
+    // Import Pattern A subagent files (tool-invoked agents)
+    // Messages merge into the parent session — no new session records created.
+    const agentFiles = findAgentFiles(project.transcriptDir);
+
+    for (const agentFile of agentFiles) {
+      // Size-based skip check
+      if (!force && importedSizes.get(agentFile.path) === agentFile.size) continue;
+
+      try {
+        const agentData = await parseTranscript(agentFile.path);
+        const agentMessages = agentData.messages
+          .filter(m => m.timestamp)
+          .map(msg => ({
+            uuid:          msg.uuid,
+            type:          msg.type,
+            subtype:       msg.subtype,
+            timestamp:     msg.timestamp,
+            parent_uuid:   msg.parentUuid,
+            git_branch:    msg.gitBranch,
+            is_meta:       msg.isMeta ? 1 : 0,
+            is_sidechain:  1, // Agent messages are always sidechains
+            is_fork_branch: 0,
+          }));
+
+        if (agentMessages.length > 0) {
+          insertMessages(db, agentFile.parentSessionId, agentMessages);
+        }
+
+        updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'ok', null);
+
+        if (verbose) {
+          process.stderr.write(
+            `  Merged ${agentMessages.length} agent messages into ${agentFile.parentSessionId.slice(0, 8)}...\n`
+          );
+        }
+      } catch (err) {
+        // Parent session may not exist yet or other errors — log and continue
+        try {
+          updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'error', err.message);
+        } catch (_logErr) { /* ignore */ }
+
+        if (verbose) {
+          process.stderr.write(`  Warning: agent file ${agentFile.name}: ${err.message}\n`);
         }
       }
     }

@@ -1,9 +1,13 @@
 /**
  * GET /api/timeline?date=YYYY-MM-DD
  *
- * Returns sessions grouped by project for the requested date.
+ * Returns sessions grouped by project for the requested date (local time).
  * Each session includes working time computed using the idle-gap algorithm
  * (gaps > 10 minutes are excluded from working time).
+ *
+ * Timestamps in the database are UTC (ISO8601 with Z suffix). Day boundaries
+ * are computed from the server's local timezone and converted to UTC for
+ * accurate comparison.
  *
  * Defaults to today if no date is provided.
  */
@@ -57,7 +61,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function timelineRoute(fastify, opts) {
   const { db } = opts;
 
-  // Cache prepared statements at registration time — avoids re-preparing on every request
+  // Sessions overlapping a UTC time range (local day converted to UTC)
   const sessionStmt = db.prepare(`
     SELECT
       s.session_id,
@@ -74,7 +78,8 @@ export async function timelineRoute(fastify, opts) {
       p.id AS project_id
     FROM sessions s
     JOIN projects p ON s.project_id = p.id
-    WHERE DATE(s.first_message_at) <= ? AND DATE(s.last_message_at) >= ?
+    WHERE s.first_message_at < ? AND s.last_message_at >= ?
+      AND (s.is_subagent = 0 OR s.is_subagent IS NULL)
     ORDER BY s.first_message_at
   `);
 
@@ -88,7 +93,8 @@ export async function timelineRoute(fastify, opts) {
   `);
 
   fastify.get('/api/timeline', async (request, reply) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const date = request.query.date ?? today;
 
     if (!DATE_RE.test(date)) {
@@ -96,49 +102,49 @@ export async function timelineRoute(fastify, opts) {
       return { error: 'Invalid date format. Use YYYY-MM-DD.' };
     }
 
-    const sessions = sessionStmt.all(date, date);
+    // Convert local day boundaries to UTC for correct comparison with Z timestamps
+    const dayStartUTC = new Date(date + 'T00:00:00').toISOString();
+    const dayEndUTC   = new Date(date + 'T23:59:59.999').toISOString();
+
+    // first_message_at < dayEnd AND last_message_at >= dayStart → overlaps the day
+    const sessions = sessionStmt.all(dayEndUTC, dayStartUTC);
 
     // Group sessions by project using a Map keyed by project_id
     const projectMap = new Map();
-
-    // Day boundaries for clamping overnight sessions
-    const dayStartISO = date + 'T00:00:00';
-    const dayEndISO   = date + 'T23:59:59.999';
 
     for (const row of sessions) {
       // Get message timestamps for working time computation
       const msgRows = messageStmt.all(row.session_id);
       const allTimestamps = msgRows.map(m => m.timestamp);
 
-      // Clamp timestamps to the requested day so overnight sessions
-      // don't pollute working time with activity from adjacent days
-      const clampedTimestamps = allTimestamps.filter(t => t >= dayStartISO && t <= dayEndISO);
+      // Filter to only messages within the local day (UTC boundaries)
+      const clampedTimestamps = allTimestamps.filter(t => t >= dayStartUTC && t < dayEndUTC);
       const workingTimeMs = computeWorkingTime(clampedTimestamps);
 
-      // Clamp session boundaries to the visible day range
-      const clampedStart = row.first_message_at < dayStartISO ? dayStartISO : row.first_message_at;
-      const clampedEnd   = row.last_message_at  > dayEndISO   ? dayEndISO   : row.last_message_at;
+      // For overnight sessions, use first/last in-day message instead of midnight
+      const continuesFromPrevDay = row.first_message_at < dayStartUTC;
+      const continuesIntoNextDay = row.last_message_at  >= dayEndUTC;
+      const clampedStart = continuesFromPrevDay ? (clampedTimestamps[0] ?? dayStartUTC) : row.first_message_at;
+      const clampedEnd   = continuesIntoNextDay ? (clampedTimestamps.at(-1) ?? dayEndUTC) : row.last_message_at;
 
-      // Compute idle gaps from clamped timestamps, then clip any gap that
-      // extends outside the day boundary (e.g. an overnight gap)
-      const rawIdleGaps = computeIdleGaps(clampedTimestamps);
-      const idleGaps = rawIdleGaps
-        .map(g => ({
-          start: g.start < dayStartISO ? dayStartISO : g.start,
-          end:   g.end   > dayEndISO   ? dayEndISO   : g.end,
-        }))
-        .filter(g => g.start < g.end);
+      // Skip sessions with no messages on this day
+      if (clampedTimestamps.length === 0) continue;
+
+      // Compute idle gaps from clamped timestamps
+      const idleGaps = computeIdleGaps(clampedTimestamps);
 
       const sessionObj = {
         sessionId: row.session_id,
         startTime: clampedStart,
         endTime:   clampedEnd,
+        continuesFromPrevDay,
+        continuesIntoNextDay,
         workingTimeMs,
         idleGaps,
         ticket: row.primary_ticket,
         branch: row.working_branch,
         summary: row.summary,
-        messageCount: row.message_count,
+        messageCount: clampedTimestamps.length,
         userMessageCount: row.user_message_count,
         forkCount: row.fork_count,
         realForkCount: row.real_fork_count,

@@ -56,7 +56,10 @@ export function upsertSession(db, sessionData) {
       fork_count,
       real_fork_count,
       is_compacted,
-      has_subagents
+      has_subagents,
+      is_subagent,
+      team_name,
+      agent_name
     ) VALUES (
       $session_id,
       $project_id,
@@ -78,7 +81,10 @@ export function upsertSession(db, sessionData) {
       $fork_count,
       $real_fork_count,
       $is_compacted,
-      $has_subagents
+      $has_subagents,
+      $is_subagent,
+      $team_name,
+      $agent_name
     )
   `);
 
@@ -104,6 +110,9 @@ export function upsertSession(db, sessionData) {
     $real_fork_count:         sessionData.real_fork_count      ?? 0,
     $is_compacted:            sessionData.is_compacted         ?? 0,
     $has_subagents:           sessionData.has_subagents        ?? 0,
+    $is_subagent:             sessionData.is_subagent          ?? 0,
+    $team_name:               sessionData.team_name            ?? null,
+    $agent_name:              sessionData.agent_name           ?? null,
   });
 }
 
@@ -189,6 +198,9 @@ export function insertMessages(db, sessionId, messages) {
  * @param {string|null} primaryTicket  The ticket_key to mark as primary
  */
 export function upsertTickets(db, sessionId, tickets, primaryTicket) {
+  // Delete existing tickets for this session so re-imports reflect current scoring/denylist
+  db.prepare('DELETE FROM tickets WHERE session_id = ?').run(sessionId);
+
   if (!tickets || tickets.length === 0) return;
 
   const stmt = db.prepare(`

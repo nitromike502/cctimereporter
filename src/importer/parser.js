@@ -28,6 +28,9 @@ export async function parseTranscript(filePath) {
   let slug = null;
   let hasCompactBoundary = false;
   let hasSubagents = false;
+  let teamName = null;
+  let agentName = null;
+  let userType = null;
 
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: 'utf8' }),
@@ -73,6 +76,16 @@ export async function parseTranscript(filePath) {
       hasSubagents = true;
     }
 
+    if (!teamName && msg.teamName) {
+      teamName = msg.teamName;
+    }
+    if (!agentName && msg.agentName) {
+      agentName = msg.agentName;
+    }
+    if (!userType && msg.userType) {
+      userType = msg.userType;
+    }
+
     // Store normalized message object
     messages.push({
       uuid: msg.uuid || `line-${lineNum}`,
@@ -99,6 +112,9 @@ export async function parseTranscript(filePath) {
     slug,
     hasCompactBoundary,
     hasSubagents,
+    teamName,
+    agentName,
+    userType,
   };
 }
 

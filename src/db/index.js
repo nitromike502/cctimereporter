@@ -9,22 +9,21 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2 } from './schema.js';
+import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3 } from './schema.js';
 
 export const DB_DIR = join(homedir(), '.cctimereporter');
 export const DB_PATH = join(DB_DIR, 'data.db');
 
 /**
- * Migrates a v1 database to v2 in place.
- * Each ALTER TABLE statement is wrapped in try/catch since SQLite has no
+ * Run a migration SQL string containing semicolon-separated statements.
+ * Each statement is wrapped in try/catch since SQLite has no
  * ALTER TABLE ADD COLUMN IF NOT EXISTS — re-running is safe.
  *
  * @param {DatabaseSync} db
+ * @param {string} migrationSql
  */
-function migrateV1toV2(db) {
-  // Split on semicolons, filter empty lines, run each statement individually.
-  // ALTER TABLE statements must be run one at a time; CREATE TABLE/INDEX can be batched.
-  const statements = MIGRATION_V1_TO_V2
+function runMigration(db, migrationSql) {
+  const statements = migrationSql
     .split(';')
     .map(s => s.trim())
     .filter(s => s.length > 0);
@@ -35,8 +34,6 @@ function migrateV1toV2(db) {
       try {
         db.exec(stmt + ';');
       } catch (err) {
-        // "duplicate column name" means the column already exists — safe to ignore.
-        // Any other error is re-thrown.
         if (!err.message.includes('duplicate column name') &&
             !err.message.includes('already exists')) {
           throw err;
@@ -48,6 +45,14 @@ function migrateV1toV2(db) {
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+function migrateV1toV2(db) {
+  runMigration(db, MIGRATION_V1_TO_V2);
+}
+
+function migrateV2toV3(db) {
+  runMigration(db, MIGRATION_V2_TO_V3);
 }
 
 /**
@@ -73,9 +78,13 @@ export function openDatabase() {
     const existingVersion = row.user_version;
 
     if (existingVersion === 1) {
-      // Auto-migrate v1 → v2.
+      // Auto-migrate v1 → v2 → v3.
       migrateV1toV2(db);
-      // PRAGMA user_version cannot use parameter binding — interpolate directly.
+      migrateV2toV3(db);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+    } else if (existingVersion === 2) {
+      // Auto-migrate v2 → v3.
+      migrateV2toV3(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion !== 0 && existingVersion !== SCHEMA_VERSION) {
       // Unknown version — drop and recreate.

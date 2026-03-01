@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   real_fork_count         INTEGER DEFAULT 0,
   is_compacted            BOOLEAN DEFAULT 0,
   has_subagents           BOOLEAN DEFAULT 0,
+  is_subagent             BOOLEAN DEFAULT 0,
+  team_name               TEXT,
+  agent_name              TEXT,
   imported_at             TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (project_id) REFERENCES projects(id)
 );
@@ -98,6 +101,16 @@ CREATE TABLE IF NOT EXISTS import_log (
  * Each ALTER TABLE is wrapped in a try/catch in migrateV1toV2() since SQLite
  * has no ALTER TABLE ADD COLUMN IF NOT EXISTS.
  */
+/**
+ * ALTER TABLE statements to migrate v2 → v3.
+ * Adds subagent classification columns.
+ */
+export const MIGRATION_V2_TO_V3 = `
+ALTER TABLE sessions ADD COLUMN is_subagent BOOLEAN DEFAULT 0;
+ALTER TABLE sessions ADD COLUMN team_name TEXT;
+ALTER TABLE sessions ADD COLUMN agent_name TEXT;
+`;
+
 export const MIGRATION_V1_TO_V2 = `
 ALTER TABLE sessions ADD COLUMN file_size INTEGER;
 ALTER TABLE sessions ADD COLUMN assistant_message_count INTEGER DEFAULT 0;
