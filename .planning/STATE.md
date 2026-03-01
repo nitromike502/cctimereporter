@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** All phases complete — v1 milestone ready for audit
+**Current focus:** Phase 6 timeline polish — click-to-select detail panel complete
 
 ## Current Position
 
 Phase: 6 of 6 (Timeline Polish) — In progress
-Plan: 2 of ? complete in Phase 6
-Status: Phase 6 in progress. Plans 06-01 and 06-02 complete.
-Last activity: 2026-02-28 — Completed 06-02-PLAN.md (overnight session clamping + dead code removal)
+Plan: 1 of ? complete in Phase 6 (06-01 just completed)
+Status: Phase 6 in progress. 06-01 complete (session detail panel).
+Last activity: 2026-03-01 — Completed 06-01-PLAN.md (SessionDetailPanel + click-to-select wiring)
 
 Progress: [████████████████████] Phase 1–5 complete + Phase 6 in progress
 
@@ -90,6 +90,9 @@ Recent decisions affecting current work:
 - 05-03: Reka UI CheckboxRoot uses modelValue/update:modelValue, not checked/update:checked
 - 05-03: AppDatePicker max-date defaults to today — prevents future date selection
 - 05-03: Grid overlay div (left:140px, right:0) for fit-to-width chart — replaces per-line margin-left
+- 06-01: SessionDetailPanel placed inside .timeline-content above filter bar — anchors near chart, hidden during loading/empty/error
+- 06-01: Toggle deselect pattern: clicking same bar twice clears the panel (selectedSession = null)
+- 06-01: selectedProjectName scans colorizedProjects (not visibleProjects) so hidden projects still resolve
 - 06-02: Clamp timestamps array first, then pass to both computeWorkingTime and computeIdleGaps — consistent clamping, single source
 - 06-02: ISO8601 string comparison for day-boundary clamping — avoids Date parsing, correct for UTC
 - 06-02: null != null (loose equality) used for null-timestamp filter in importer to catch both null and undefined
@@ -105,10 +108,10 @@ None — all phases complete.
 ### Known Refinements (Post-v1)
 
 - Overnight session bars now clipped to day boundaries (resolved in 06-02)
-- Click action on timeline bars for sidebar/modal detail view (deferred feature)
+- Click action on timeline bars for detail view — now implemented as SessionDetailPanel (06-01)
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 06-02-PLAN.md (overnight clamping + dead code removal)
+Last session: 2026-03-01
+Stopped at: Completed 06-01-PLAN.md (SessionDetailPanel + click-to-select)
 Resume file: None
