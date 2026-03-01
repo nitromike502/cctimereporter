@@ -9,14 +9,18 @@
     }"
     @click="emit('select', session)"
   >
-    <span
-      v-for="(seg, i) in segments"
-      :key="i"
-      class="bar-segment"
-      :class="seg.type"
-      :style="{ left: seg.leftPct + '%', width: seg.widthPct + '%' }"
-    />
-    <span class="bar-label">{{ label }}</span>
+    <span v-if="session.continuesFromPrevDay" class="continuation-icon prev" title="Continues from previous day">&#9664;</span>
+    <div class="bar-inner">
+      <span
+        v-for="(seg, i) in segments"
+        :key="i"
+        class="bar-segment"
+        :class="seg.type"
+        :style="{ left: seg.leftPct + '%', width: seg.widthPct + '%' }"
+      />
+      <span class="bar-label">{{ label }}</span>
+    </div>
+    <span v-if="session.continuesIntoNextDay" class="continuation-icon next" title="Continues into next day">&#9654;</span>
   </div>
 </template>
 
@@ -132,7 +136,7 @@ const label = computed(() => {
   height: 28px;
   min-width: 4px;
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
   transition: opacity var(--transition-fast);
 }
@@ -144,6 +148,14 @@ const label = computed(() => {
 .gantt-bar.selected {
   box-shadow: 0 0 0 2px var(--color-primary, #4e9af1);
   z-index: 2;
+}
+
+.bar-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .bar-segment {
@@ -159,6 +171,27 @@ const label = computed(() => {
 .bar-segment.idle {
   background: var(--bar-color);
   opacity: 0.25;
+}
+
+.continuation-icon {
+  position: absolute;
+  top: 0;
+  z-index: 3;
+  font-size: 10px;
+  line-height: 28px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.continuation-icon.prev {
+  left: -14px;
+  color: var(--bar-color);
+}
+
+.continuation-icon.next {
+  right: -14px;
+  color: var(--bar-color);
 }
 
 .bar-label {

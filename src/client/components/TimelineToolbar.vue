@@ -70,7 +70,7 @@ const pickerDate = computed(() => {
 function onDatePicked(val) {
   if (!val) return
   const d = val instanceof Date ? val : new Date(val)
-  const str = d.toISOString().slice(0, 10)
+  const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   emit('navigate', str)
 }
 
@@ -79,7 +79,7 @@ function onDatePicked(val) {
 function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T12:00:00') // noon avoids DST edge cases
   d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function formatDate(dateStr) {
@@ -93,7 +93,8 @@ function formatDate(dateStr) {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function yesterdayStr() {

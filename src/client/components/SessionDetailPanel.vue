@@ -1,43 +1,37 @@
 <template>
   <div class="session-detail-panel">
-    <!-- Placeholder when nothing selected -->
-    <div v-if="!session" class="detail-placeholder">
-      Select a session to view details
-    </div>
-
-    <!-- Detail grid when session selected -->
-    <div v-else class="detail-grid">
+    <div class="detail-grid">
       <div class="detail-item">
         <span class="detail-label">Session ID</span>
-        <span class="detail-value">{{ sessionIdShort }}</span>
+        <span class="detail-value">{{ sessionIdShort || '—' }}</span>
       </div>
-      <div v-if="session.ticket" class="detail-item">
+      <div class="detail-item">
         <span class="detail-label">Ticket</span>
-        <span class="detail-value">{{ session.ticket }}</span>
+        <span class="detail-value">{{ session?.ticket || '—' }}</span>
       </div>
-      <div v-if="session.branch" class="detail-item">
+      <div class="detail-item">
         <span class="detail-label">Branch</span>
-        <span class="detail-value">{{ session.branch }}</span>
+        <span class="detail-value">{{ session?.branch || '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Project</span>
-        <span class="detail-value">{{ projectName || '—' }}</span>
+        <span class="detail-value">{{ (session && projectName) || '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Working Time</span>
-        <span class="detail-value">{{ workingTimeLabel }}</span>
+        <span class="detail-value">{{ workingTimeLabel || '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Wall-Clock Span</span>
-        <span class="detail-value">{{ wallClockSpan }}</span>
+        <span class="detail-value">{{ wallClockSpan || '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Messages</span>
-        <span class="detail-value">{{ session.messageCount }}</span>
+        <span class="detail-value">{{ session?.messageCount ?? '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Idle Gaps</span>
-        <span class="detail-value">{{ idleGapCount }}</span>
+        <span class="detail-value">{{ session ? idleGapCount : '—' }}</span>
       </div>
     </div>
   </div>

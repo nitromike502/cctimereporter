@@ -3,3 +3,5 @@ dist/
 scripts/__pycache__/
 *.pyc
 .playwright-mcp/
+.deleted/
+.claude/settings.local.json
