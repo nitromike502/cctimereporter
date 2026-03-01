@@ -7,7 +7,9 @@
         :session="session"
         :date="date"
         :color="color"
+        :selected="session.sessionId === selectedSessionId"
         :style="{ top: rowIdx * BAR_ROW_HEIGHT + 'px' }"
+        @select="emit('select', $event)"
       />
     </template>
   </div>
@@ -21,10 +23,12 @@ import GanttBar from './GanttBar.vue'
  * GanttSwimlane — renders all session bars for one project.
  *
  * Uses a greedy algorithm to stack overlapping sessions in non-colliding sub-rows.
+ * Forwards the selected session ID to each bar and bubbles the select event up.
  *
- * @prop {Array}  sessions - Array of session objects from the API
- * @prop {string} date     - YYYY-MM-DD for time conversion
- * @prop {string} color    - Project color hex string
+ * @prop {Array}  sessions         - Array of session objects from the API
+ * @prop {string} date             - YYYY-MM-DD for time conversion
+ * @prop {string} color            - Project color hex string
+ * @prop {string} selectedSessionId - Session ID of the currently selected bar (or null)
  */
 const props = defineProps({
   sessions: {
@@ -39,7 +43,13 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  selectedSessionId: {
+    type: String,
+    default: null,
+  },
 })
+
+const emit = defineEmits(['select'])
 
 /** Bar height (28px) + gap (8px) */
 const BAR_ROW_HEIGHT = 36

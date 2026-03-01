@@ -29,6 +29,12 @@
 
     <!-- Main content -->
     <div v-else-if="timelineData" class="timeline-content">
+      <!-- Session detail panel: always visible, populated on bar click -->
+      <SessionDetailPanel
+        :session="selectedSession"
+        :project-name="selectedProjectName"
+      />
+
       <!-- Project filter bar -->
       <div class="filter-bar" v-if="colorizedProjects.length > 1">
         <span class="filter-label">Projects:</span>
@@ -51,6 +57,8 @@
       <GanttChart
         :projects="visibleProjects"
         :date="selectedDate"
+        :selected-session-id="selectedSession?.sessionId"
+        @select="onSelectSession"
       />
     </div>
   </div>
@@ -62,6 +70,7 @@ import { useRoute, useRouter } from 'vue-router'
 import TimelineToolbar from '../components/TimelineToolbar.vue'
 import GanttChart from '../components/GanttChart.vue'
 import GanttLegend from '../components/GanttLegend.vue'
+import SessionDetailPanel from '../components/SessionDetailPanel.vue'
 import AppButton from '../components/AppButton.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
 
@@ -78,6 +87,8 @@ const error = ref(null)
 const importRunning = ref(false)
 // Set of hidden projectIds. Persists across date changes. All visible by default.
 const hiddenProjects = ref(new Set())
+// Currently selected session (click-to-select from GanttBar)
+const selectedSession = ref(null)
 
 // --- Date management (URL-synced) ---
 
@@ -108,6 +119,31 @@ async function fetchTimeline() {
     loading.value = false
   }
 }
+
+// --- Session selection ---
+
+/**
+ * Handles clicking a session bar. Toggles selection: clicking the same bar
+ * again deselects it; clicking a different bar selects it.
+ */
+function onSelectSession(session) {
+  if (selectedSession.value?.sessionId === session.sessionId) {
+    selectedSession.value = null
+  } else {
+    selectedSession.value = session
+  }
+}
+
+/**
+ * Finds the display name of the project that owns the currently selected session.
+ */
+const selectedProjectName = computed(() => {
+  if (!selectedSession.value || !colorizedProjects.value.length) return ''
+  const project = colorizedProjects.value.find(p =>
+    p.sessions.some(s => s.sessionId === selectedSession.value.sessionId)
+  )
+  return project?.displayName ?? ''
+})
 
 // --- Project visibility ---
 
@@ -175,7 +211,10 @@ async function triggerImport() {
 // --- Lifecycle ---
 
 onMounted(fetchTimeline)
-watch(() => route.query.date, () => fetchTimeline())
+watch(() => route.query.date, () => {
+  selectedSession.value = null
+  fetchTimeline()
+})
 </script>
 
 <style scoped>

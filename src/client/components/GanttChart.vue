@@ -32,6 +32,8 @@
             :sessions="project.sessions"
             :date="date"
             :color="project.color"
+            :selected-session-id="selectedSessionId"
+            @select="emit('select', $event)"
           />
         </div>
       </div>
@@ -47,10 +49,11 @@ import GanttSwimlane from './GanttSwimlane.vue'
  * GanttChart — the main timeline canvas.
  *
  * Renders a 24h horizontal time axis with tick marks and one GanttSwimlane
- * per project. Auto-scrolls to the active session range on mount and data change.
+ * per project. Forwards selectedSessionId to swimlanes and emits select events.
  *
- * @prop {Array}  projects - Array of { projectId, displayName, color, sessions } objects
- * @prop {string} date     - YYYY-MM-DD date string
+ * @prop {Array}  projects          - Array of { projectId, displayName, color, sessions } objects
+ * @prop {string} date              - YYYY-MM-DD date string
+ * @prop {string} selectedSessionId - Session ID of the currently selected bar (or null)
  */
 const props = defineProps({
   projects: {
@@ -61,7 +64,13 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  selectedSessionId: {
+    type: String,
+    default: null,
+  },
 })
+
+const emit = defineEmits(['select'])
 
 /**
  * Generates tick marks for the 24h time axis, one every 2 hours.
@@ -80,7 +89,6 @@ const timeAxisTicks = computed(() => {
   }
   return ticks
 })
-
 </script>
 
 <style scoped>

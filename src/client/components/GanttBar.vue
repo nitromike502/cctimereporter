@@ -1,38 +1,39 @@
 <template>
-  <AppTooltip :content="tooltipContent" side="top">
-    <div
-      class="gantt-bar"
-      :style="{
-        left: barLeft + '%',
-        width: barWidth + '%',
-        '--bar-color': color,
-      }"
-    >
-      <span
-        v-for="(seg, i) in segments"
-        :key="i"
-        class="bar-segment"
-        :class="seg.type"
-        :style="{ left: seg.leftPct + '%', width: seg.widthPct + '%' }"
-      />
-      <span class="bar-label">{{ label }}</span>
-    </div>
-  </AppTooltip>
+  <div
+    class="gantt-bar"
+    :class="{ selected }"
+    :style="{
+      left: barLeft + '%',
+      width: barWidth + '%',
+      '--bar-color': color,
+    }"
+    @click="emit('select', session)"
+  >
+    <span
+      v-for="(seg, i) in segments"
+      :key="i"
+      class="bar-segment"
+      :class="seg.type"
+      :style="{ left: seg.leftPct + '%', width: seg.widthPct + '%' }"
+    />
+    <span class="bar-label">{{ label }}</span>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import AppTooltip from './AppTooltip.vue'
 
 /**
  * GanttBar — a single session bar positioned absolutely within its parent container.
  *
  * Renders idle-gap segments as faded spans inline within the bar.
- * Wrapped in AppTooltip showing session details on hover.
+ * Emits 'select' with the session object when clicked.
+ * Shows a highlight (box-shadow) when the `selected` prop is true.
  *
- * @prop {Object} session - Session object: { sessionId, startTime, endTime, workingTimeMs, ticket, branch, summary, messageCount, userMessageCount, idleGaps }
- * @prop {string} date    - YYYY-MM-DD date string for time-to-percent conversion
- * @prop {string} color   - Project color hex string
+ * @prop {Object}  session  - Session object: { sessionId, startTime, endTime, workingTimeMs, ticket, branch, summary, messageCount, userMessageCount, idleGaps }
+ * @prop {string}  date     - YYYY-MM-DD date string for time-to-percent conversion
+ * @prop {string}  color    - Project color hex string
+ * @prop {boolean} selected - Whether this bar is the currently selected session
  */
 const props = defineProps({
   session: {
@@ -47,7 +48,13 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+const emit = defineEmits(['select'])
 
 /**
  * Converts an ISO timestamp to a percentage (0-100) of a 24-hour day.
@@ -62,7 +69,7 @@ function timeToPercent(timestamp, dateStr) {
 /** Left offset of the bar as percentage of the 24h day */
 const barLeft = computed(() => timeToPercent(props.session.startTime, props.date))
 
-/** Width of the bar as percentage of the 24h day, with a minimum to remain hoverable */
+/** Width of the bar as percentage of the 24h day, with a minimum to remain clickable */
 const barWidth = computed(() => {
   const widthPct = timeToPercent(props.session.endTime, props.date) - barLeft.value
   return Math.max(widthPct, 0.03)
@@ -117,23 +124,6 @@ const label = computed(() => {
   }
   return props.session.sessionId.slice(0, 8)
 })
-
-/** Multi-line tooltip content showing session details */
-const tooltipContent = computed(() => {
-  const wt = props.session.workingTimeMs
-  const wtMin = Math.round(wt / 60000)
-  const start = new Date(props.session.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const end = new Date(props.session.endTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const lines = [
-    `Session: ${props.session.sessionId.slice(0, 12)}...`,
-    props.session.ticket ? `Ticket: ${props.session.ticket}` : null,
-    props.session.branch ? `Branch: ${props.session.branch}` : null,
-    `Working: ${wtMin} min`,
-    `Span: ${start} - ${end}`,
-    `Messages: ${props.session.messageCount}`,
-  ].filter(Boolean)
-  return lines.join('\n')
-})
 </script>
 
 <style scoped>
@@ -149,6 +139,11 @@ const tooltipContent = computed(() => {
 
 .gantt-bar:hover {
   opacity: 0.85;
+}
+
+.gantt-bar.selected {
+  box-shadow: 0 0 0 2px var(--color-primary, #4e9af1);
+  z-index: 2;
 }
 
 .bar-segment {
