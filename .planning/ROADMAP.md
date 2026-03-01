@@ -111,6 +111,25 @@ Plans:
 
 ---
 
+### Phase 6: Timeline Polish
+**Goal**: The timeline is refined — session details appear in a persistent detail panel on click (replacing tooltip hover), overnight sessions render cleanly, and dead code is removed
+**Depends on**: Phase 5
+**Requirements**: VIZ-05 (enhanced — click-to-detail replaces hover tooltip)
+**Gap Closure**: Closes tech debt from v1 audit
+**Success Criteria** (what must be TRUE):
+  1. Clicking a session bar populates a detail panel above the Gantt chart with session ID, ticket, branch, project, working time, wall-clock span, message count, and idle gap count
+  2. The detail panel shows a "Select a session" placeholder when no session is selected
+  3. The selected session bar has a visible highlight state distinguishing it from unselected bars
+  4. Tooltip hover is removed from session bars (replaced by the detail panel)
+  5. Overnight sessions that span the day boundary are clipped to the visible day's time range
+  6. Dead code removed: suppressPickerEmit ref, null-timestamp messages filtered before insert
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: TBD
+
+---
+
 ## Progress
 
 **Execution Order:** 1 → 2 → 3 → 4 → 5
@@ -122,3 +141,4 @@ Plans:
 | 3. Server and CLI | 2/2 | Complete | 2026-02-26 |
 | 4. Component Library | 3/3 | Complete | 2026-02-27 |
 | 5. Timeline UI | 3/3 | Complete | 2026-02-28 |
+| 6. Timeline Polish | 0/TBD | Not started | - |
