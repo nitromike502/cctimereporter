@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import AppButton from './AppButton.vue'
 import AppDatePicker from './AppDatePicker.vue'
 import AppProgressBar from './AppProgressBar.vue'
@@ -66,9 +66,6 @@ const pickerDate = computed(() => {
   if (!props.date) return null
   return new Date(props.date + 'T12:00:00')
 })
-
-// Track if picker was just updated from nav to avoid echo loop
-const suppressPickerEmit = ref(false)
 
 function onDatePicked(val) {
   if (!val) return

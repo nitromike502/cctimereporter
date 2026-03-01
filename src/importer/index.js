@@ -227,7 +227,9 @@ async function importFile(db, file, projectId, options) {
     is_sidechain:  msg.isSidechain ? 1 : 0,
     is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
   }));
-  insertMessages(db, file.sessionId, messagesForDb);
+  // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
+  const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
+  insertMessages(db, file.sessionId, messagesWithTimestamps);
 
   // 9. Collect and upsert tickets
   const tickets = collectTickets(messages);
