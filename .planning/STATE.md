@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 
 ## Current Position
 
-Phase: 5 of 5 (Timeline UI) — Complete
-Plan: 3 of 3 complete
-Status: All phases complete. Verification passed (7/7 must-haves).
-Last activity: 2026-02-28 — Completed Phase 5 (Timeline UI)
+Phase: 6 of 6 (Timeline Polish) — In progress
+Plan: 2 of ? complete in Phase 6
+Status: Phase 6 in progress. Plans 06-01 and 06-02 complete.
+Last activity: 2026-02-28 — Completed 06-02-PLAN.md (overnight session clamping + dead code removal)
 
-Progress: [████████████████████] 100% overall (9/9 plans complete)
+Progress: [████████████████████] Phase 1–5 complete + Phase 6 in progress
 
 ## Performance Metrics
 
@@ -90,6 +90,9 @@ Recent decisions affecting current work:
 - 05-03: Reka UI CheckboxRoot uses modelValue/update:modelValue, not checked/update:checked
 - 05-03: AppDatePicker max-date defaults to today — prevents future date selection
 - 05-03: Grid overlay div (left:140px, right:0) for fit-to-width chart — replaces per-line margin-left
+- 06-02: Clamp timestamps array first, then pass to both computeWorkingTime and computeIdleGaps — consistent clamping, single source
+- 06-02: ISO8601 string comparison for day-boundary clamping — avoids Date parsing, correct for UTC
+- 06-02: null != null (loose equality) used for null-timestamp filter in importer to catch both null and undefined
 
 ### Pending Todos
 
@@ -101,11 +104,11 @@ None — all phases complete.
 
 ### Known Refinements (Post-v1)
 
-- Overnight sessions produce bars dominated by idle segments (95%+ faded), making active work portions nearly invisible
+- Overnight session bars now clipped to day boundaries (resolved in 06-02)
 - Click action on timeline bars for sidebar/modal detail view (deferred feature)
 
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: All 5 phases complete. Milestone ready for audit.
+Stopped at: Completed 06-02-PLAN.md (overnight clamping + dead code removal)
 Resume file: None
