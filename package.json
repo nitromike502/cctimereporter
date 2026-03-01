@@ -17,6 +17,7 @@
   "scripts": {
     "start": "node bin/cli.js",
     "build": "vite build",
+    "prepublishOnly": "vite build",
     "dev:client": "vite"
   },
   "dependencies": {
