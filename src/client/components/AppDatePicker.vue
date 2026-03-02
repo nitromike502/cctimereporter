@@ -7,6 +7,7 @@
       :max-date="maxDate"
       auto-apply
       :enable-time-picker="false"
+      :formats="{ input: 'yyyy-MM-dd' }"
       :dark="isDark"
     />
   </div>
