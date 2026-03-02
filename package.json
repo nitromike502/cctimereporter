@@ -8,7 +8,10 @@
   },
   "files": [
     "bin",
-    "src",
+    "src/db",
+    "src/importer",
+    "src/server",
+    "src/version-check.js",
     "dist"
   ],
   "engines": {
@@ -22,14 +25,14 @@
   },
   "dependencies": {
     "@fastify/static": "^9.0.0",
-    "@vuepic/vue-datepicker": "^12.1.0",
-    "fastify": "^5.7.4",
-    "reka-ui": "^2.8.2",
-    "vue": "^3.5.29",
-    "vue-router": "^5.0.3"
+    "fastify": "^5.7.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
-    "vite": "^7.3.1"
+    "@vuepic/vue-datepicker": "^12.1.0",
+    "reka-ui": "^2.8.2",
+    "vite": "^7.3.1",
+    "vue": "^3.5.29",
+    "vue-router": "^5.0.3"
   }
 }
