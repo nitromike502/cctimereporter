@@ -19,6 +19,7 @@
           :value="threshold"
           min="1"
           max="60"
+          step="1"
           @change="$emit('update:threshold', Math.max(1, Math.min(60, parseInt($event.target.value, 10) || 10)))"
         />
         <span class="threshold-label">min</span>
@@ -173,20 +174,14 @@ function yesterdayStr() {
 }
 
 .threshold-input {
-  width: 48px;
-  padding: 2px 4px;
+  width: 56px;
+  height: 36px;
+  padding: 4px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  color: var(--color-heading);
+  font-size: var(--font-size-base);
   text-align: center;
-  -moz-appearance: textfield;
-}
-
-.threshold-input::-webkit-inner-spin-button,
-.threshold-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
 }
 </style>
