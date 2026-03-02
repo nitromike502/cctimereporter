@@ -3,14 +3,26 @@
     <!-- Left group: Navigation buttons + current date display -->
     <div class="nav-group">
       <AppButton variant="ghost" size="sm" @click="emit('navigate', addDays(date, -1))">&larr; Prev</AppButton>
-      <AppButton variant="secondary" size="sm" @click="emit('navigate', todayStr())">Today</AppButton>
       <AppButton variant="secondary" size="sm" @click="emit('navigate', yesterdayStr())">Yesterday</AppButton>
+      <AppButton variant="secondary" size="sm" @click="emit('navigate', todayStr())">Today</AppButton>
       <AppButton variant="ghost" size="sm" :disabled="date >= todayStr()" @click="emit('navigate', addDays(date, 1))">Next &rarr;</AppButton>
       <span class="date-display">{{ formatDate(date) }}</span>
     </div>
 
-    <!-- Right group: DatePicker + Import -->
+    <!-- Right group: Threshold + DatePicker + Import -->
     <div class="right-group">
+      <label class="threshold-control">
+        <span class="threshold-label">Idle</span>
+        <input
+          type="number"
+          class="threshold-input"
+          :value="threshold"
+          min="1"
+          max="60"
+          @change="$emit('update:threshold', Math.max(1, Math.min(60, parseInt($event.target.value, 10) || 10)))"
+        />
+        <span class="threshold-label">min</span>
+      </label>
       <AppDatePicker
         :model-value="pickerDate"
         placeholder="Jump to date..."
@@ -57,9 +69,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** Idle threshold in minutes */
+  threshold: {
+    type: Number,
+    default: 10,
+  },
 })
 
-const emit = defineEmits(['navigate', 'import'])
+const emit = defineEmits(['navigate', 'import', 'update:threshold'])
 
 // Local picker Date object derived from props.date (for display only)
 const pickerDate = computed(() => {
@@ -141,5 +158,35 @@ function yesterdayStr() {
 
 .progress-container {
   width: 200px;
+}
+
+.threshold-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.threshold-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.threshold-input {
+  width: 48px;
+  padding: 2px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.threshold-input::-webkit-inner-spin-button,
+.threshold-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 </style>

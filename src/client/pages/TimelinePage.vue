@@ -4,8 +4,10 @@
     <TimelineToolbar
       :date="selectedDate"
       :import-running="importRunning"
+      :threshold="idleThreshold"
       @navigate="navigateToDate"
       @import="triggerImport"
+      @update:threshold="setIdleThreshold"
     />
 
     <!-- Error banner -->
@@ -89,6 +91,15 @@ const importRunning = ref(false)
 const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
 const selectedSession = ref(null)
+// Idle threshold in minutes, persisted to localStorage
+const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
+const idleThreshold = ref(parseInt(localStorage.getItem(THRESHOLD_KEY), 10) || 10)
+
+function setIdleThreshold(val) {
+  idleThreshold.value = val
+  localStorage.setItem(THRESHOLD_KEY, String(val))
+  fetchTimeline()
+}
 
 // --- Date management (URL-synced) ---
 
@@ -109,7 +120,7 @@ async function fetchTimeline() {
   loading.value = true
   error.value = null
   try {
-    const res = await fetch(`/api/timeline?date=${selectedDate.value}`)
+    const res = await fetch(`/api/timeline?date=${selectedDate.value}&threshold=${idleThreshold.value}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     timelineData.value = data

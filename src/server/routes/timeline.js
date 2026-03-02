@@ -12,44 +12,65 @@
  * Defaults to today if no date is provided.
  */
 
-const IDLE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const DEFAULT_IDLE_THRESHOLD_MIN = 10;
 
 /**
  * Compute working time from an array of ISO8601 timestamp strings.
- * Consecutive message gaps <= IDLE_THRESHOLD_MS are counted as working time.
+ * Consecutive message gaps <= thresholdMs are counted as working time.
  * Larger gaps (idle periods, overnight, etc.) are excluded.
  *
  * @param {string[]} timestamps - ISO8601 timestamp strings
+ * @param {number} thresholdMs - Idle threshold in milliseconds
  * @returns {number} Working time in milliseconds
  */
-function computeWorkingTime(timestamps) {
+function computeWorkingTime(timestamps, thresholdMs) {
   if (timestamps.length < 2) return 0;
   const parsed = timestamps.map(t => new Date(t).getTime());
   let workingMs = 0;
   for (let i = 1; i < parsed.length; i++) {
     const gap = parsed[i] - parsed[i - 1];
-    if (gap <= IDLE_THRESHOLD_MS) workingMs += gap;
+    if (gap <= thresholdMs) workingMs += gap;
   }
   return workingMs;
 }
 
 /**
  * Compute idle gap spans from an array of ISO8601 timestamp strings.
- * Returns entries for consecutive message gaps > IDLE_THRESHOLD_MS.
+ * Returns entries for consecutive message gaps > thresholdMs.
  *
  * @param {string[]} timestamps - ISO8601 timestamp strings
+ * @param {number} thresholdMs - Idle threshold in milliseconds
  * @returns {{ start: string, end: string }[]} Array of idle gap objects
  */
-function computeIdleGaps(timestamps) {
+function computeIdleGaps(timestamps, thresholdMs) {
   if (timestamps.length < 2) return [];
   const gaps = [];
   for (let i = 1; i < timestamps.length; i++) {
     const gap = new Date(timestamps[i]).getTime() - new Date(timestamps[i - 1]).getTime();
-    if (gap > IDLE_THRESHOLD_MS) {
+    if (gap > thresholdMs) {
       gaps.push({ start: timestamps[i - 1], end: timestamps[i] });
     }
   }
   return gaps;
+}
+
+// Generic build directory names — use parent directory for display instead
+const BUILD_DIR_NAMES = new Set(['httpdocs', 'htdocs', 'public_html', 'www', 'dist', 'build']);
+
+/**
+ * Derive a human-friendly display name from a project path.
+ * If the last segment is a generic build directory name, use the parent instead.
+ *
+ * @param {string} projectPath
+ * @returns {string}
+ */
+function getDisplayName(projectPath) {
+  const parts = projectPath.split('/').filter(Boolean);
+  const last = parts.at(-1) ?? projectPath;
+  if (BUILD_DIR_NAMES.has(last) && parts.length >= 2) {
+    return parts.at(-2);
+  }
+  return last;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -102,6 +123,10 @@ export async function timelineRoute(fastify, opts) {
       return { error: 'Invalid date format. Use YYYY-MM-DD.' };
     }
 
+    // Idle threshold: optional query param in minutes, default 10
+    const thresholdMin = Math.max(1, Math.min(60, parseInt(request.query.threshold, 10) || DEFAULT_IDLE_THRESHOLD_MIN));
+    const thresholdMs = thresholdMin * 60 * 1000;
+
     // Convert local day boundaries to UTC for correct comparison with Z timestamps
     const dayStartUTC = new Date(date + 'T00:00:00').toISOString();
     const dayEndUTC   = new Date(date + 'T23:59:59.999').toISOString();
@@ -119,7 +144,7 @@ export async function timelineRoute(fastify, opts) {
 
       // Filter to only messages within the local day (UTC boundaries)
       const clampedTimestamps = allTimestamps.filter(t => t >= dayStartUTC && t < dayEndUTC);
-      const workingTimeMs = computeWorkingTime(clampedTimestamps);
+      const workingTimeMs = computeWorkingTime(clampedTimestamps, thresholdMs);
 
       // For overnight sessions, use first/last in-day message instead of midnight
       const continuesFromPrevDay = row.first_message_at < dayStartUTC;
@@ -131,7 +156,7 @@ export async function timelineRoute(fastify, opts) {
       if (clampedTimestamps.length === 0) continue;
 
       // Compute idle gaps from clamped timestamps
-      const idleGaps = computeIdleGaps(clampedTimestamps);
+      const idleGaps = computeIdleGaps(clampedTimestamps, thresholdMs);
 
       const sessionObj = {
         sessionId: row.session_id,
@@ -154,7 +179,7 @@ export async function timelineRoute(fastify, opts) {
         projectMap.set(row.project_id, {
           projectId: row.project_id,
           projectPath: row.project_path,
-          displayName: row.project_path.split('/').pop(),
+          displayName: getDisplayName(row.project_path),
           sessions: [],
         });
       }
