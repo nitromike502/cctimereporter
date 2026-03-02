@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Node.js CLI tool (run via `npx`) that gives Claude Code users a visual, interactive timeline of their coding sessions. It reads Claude Code JSONL transcript files, imports them into a local SQLite database, and serves a Vue-based web UI showing Gantt-style session timelines grouped by project. Built on top of a working Python proof-of-concept that validates the core parsing, import, and timeline logic.
+A Node.js CLI tool (run via `npx cctimereporter`) that gives Claude Code users a visual, interactive Gantt timeline of their coding sessions. It reads Claude Code JSONL transcript files, imports them into a local SQLite database, and serves a Vue 3 web UI showing session timelines grouped by project with idle gap visualization, ticket detection, and click-to-detail session inspection.
 
 ## Core Value
 
@@ -12,72 +12,85 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Validated
 
-- ✓ JSONL transcript parsing (fork detection, session grouping) — existing PoC
-- ✓ Ticket detection via multi-source scoring system — existing PoC
-- ✓ Working time calculation with idle gap exclusion — existing PoC
-- ✓ SQLite schema for sessions, messages, tickets, fork points — existing PoC
-- ✓ HTML timeline generation (static, single-day) — existing PoC
+- ✓ JSONL transcript parsing (fork detection, session grouping) — PoC + v1.0
+- ✓ Ticket detection via multi-source scoring system — PoC + v1.0
+- ✓ Working time calculation with idle gap exclusion — PoC + v1.0
+- ✓ SQLite schema for sessions, messages, tickets, fork points — PoC + v1.0
+- ✓ HTML timeline generation (static, single-day) — PoC
+- ✓ `npx cctimereporter` launches local server and opens browser — v1.0
+- ✓ Vue frontend with Gantt-style horizontal bar timeline — v1.0
+- ✓ Sessions displayed as bars with idle gaps visually indicated — v1.0
+- ✓ Sessions grouped by Claude project directory with color-coding — v1.0
+- ✓ Session labels: ticket → branch → first 5 words fallback chain — v1.0
+- ✓ Date navigation (prev/next/today/yesterday/picker) — v1.0
+- ✓ URL structure: `/timeline?date=YYYY-MM-DD` — v1.0
+- ✓ On-demand import refresh via UI button with progress feedback — v1.0
+- ✓ Auto-discover all projects under ~/.claude/projects/ — v1.0
+- ✓ Project filtering (show/hide individual projects) — v1.0
+- ✓ Custom component library with preview page at /components — v1.0
+- ✓ Click-to-detail session panel (replaced hover tooltip) — v1.0
+- ✓ Overnight session clipping to day boundaries — v1.0
+- ✓ Configurable idle threshold in UI — v1.0
 
 ### Active
 
-- [ ] `npx cctimereporter` launches local server and opens browser
-- [ ] Vue frontend with Gantt-style horizontal bar timeline
-- [ ] Sessions displayed as bars spanning wall-clock time, with idle gaps visually indicated (lighter color)
-- [ ] Sessions grouped by Claude project directory (~/.claude/projects/<path>)
-- [ ] Session labels: ticket number → git branch → first 5 words of initial prompt (fallback chain)
-- [ ] Date navigation — browse to any historical date
-- [ ] Opens to today's date by default
-- [ ] URL structure: `/timeline?date=YYYY-MM-DD` (root `/` reserved for future dashboard)
-- [ ] Lightweight file index: scan all JSONL files for first/last message timestamps without full parsing
-- [ ] Index-driven import: only full-import files whose date ranges overlap the requested date
-- [ ] Default rolling window: import last 30 days on first launch
-- [ ] On-demand import refresh via UI button
-- [ ] Auto-discover all projects under ~/.claude/projects/
-- [ ] Project filtering (exclude specific projects from view)
-- [ ] SQLite database transparent to user (managed behind the scenes)
+(No active requirements — next milestone not yet planned)
 
 ### Out of Scope
 
-- Dashboard/landing page — URL reserved but not built for MVP
+- Dashboard/landing page — URL reserved but not built
 - User accounts or authentication — local tool only
 - Remote/cloud storage — SQLite only, local machine
 - Real-time updates — manual refresh via UI button
 - Mobile-responsive design — desktop browser tool
-- Custom themes or styling options — functional UI first
+- Manual time editing — transcripts are immutable source of truth
 
 ## Context
 
-**Existing PoC (Python):** The `scripts/` directory contains a working proof-of-concept that handles JSONL parsing, SQLite import, working time calculation, and static HTML timeline generation. This code is tested and validated. The Node.js app will reimplement this logic (not wrap the Python scripts).
+**Shipped v1.0** with 4,483 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, Vite 7.
+Database: SQLite with WAL mode, schema v3, auto-migration.
 
-**Transcript location:** Claude Code stores session transcripts as JSONL files under `~/.claude/projects/<project-path>/`. Files aren't organized by date — a single file can span multiple days.
+**Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
 
-**Key PoC patterns to preserve:**
-- Fork detection (parent→children tree, real vs progress forks)
-- Ticket scoring (slash commands: 500pts, branch pattern: 100+5/msg, content mentions: 10/mention)
-- Working time: consecutive gaps ≤ 10min = working; larger gaps excluded
-- Ticket pattern: `AILASUP-\d+` (will need to be configurable for other users)
+**Known tech debt (v1.0):**
+- GET /api/projects route registered but unused by frontend
+- AppTooltip and AppBadge components exist in library but are not used in production UI
+- SessionDetailPanel has dead `.detail-placeholder` CSS class
 
-**Scale concern:** Users may accumulate months or years of transcripts. A lightweight indexing pass (first/last timestamps per file) will be built first to validate that on-demand importing is viable before committing to the full import architecture.
+**Deferred features (candidates for v1.x):**
+- Lightweight file index for selective import by date range
+- Rolling 30-day default import window
+- Fork visualization as sub-rows
+- Keyboard shortcuts for date navigation
+- Arbitrary date range picker
+- Ticket-based cross-day view
+- Static HTML export
 
 ## Constraints
 
 - **Distribution**: Must work as `npx` package — zero local setup for users
-- **Dependencies**: Node.js runtime required; SQLite via bundled library (e.g., better-sqlite3)
-- **Data location**: All data stays local (~/.claude/ directory)
-- **PoC reference**: Node.js reimplements PoC logic; Python scripts are reference, not runtime dependency
-- **Frontend**: Vue.js for the web UI
+- **Runtime**: Node.js 22+ required (built-in `node:sqlite`)
+- **Data location**: All data stays local (~/.cctimereporter/ directory)
+- **PoC reference**: Python scripts are reference only, not runtime dependency
+- **Frontend**: Vue 3 with custom component library (no UI framework)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Node.js + npx distribution | Zero-install experience for users | — Pending |
-| Vue.js frontend | User preference, good fit for interactive SPA | — Pending |
-| SQLite for storage | Proven in PoC, zero-config, local-only | — Pending |
-| Lightweight index before full import | Validate performance before committing architecture | — Pending |
-| Rolling 30-day default window | Fast first launch, lean database | — Pending |
-| Reimplement PoC logic in JS (not wrap Python) | Single runtime, cleaner distribution | — Pending |
-| Custom component library (no PrimeVue/Vuetify) | Keep package lean; component preview page at /components; all components approved before use in features; easier future migration if needed | — Pending |
+| Node.js + npx distribution | Zero-install experience for users | ✓ Good — works as designed |
+| Vue 3 frontend | User preference, good fit for interactive SPA | ✓ Good |
+| node:sqlite (built-in) over better-sqlite3 | Eliminates native binary distribution failures | ✓ Good — no install issues |
+| SQLite for storage | Proven in PoC, zero-config, local-only | ✓ Good |
+| Reimplement PoC logic in JS (not wrap Python) | Single runtime, cleaner distribution | ✓ Good — clean separation |
+| Custom component library (no PrimeVue/Vuetify) | Lean package, preview page gates feature use | ✓ Good — 6 components, all working |
+| Reka UI headless primitives | Accessible checkbox/tooltip/progress without style lock-in | ✓ Good |
+| Pure CSS Gantt positioning (no library) | Simpler, no dependency, percentage-based | ✓ Good — works for all session layouts |
+| Generic ticket pattern `[A-Z]{2,8}-\d+` | Works for JIRA, Linear, and custom ticket systems | ✓ Good |
+| Size-based skip for idempotent import | Deterministic, no mtime reliability issues | ✓ Good |
+| Click-to-detail panel (replaced tooltip) | Better UX for inspecting session details | ✓ Good — Phase 6 evolution |
+| Lightweight index deferred | Full import works fast enough for current scale | — Pending (revisit at scale) |
 
 ---
-*Last updated: 2026-02-22 after initialization*
+*Last updated: 2026-03-01 after v1.0 milestone*

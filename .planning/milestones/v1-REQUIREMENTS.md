@@ -1,4 +1,12 @@
-# Requirements
+# Requirements Archive: v1.0 MVP
+
+**Archived:** 2026-03-01
+**Status:** SHIPPED
+
+This is the archived requirements specification for v1.0.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
 
 ## v1 Requirements
 
@@ -18,7 +26,7 @@
 - [x] **VIZ-02**: User can see idle gaps within session bars as visually distinct (faded/lighter segments)
 - [x] **VIZ-03**: User can see session labels using ticket → branch → first 5 words fallback chain
 - [x] **VIZ-04**: User can see sessions grouped by Claude project directory with color-coding and legend
-- [x] **VIZ-05**: User can hover over a session bar to see tooltip (session ID, ticket, branch, working time, wall-clock span, message count)
+- [x] **VIZ-05**: User can hover over a session bar to see tooltip (session ID, ticket, branch, working time, wall-clock span, message count) — *evolved to click-to-detail panel in Phase 6*
 
 ### Component System
 - [x] **COMP-01**: App has a custom component library with consistent theming (colors, spacing, typography, states)
@@ -38,23 +46,10 @@
 - Lightweight file index (first/last timestamps) for selective import by date
 - Rolling 30-day window — default import scope for performance at scale
 - Fork visualization as sub-rows or visual indicators on parent bars
-- Configurable idle threshold in UI (currently CLI flag only)
 - Static HTML export for sharing timelines
-- Keyboard shortcuts for date navigation (← →)
+- Keyboard shortcuts for date navigation
 - Arbitrary date range picker
 - Ticket-based cross-day view (multi-day ticket summary)
-
-## Out of Scope
-
-- Dashboard / landing page — URL path reserved but not built
-- User accounts or authentication — local tool only
-- Remote or cloud storage — SQLite only, local machine
-- Real-time updates — manual refresh via UI button
-- Mobile-responsive design — desktop browser tool
-- Manual time editing — transcripts are immutable source of truth
-- Team sharing or multi-user features
-- AI-powered insights or summaries
-- CSV/JSON data export (Python PoC query.py covers this)
 
 ## Traceability
 
@@ -75,12 +70,18 @@
 | VIZ-02 | Phase 5 | Complete |
 | VIZ-03 | Phase 5 | Complete |
 | VIZ-04 | Phase 5 | Complete |
-| VIZ-05 | Phase 5 | Complete |
+| VIZ-05 | Phase 6 | Complete (evolved from tooltip to detail panel) |
 | NAV-01 | Phase 5 | Complete |
 | NAV-02 | Phase 5 | Complete |
 | NAV-03 | Phase 5 | Complete |
 | NAV-04 | Phase 5 | Complete |
 | NAV-05 | Phase 5 | Complete |
 
+## Milestone Summary
+
+**Shipped:** 23 of 23 v1 requirements
+**Adjusted:** VIZ-05 evolved from hover tooltip to click-to-detail panel (Phase 6)
+**Dropped:** None
+
 ---
-*Last updated: 2026-02-23 after roadmap creation*
+*Archived: 2026-03-01 as part of v1.0 milestone completion*
