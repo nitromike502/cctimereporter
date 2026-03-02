@@ -4,84 +4,122 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CC Time Reporter is a Python 3 utility that imports Claude Code JSONL session transcripts into a SQLite database (`~/.claude/transcripts.db`) for analyzing working time, detecting tickets, and generating visual timelines. It has **zero external dependencies** — only Python stdlib is used.
+CC Time Reporter is a Node.js CLI tool that reads Claude Code JSONL session transcripts, imports them into a local SQLite database, and serves a Vue-based web UI showing Gantt-style session timelines grouped by project. It runs via `npx cctimereporter` and requires Node.js 22+ (uses the built-in `node:sqlite` module).
 
-## Running Scripts
+A Python proof-of-concept in `scripts/` validates the core parsing, import, and timeline logic. The Node.js app reimplements this logic — the Python scripts are reference, not runtime dependency.
 
-All scripts must be run from the `scripts/` directory:
+## Running the App
+
+```bash
+# Start the app (builds frontend if needed, starts server, opens browser)
+npm start
+# or
+node bin/cli.js
+
+# Development: Vue dev server with hot reload
+npm run dev:client
+
+# Build the production frontend
+npm run build
+```
+
+## Running Python PoC Scripts
+
+The original Python proof-of-concept scripts are in `scripts/` and must be run from that directory. These use a separate database at `~/.claude/transcripts.db` (not the Node.js app's database).
 
 ```bash
 cd /home/claude/cctimereporter/scripts
-
-# Database setup
-python3 create_db.py                              # Initialize database
-python3 create_db.py --migrate                    # Migrate schema v1 → v2
-python3 create_db.py --force                      # Drop and recreate all tables
-
-# Import transcripts
 python3 import_transcripts.py --all --verbose     # Import all projects
-python3 import_transcripts.py --all --force        # Re-import everything
-python3 import_transcripts.py <project-path>       # Import single project
-
-# Query
 python3 query.py --working-time 2026-02-05         # Working time for date
-python3 query.py --sessions 2026-02-05             # Sessions for date
-python3 query.py --tickets                         # All tickets
-python3 query.py --stats                           # Database stats
-python3 query.py "SELECT ..."                      # Raw SQL
-
-# Timeline
 python3 timeline.py 2026-02-05                     # Generate HTML timeline
-python3 timeline.py today
-python3 timeline.py yesterday --threshold=10
 ```
 
-There is no build step, no linting, and no test suite.
-
 ## Architecture
+
+### Node.js App (src/)
+
+```
+bin/cli.js                     Entry point: version check, DB open, Fastify start, browser open
+src/db/schema.js               Schema DDL v3, migration constants
+src/db/index.js                openDatabase() with auto-migration (v1→v2→v3)
+src/importer/                  Import pipeline
+  discovery.js                 Project discovery from ~/.claude.json + filesystem
+  parser.js                    Async JSONL streaming parser
+  fork-detector.js             Fork detection (parent→children tree, real vs progress)
+  ticket-scorer.js             Multi-source ticket scoring
+  db-writer.js                 SQLite upsert/insert functions
+  index.js                     importAll() orchestrator
+src/server/index.js            Fastify server factory with static file serving
+src/server/routes/timeline.js  GET /api/timeline — sessions with idle gaps and working time
+src/server/routes/projects.js  GET /api/projects — project list
+src/server/routes/import.js    POST /api/import — trigger import with concurrency guard
+src/client/                    Vue 3 frontend
+  main.js                      App entry: tokens.css, router, createApp
+  router/index.js              Routes: /timeline (main), /components (preview), / (redirect)
+  styles/tokens.css            Design tokens (CSS custom properties)
+  pages/TimelinePage.vue       Main timeline page with Gantt chart
+  pages/ComponentsPage.vue     Component library preview page
+  components/                  Reusable components (Gantt*, App*, Timeline*, SessionDetail*)
+```
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/timeline?date=YYYY-MM-DD` | Sessions grouped by project, with idle gaps and working time |
+| GET | `/api/projects` | List of all known projects |
+| POST | `/api/import` | Trigger full import (409 if already running) |
 
 ### Import Pipeline
 
 ```
 JSONL files (~/.claude/projects/*/…/*.jsonl)
-  → parse_transcript()
-  → detect_forks() — builds parent→children tree, classifies real vs progress forks
-  → determine_working_branch()
-  → determine_primary_ticket() — multi-source scoring system
-  → INSERT into SQLite
+  → parseTranscript()          — async readline streaming
+  → detectForks()              — builds parent→children tree, classifies real vs progress forks
+  → determineWorkingBranch()   — frequency + ticket pattern preference
+  → scoreTickets()             — multi-source scoring system
+  → upsertSession/insertMessages/upsertTickets  — SQLite writes
 ```
 
 ### Ticket Detection Scoring
 
 Primary ticket is determined by a scoring system across sources:
 - `/prep-ticket` slash command: 500 points (700 if in first message)
-- Working branch pattern (`meckert-AILASUP-\d+`): 100 base + 5/message
-- Content mentions (`AILASUP-\d+`): 10/mention
+- Working branch pattern: 100 base + 5/message
+- Content mentions: 10/mention
+- Ticket pattern: generic `[A-Z]{2,8}-\d+`
 
 ### Working Time Calculation
 
-Messages are grouped by session per date. Consecutive message gaps ≤ idle threshold (default 10 min) count as working time; larger gaps are excluded. This handles overnight sessions, forks, and idle periods correctly.
+Messages are grouped by session per date. Consecutive message gaps <= idle threshold (default 10 min, configurable in UI) count as working time; larger gaps are excluded. Overnight sessions are clipped to day boundaries server-side.
 
-### Database Schema (v2)
+### Database
 
-Core tables: `projects`, `sessions`, `messages`, `tickets`, `fork_points`, `tool_uses` (not yet populated), `import_log`, `schema_version`. Two views: `v_session_time_summary` and `v_daily_ticket_summary`. Schema defined in `scripts/schema.sql`.
+- **Location:** `~/.cctimereporter/data.db`
+- **Schema version:** 3 (auto-migrates from v1 or v2)
+- **Core tables:** `projects`, `sessions`, `messages`, `tickets`, `import_log`
+- **Features:** WAL mode, foreign keys enabled, prepared statement caching
 
-### Key Constants
+### Frontend Component Library
 
-- `TICKET_PATTERN`: `AILASUP-\d+` (in `import_transcripts.py`)
-- `USERNAME`: `meckert` (for branch pattern matching)
-- `DEFAULT_IDLE_THRESHOLD_MINUTES`: 10 (in `query.py` and `timeline.py`)
-- `CLAUDE_PROJECTS_DIR`: `~/.claude/projects`
-- Database path: `~/.claude/transcripts.db`
+Custom component library with design tokens in `tokens.css`. All components live in `src/client/components/` and are previewed at `/components`. Components use Reka UI primitives for accessibility (checkbox, tooltip, progress bar) and @vuepic/vue-datepicker for the date picker.
+
+## Key Constants
+
+- `DEFAULT_IDLE_THRESHOLD_MIN`: 10 (in `src/server/routes/timeline.js`)
+- `SCHEMA_VERSION`: 3 (in `src/db/schema.js`)
+- `DEFAULT_PORT`: 3847 (in `bin/cli.js`)
+- `CLAUDE_PROJECTS_DIR`: `~/.claude/projects` (in `src/importer/discovery.js`)
+- Database path: `~/.cctimereporter/data.db` (in `src/db/index.js`)
+
+## Dependencies
+
+- **Runtime:** fastify, @fastify/static, vue, vue-router, reka-ui, @vuepic/vue-datepicker
+- **Dev:** vite, @vitejs/plugin-vue
+- **Built-in:** `node:sqlite` (Node 22+), `node:readline`, `node:fs`, `node:path`
 
 ## File Layout
 
-- `SKILL.md` — Primary documentation and usage workflows
-- `references/PROJECT-STATUS.md` — Implementation status, roadmap, known issues
+- `README.md` — Project overview, quick start, and development guide
 - `references/claude-transcript-schema.md` — JSONL transcript format reference
-- `scripts/db_utils.py` — Shared database utilities (`open_database()`, query helpers)
-- `scripts/schema.sql` — SQLite schema definition
-- `scripts/create_db.py` — Database initialization and migration
-- `scripts/import_transcripts.py` — JSONL parsing, fork detection, ticket scoring
-- `scripts/query.py` — Query tool with working time calculation
-- `scripts/timeline.py` — Self-contained HTML timeline generator
+- `scripts/` — Python proof-of-concept (reference implementation, separate database)
