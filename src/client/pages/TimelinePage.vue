@@ -124,6 +124,14 @@ async function fetchTimeline() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     timelineData.value = data
+    // Re-sync selected session with fresh data (e.g. after threshold change)
+    if (selectedSession.value) {
+      const id = selectedSession.value.sessionId
+      const fresh = data.projects
+        ?.flatMap(p => p.sessions)
+        .find(s => s.sessionId === id)
+      selectedSession.value = fresh ?? null
+    }
     // No visibility init needed — all projects visible by default (not in hiddenProjects set)
   } catch (e) {
     error.value = e.message
