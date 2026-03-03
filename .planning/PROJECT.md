@@ -34,7 +34,15 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-(No active requirements — next milestone not yet planned)
+**Current Milestone: v0.2.0 — UX & Insights**
+
+**Goal:** Make the timeline immediately useful for daily time reporting — users should understand their day at a glance without clicking every bar, and first-time users should have a smooth onboarding experience.
+
+- [ ] Rolling 30-day default import window with first-time welcome message
+- [ ] Day summary section below Gantt chart (project/ticket/branch totals)
+- [ ] Session summaries imported from Claude Code's sessions-index.json
+- [ ] Beginner tutorial / interface tour for first-time users
+- [ ] Light/dark mode toggle persisted to localStorage
 
 ### Out of Scope
 
@@ -58,9 +66,7 @@ Database: SQLite with WAL mode, schema v3, auto-migration.
 - AppTooltip and AppBadge components exist in library but are not used in production UI
 - SessionDetailPanel has dead `.detail-placeholder` CSS class
 
-**Deferred features (candidates for v1.x):**
-- Lightweight file index for selective import by date range
-- Rolling 30-day default import window
+**Deferred features (candidates for future milestones):**
 - Fork visualization as sub-rows
 - Keyboard shortcuts for date navigation
 - Arbitrary date range picker
@@ -93,4 +99,4 @@ Database: SQLite with WAL mode, schema v3, auto-migration.
 | Lightweight index deferred | Full import works fast enough for current scale | — Pending (revisit at scale) |
 
 ---
-*Last updated: 2026-03-01 after v1.0 milestone*
+*Last updated: 2026-03-02 after v0.2.0 milestone start*
