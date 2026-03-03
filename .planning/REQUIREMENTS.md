@@ -66,25 +66,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMP-01 | — | Pending |
-| IMP-02 | — | Pending |
-| IMP-03 | — | Pending |
-| IMP-04 | — | Pending |
-| SUM-01 | — | Pending |
-| SUM-02 | — | Pending |
-| SUM-03 | — | Pending |
-| SUM-04 | — | Pending |
-| CTX-01 | — | Pending |
-| CTX-02 | — | Pending |
-| CTX-03 | — | Pending |
-| UIX-01 | — | Pending |
-| UIX-02 | — | Pending |
+| IMP-01 | Phase 7 | Pending |
+| IMP-02 | Phase 7 | Pending |
+| IMP-03 | Phase 7 | Pending |
+| IMP-04 | Phase 7 | Pending |
+| SUM-01 | Phase 9 | Pending |
+| SUM-02 | Phase 9 | Pending |
+| SUM-03 | Phase 9 | Pending |
+| SUM-04 | Phase 9 | Pending |
+| CTX-01 | Phase 8 | Pending |
+| CTX-02 | Phase 8 | Pending |
+| CTX-03 | Phase 8 | Pending |
+| UIX-01 | Phase 10 | Pending |
+| UIX-02 | Phase 10 | Pending |
 
 **Coverage:**
 - v0.2.0 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after initial definition*
+*Last updated: 2026-03-02 — traceability populated after roadmap creation*
