@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.2.0 — Phase 10: Theming and Tour
+**Current focus:** v0.2.0 — COMPLETE
 
 ## Current Position
 
-Phase: 10 of 10 (Theming and Tour) — in progress
-Plan: 1 of 2 in phase 10
-Status: In progress
-Last activity: 2026-03-04 — Completed 10-01-PLAN.md (theme infrastructure)
+Phase: 10 of 10 (Theming and Tour) — complete
+Plan: 2 of 2 in phase 10
+Status: Phase complete — v0.2.0 feature set done
+Last activity: 2026-03-04 — Completed 10-02-PLAN.md (guided tour)
 
-Progress: [█████████████░░░░░░░] 72% v0.2.0 (7/10 plans done)
+Progress: [████████████████████] 100% v0.2.0 (10/10 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6 (v0.2.0)
-- Average duration: 2.3 min
-- Total execution time: 14 min
+- Total plans completed: 8 (v0.2.0)
+- Average duration: 1.9 min
+- Total execution time: 15 min
 
 **By Phase:**
 
@@ -30,6 +30,7 @@ Progress: [█████████████░░░░░░░] 72% v0.
 | 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
 | 8 — Session Context | 2/2 | 6 min | 3 min |
 | 9 — Day Summary | 1/1 | 2 min | 2 min |
+| 10 — Theming and Tour | 2/2 | 1 min | 0.5 min |
 
 *Updated after each plan completion*
 
@@ -63,10 +64,15 @@ Recent decisions affecting current work:
 - 10-01: FOWT prevention uses var (not const/let) in inline IIFE for broadest compat
 - 10-01: localStorage key is 'cctimereporter:theme' — namespaced to avoid collisions
 - 10-01: AppDatePicker drops matchMedia entirely — delegates to useTheme composable
+- 10-02: Tour only fires when data.projects.length > 0 — prevents tour on welcome/empty-date states
+- 10-02: onDestroyed callback marks tour seen after full completion or early dismiss
+- 10-02: driver-overrides.css imported after driver.css — guarantees override specificity
+- 10-02: TOUR_KEY = 'cctimereporter:tourSeen' follows existing namespaced localStorage key pattern
+- 10-02: nextTick() await before drive() ensures Gantt chart is rendered before driver.js queries selectors
 
 ### Pending Todos
 
-None.
+None — v0.2.0 complete. Next step: bump version to 0.2.0, tag, and publish to npm.
 
 ### Blockers/Concerns
 
@@ -74,6 +80,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04T20:55:40Z
-Stopped at: Completed 10-01-PLAN.md (theme infrastructure)
+Last session: 2026-03-04T20:58:58Z
+Stopped at: Completed 10-02-PLAN.md (guided tour) — v0.2.0 feature complete
 Resume file: None
