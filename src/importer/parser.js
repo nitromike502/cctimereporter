@@ -8,6 +8,10 @@
 import { createReadStream, openSync, readSync, closeSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
+// Patterns for synthetic/system-generated user messages that should not be captured as firstPrompt.
+// These are user-type messages with isMeta=undefined that contain XML command structures.
+const SYNTHETIC_MSG_RE = /^\s*(<command-name>|<teammate-message|<local-command)/;
+
 /**
  * Parse a JSONL transcript file into structured session data.
  *
@@ -92,7 +96,7 @@ export async function parseTranscript(filePath) {
     if (!firstPrompt && msg.type === 'user' && !msg.isMeta) {
       const text = extractContentText(msg);
       const trimmed = text?.trim();
-      if (trimmed) {
+      if (trimmed && !SYNTHETIC_MSG_RE.test(trimmed)) {
         firstPrompt = trimmed.slice(0, 200);
       }
     }
