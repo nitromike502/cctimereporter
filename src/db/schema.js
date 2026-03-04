@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   is_subagent             BOOLEAN DEFAULT 0,
   team_name               TEXT,
   agent_name              TEXT,
+  first_prompt            TEXT,
   imported_at             TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (project_id) REFERENCES projects(id)
 );
@@ -121,6 +122,14 @@ ALTER TABLE sessions ADD COLUMN agent_name TEXT;
 export const MIGRATION_V3_TO_V4 = `
 ALTER TABLE import_log ADD COLUMN first_message_at TEXT;
 ALTER TABLE import_log ADD COLUMN last_message_at TEXT;
+`;
+
+/**
+ * ALTER TABLE statements to migrate v4 → v5.
+ * Adds first_prompt column for storing the first user message or session-index firstPrompt.
+ */
+export const MIGRATION_V4_TO_V5 = `
+ALTER TABLE sessions ADD COLUMN first_prompt TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `
