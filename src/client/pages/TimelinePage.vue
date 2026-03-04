@@ -21,12 +21,20 @@
       Loading timeline&hellip;
     </div>
 
-    <!-- Empty state -->
-    <div v-else-if="timelineData && timelineData.projects.length === 0" class="timeline-empty">
-      <p>No sessions found for <strong>{{ selectedDate }}</strong>.</p>
-      <AppButton variant="primary" :loading="importRunning" @click="triggerImport">
+    <!-- First-time welcome: no sessions ever imported -->
+    <div v-else-if="timelineData && timelineData.totalSessions === 0" class="timeline-welcome">
+      <h2>Welcome to CC Time Reporter</h2>
+      <p>This tool scans your Claude Code session transcripts and shows them as a visual timeline grouped by project.</p>
+      <p class="timeline-welcome-hint">Your first import covers the last 30 days of sessions. It may take a moment.</p>
+      <AppButton variant="primary" size="lg" :loading="importRunning" @click="triggerImport">
         Import Sessions
       </AppButton>
+    </div>
+
+    <!-- Empty date: sessions exist but none on this date -->
+    <div v-else-if="timelineData && timelineData.projects.length === 0" class="timeline-empty">
+      <p>No sessions found for <strong>{{ selectedDate }}</strong>.</p>
+      <p class="timeline-empty-hint">Try navigating to a different date.</p>
     </div>
 
     <!-- Main content -->
@@ -283,6 +291,39 @@ watch(() => route.query.date, () => {
 
 .timeline-empty strong {
   color: var(--color-heading);
+}
+
+.timeline-empty-hint {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+.timeline-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.timeline-welcome h2 {
+  color: var(--color-heading);
+  font-size: var(--font-size-xl, 1.5rem);
+  margin: 0;
+}
+
+.timeline-welcome p {
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.timeline-welcome-hint {
+  font-size: var(--font-size-sm);
+  opacity: 0.8;
 }
 
 .filter-bar {
