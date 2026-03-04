@@ -32,6 +32,7 @@
  * @param {number}  [sessionData.real_fork_count]
  * @param {number}  [sessionData.is_compacted]
  * @param {number}  [sessionData.has_subagents]
+ * @param {string}  [sessionData.first_prompt]
  */
 export function upsertSession(db, sessionData) {
   const stmt = db.prepare(`
@@ -59,7 +60,8 @@ export function upsertSession(db, sessionData) {
       has_subagents,
       is_subagent,
       team_name,
-      agent_name
+      agent_name,
+      first_prompt
     ) VALUES (
       $session_id,
       $project_id,
@@ -84,7 +86,8 @@ export function upsertSession(db, sessionData) {
       $has_subagents,
       $is_subagent,
       $team_name,
-      $agent_name
+      $agent_name,
+      $first_prompt
     )
   `);
 
@@ -113,6 +116,7 @@ export function upsertSession(db, sessionData) {
     $is_subagent:             sessionData.is_subagent          ?? 0,
     $team_name:               sessionData.team_name            ?? null,
     $agent_name:              sessionData.agent_name           ?? null,
+    $first_prompt:            sessionData.first_prompt         ?? null,
   });
 }
 

@@ -15,6 +15,7 @@ import { createInterface } from 'node:readline';
  * @returns {Promise<{
  *   messages: Array<object>,
  *   summary: string|null,
+ *   firstPrompt: string|null,
  *   customTitle: string|null,
  *   slug: string|null,
  *   hasCompactBoundary: boolean,
@@ -24,6 +25,7 @@ import { createInterface } from 'node:readline';
 export async function parseTranscript(filePath) {
   const messages = [];
   let summary = null;
+  let firstPrompt = null;
   let customTitle = null;
   let slug = null;
   let hasCompactBoundary = false;
@@ -86,6 +88,15 @@ export async function parseTranscript(filePath) {
       userType = msg.userType;
     }
 
+    // Capture first prompt: first non-meta user message text, truncated to 200 chars
+    if (!firstPrompt && msg.type === 'user' && !msg.isMeta) {
+      const text = extractContentText(msg);
+      const trimmed = text?.trim();
+      if (trimmed) {
+        firstPrompt = trimmed.slice(0, 200);
+      }
+    }
+
     // Store normalized message object
     messages.push({
       uuid: msg.uuid || `line-${lineNum}`,
@@ -108,6 +119,7 @@ export async function parseTranscript(filePath) {
   return {
     messages,
     summary,
+    firstPrompt,
     customTitle,
     slug,
     hasCompactBoundary,

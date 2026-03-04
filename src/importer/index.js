@@ -10,6 +10,7 @@
 
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
 import { parseTranscript, peekFirstTimestamp } from './parser.js';
+import { readSessionIndex } from './session-index.js';
 import { detectForks } from './fork-detector.js';
 import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST } from './ticket-scorer.js';
 import {
@@ -162,9 +163,10 @@ function getOrCreateProject(db, projectPath, transcriptDir) {
  * @param {object} file        - From findTranscriptFiles()
  * @param {number} projectId
  * @param {object} options     - { force, verbose }
+ * @param {Map}    sessionIndex - Map<sessionId, { summary, firstPrompt, customTitle }> from sessions-index.json
  * @returns {{ messageCount: number, workingBranch: string|null, primaryTicket: string|null }}
  */
-async function importFile(db, file, projectId, options) {
+async function importFile(db, file, projectId, options, sessionIndex = new Map()) {
   const { verbose } = options;
 
   if (verbose) {
@@ -174,6 +176,9 @@ async function importFile(db, file, projectId, options) {
   // 1. Parse
   const data = await parseTranscript(file.path);
   const { messages } = data;
+
+  // 1a. Look up session index entry for this session (may be undefined)
+  const indexEntry = sessionIndex.get(file.sessionId);
 
   // 2. Derived message sets
   const timedMessages     = messages.filter(m => m.timestamp);
@@ -200,7 +205,17 @@ async function importFile(db, file, projectId, options) {
   // The agentName check distinguishes subagents from team leaders.
   const isSubagent = data.userType === 'external' && data.agentName != null;
 
-  // 8. Upsert session
+  // 8. Merge session index data with JSONL-parsed data
+  // Priority: session-index summary > JSONL summary (JSONL never has summary in practice)
+  const summaryValue = indexEntry?.summary ?? data.summary ?? null;
+  // Priority: session-index firstPrompt (filtered) > JSONL-parsed firstPrompt
+  const indexFirstPrompt = (indexEntry?.firstPrompt && indexEntry.firstPrompt !== 'No prompt')
+    ? indexEntry.firstPrompt : null;
+  const firstPromptValue = indexFirstPrompt ?? data.firstPrompt ?? null;
+  // Also populate customTitle from index if available
+  const customTitleValue = indexEntry?.customTitle ?? data.customTitle ?? null;
+
+  // Upsert session
   upsertSession(db, {
     session_id:              file.sessionId,
     project_id:              projectId,
@@ -208,9 +223,10 @@ async function importFile(db, file, projectId, options) {
     file_size:               file.size,
     working_branch:          workingBranch,
     primary_ticket:          primaryTicket,
-    summary:                 data.summary,
-    custom_title:            data.customTitle,
+    summary:                 summaryValue,
+    custom_title:            customTitleValue,
     slug:                    data.slug,
+    first_prompt:            firstPromptValue,
     first_message_at:        firstMessageAt,
     last_message_at:         lastMessageAt,
     last_updated_at:         new Date().toISOString(),
@@ -294,6 +310,9 @@ export async function importAll(db, options = {}) {
     // Find transcript files for this project
     const files = findTranscriptFiles(project.transcriptDir);
 
+    // Read session index once per project (returns empty Map if file absent)
+    const sessionIndex = readSessionIndex(project.transcriptDir);
+
     // Split into files to import and files to skip
     const toImport = [];
     const toSkip   = [];
@@ -332,7 +351,7 @@ export async function importAll(db, options = {}) {
     // Import each file
     for (const file of toImport) {
       try {
-        const result = await importFile(db, file, projectId, { verbose });
+        const result = await importFile(db, file, projectId, { verbose }, sessionIndex);
         filesProcessed++;
         totalMessages += result.messageCount;
       } catch (err) {
