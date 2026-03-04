@@ -233,5 +233,7 @@ const branchRows = computed(() => {
 
 .col-right {
   text-align: right;
+  white-space: nowrap;
+  width: 1%;
 }
 </style>
