@@ -23,9 +23,9 @@ Requirements for v0.2.0 UX & Insights. Each maps to roadmap phases.
 
 ### Session Context
 
-- [ ] **CTX-01**: Import AI-generated session summaries from Claude Code's sessions-index.json
-- [ ] **CTX-02**: Extract first user message from JSONL as fallback when no AI summary exists
-- [ ] **CTX-03**: SessionDetailPanel shows session summary (AI summary preferred, first prompt as fallback)
+- [x] **CTX-01**: Import AI-generated session summaries from Claude Code's sessions-index.json
+- [x] **CTX-02**: Extract first user message from JSONL as fallback when no AI summary exists
+- [x] **CTX-03**: SessionDetailPanel shows session summary (AI summary preferred, first prompt as fallback)
 
 ### UI/UX
 
@@ -74,9 +74,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUM-02 | Phase 9 | Pending |
 | SUM-03 | Phase 9 | Pending |
 | SUM-04 | Phase 9 | Pending |
-| CTX-01 | Phase 8 | Pending |
-| CTX-02 | Phase 8 | Pending |
-| CTX-03 | Phase 8 | Pending |
+| CTX-01 | Phase 8 | Complete |
+| CTX-02 | Phase 8 | Complete |
+| CTX-03 | Phase 8 | Complete |
 | UIX-01 | Phase 10 | Pending |
 | UIX-02 | Phase 10 | Pending |
 
@@ -87,4 +87,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-03 — Phase 7 requirements marked Complete*
+*Last updated: 2026-03-04 — Phase 8 requirements marked Complete*
