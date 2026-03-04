@@ -9,7 +9,7 @@
  */
 
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
-import { parseTranscript } from './parser.js';
+import { parseTranscript, peekFirstTimestamp } from './parser.js';
 import { detectForks } from './fork-detector.js';
 import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST } from './ticket-scorer.js';
 import {
@@ -247,8 +247,8 @@ async function importFile(db, file, projectId, options) {
   const tickets = collectTickets(messages);
   upsertTickets(db, file.sessionId, tickets, primaryTicket);
 
-  // 11. Update import log
-  updateImportLog(db, file.path, file.sessionId, file.size, 'ok', null);
+  // 11. Update import log (with timestamps for rolling window re-skip on subsequent runs)
+  updateImportLog(db, file.path, file.sessionId, file.size, 'ok', null, firstMessageAt, lastMessageAt);
 
   if (verbose) {
     process.stderr.write(
@@ -273,7 +273,11 @@ async function importFile(db, file, projectId, options) {
  * }>}
  */
 export async function importAll(db, options = {}) {
-  const { force = false, verbose = false } = options;
+  const { force = false, verbose = false, maxAgeDays = 30 } = options;
+
+  const cutoffDate = maxAgeDays != null
+    ? new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000).toISOString()
+    : null;
 
   const projects     = discoverProjects();
   const importedInfo = getImportedFileInfo(db);
@@ -295,11 +299,32 @@ export async function importAll(db, options = {}) {
     const toSkip   = [];
 
     for (const file of files) {
-      if (!force && importedInfo.get(file.path)?.fileSize === file.size) {
+      const cached = importedInfo.get(file.path);
+
+      // Skip 1: size unchanged (existing behavior, fast path)
+      if (!force && cached?.fileSize === file.size) {
         toSkip.push(file);
-      } else {
-        toImport.push(file);
+        continue;
       }
+
+      // Skip 2: rolling window — cached lastMessageAt is before cutoff
+      if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) {
+        toSkip.push(file);
+        continue;
+      }
+
+      // Skip 3: new file (no cache) — peek first timestamp
+      if (!force && cutoffDate && !cached) {
+        const firstTs = peekFirstTimestamp(file.path);
+        if (firstTs && firstTs < cutoffDate) {
+          // Record as skipped_old so subsequent imports don't re-peek (IMP-02)
+          updateImportLog(db, file.path, file.sessionId, file.size, 'skipped_old', null, firstTs, firstTs);
+          filesSkipped++;
+          continue;
+        }
+      }
+
+      toImport.push(file);
     }
 
     filesSkipped += toSkip.length;

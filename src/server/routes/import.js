@@ -17,7 +17,7 @@ let importRunning = false;
 export async function importRoute(fastify, opts) {
   const { db } = opts;
 
-  fastify.post('/api/import', async (_request, reply) => {
+  fastify.post('/api/import', async (request, reply) => {
     if (importRunning) {
       reply.code(409);
       return { error: 'Import already in progress' };
@@ -25,7 +25,8 @@ export async function importRoute(fastify, opts) {
 
     importRunning = true;
     try {
-      const result = await importAll(db, {});
+      const { maxAgeDays } = request.body ?? {};
+      const result = await importAll(db, { maxAgeDays });
       return { ok: true, ...result };
     } finally {
       importRunning = false;
