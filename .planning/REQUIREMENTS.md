@@ -70,10 +70,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-02 | Phase 7 | Complete |
 | IMP-03 | Phase 7 | Complete |
 | IMP-04 | Phase 7 | Complete |
-| SUM-01 | Phase 9 | Pending |
-| SUM-02 | Phase 9 | Pending |
-| SUM-03 | Phase 9 | Pending |
-| SUM-04 | Phase 9 | Pending |
+| SUM-01 | Phase 9 | Complete |
+| SUM-02 | Phase 9 | Complete |
+| SUM-03 | Phase 9 | Complete |
+| SUM-04 | Phase 9 | Complete |
 | CTX-01 | Phase 8 | Complete |
 | CTX-02 | Phase 8 | Complete |
 | CTX-03 | Phase 8 | Complete |
