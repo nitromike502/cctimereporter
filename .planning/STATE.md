@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Phase: 11 (Bug Fixes) — in progress
-Plan: 2/? in phase 11
+Plan: 3/? in phase 11
 Status: In progress
-Last activity: 2026-03-04 — Completed 11-02-PLAN.md (DaySummary column alignment + project column)
+Last activity: 2026-03-04 — Completed 11-03-PLAN.md (ticket false positive filtering)
 
 Progress: [████████████████████] v0.2.0 complete + Phase 11 in progress
 
@@ -75,6 +75,9 @@ Recent decisions affecting current work:
 - 11-02: width: 1% + white-space: nowrap is the CSS shrink-to-fit table column trick — name column gets all remaining space
 - 11-02: projectDisplayName tagged at allSessions flatMap — single source of truth, no duplication in each computed
 - 11-02: projects pre-computed as sorted comma-joined string in row object — simple template, deterministic display
+- 11-03: TICKET_PATTERN upgraded to /\b[A-Z]{2,8}-\d{1,6}\b/gi — word boundaries + 6-digit cap
+- 11-03: STORY, BUG, TASK, EPIC deliberately NOT in denylist (legitimate ticket prefixes)
+- 11-03: MIN_TICKET_SCORE = 15 — single mention (10 pts) fails, two mentions (20 pts) or branch match (110+ pts) passes
 
 ### Roadmap Evolution
 
@@ -90,6 +93,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04T21:11:26Z
-Stopped at: Completed 11-02-PLAN.md (DaySummary column alignment + project column)
+Last session: 2026-03-04T21:51:07Z
+Stopped at: Completed 11-03-PLAN.md (ticket false positive filtering)
 Resume file: None
