@@ -3,7 +3,7 @@
 ## Milestones
 
 - SHIPPED **v1.0 MVP** — Phases 1-6 (shipped 2026-03-01)
-- IN PROGRESS **v0.2.0 UX and Insights** — Phases 7-10
+- IN PROGRESS **v0.2.0 UX and Insights** — Phases 7-11
 
 ## Phases
 
@@ -29,6 +29,7 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
 - [x] **Phase 8: Session Context** — Sessions show AI-generated or prompt-derived summaries in the detail panel (completed 2026-03-04)
 - [x] **Phase 9: Day Summary** — Below-Gantt panel breaks down working time by project, ticket, and branch (completed 2026-03-04)
 - [x] **Phase 10: Theming and Tour** — Light/dark toggle and a first-visit guided tour complete the UX (completed 2026-03-04)
+- [x] **Phase 11: Bug Fixes** — Fix session summaries, subagent filtering, day summary table, and ticket false positives (completed 2026-03-04)
 
 ## Phase Details
 
@@ -111,6 +112,28 @@ Plans:
 - [x] 10-01: CSS custom property design tokens and light/dark toggle
 - [x] 10-02: First-visit tour integration
 
+### Phase 11: Bug Fixes
+
+**Goal:** Fix data quality and UI issues discovered during v0.2.0 user testing
+
+**Depends on:** Phase 10
+
+**Requirements:** BUG-01 through BUG-05 (see `.planning/phases/11-bug-fixes/BUGS.md`)
+
+**Success Criteria** (what must be TRUE):
+  1. Clicking a session with no AI summary shows the first user message as the summary fallback
+  2. Subagent sessions (e.g. `-tmp-pr-review-*`) do not appear as separate timeline rows; their working time counts toward the parent session
+  3. Day Summary table columns are properly aligned in all three tabs
+  4. Ticket and Branch tabs in Day Summary show the associated project name
+  5. Known false-positive ticket patterns (CLAUDE-*, OPUS-*, VERSION-*) are filtered from ticket detection
+
+**Plans:** 3 plans
+
+Plans:
+- [x] 11-01: Parser firstPrompt filter and worktree subagent detection
+- [x] 11-02: DaySummary column alignment and project column
+- [x] 11-03: Ticket false positive filtering
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -125,3 +148,4 @@ Plans:
 | 8. Session Context | v0.2.0 | 2/2 | Complete | 2026-03-04 |
 | 9. Day Summary | v0.2.0 | 1/1 | Complete | 2026-03-04 |
 | 10. Theming and Tour | v0.2.0 | 2/2 | Complete | 2026-03-04 |
+| 11. Bug Fixes | v0.2.0 | 3/3 | Complete | 2026-03-04 |
