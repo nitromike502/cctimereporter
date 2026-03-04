@@ -70,6 +70,9 @@
         :selected-session-id="selectedSession?.sessionId"
         @select="onSelectSession"
       />
+
+      <!-- Day summary: total time + per-project/ticket/branch breakdowns -->
+      <DaySummary :projects="timelineData.projects" />
     </div>
   </div>
 </template>
@@ -83,6 +86,7 @@ import GanttLegend from '../components/GanttLegend.vue'
 import SessionDetailPanel from '../components/SessionDetailPanel.vue'
 import AppButton from '../components/AppButton.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
+import DaySummary from '../components/DaySummary.vue'
 
 // --- Router ---
 
