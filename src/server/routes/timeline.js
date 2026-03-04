@@ -113,6 +113,8 @@ export async function timelineRoute(fastify, opts) {
     ORDER BY timestamp
   `);
 
+  const totalSessionsStmt = db.prepare('SELECT COUNT(*) AS cnt FROM sessions');
+
   fastify.get('/api/timeline', async (request, reply) => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -186,8 +188,11 @@ export async function timelineRoute(fastify, opts) {
       projectMap.get(row.project_id).sessions.push(sessionObj);
     }
 
+    const { cnt: totalSessions } = totalSessionsStmt.get();
+
     return {
       date,
+      totalSessions,
       projects: [...projectMap.values()],
     };
   });
