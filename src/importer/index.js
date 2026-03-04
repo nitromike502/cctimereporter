@@ -5,7 +5,7 @@
  * Entry point: importAll(db, options)
  *
  * Idempotency: files are skipped if their size matches the last successful
- * import (size-based skip). Force re-import with options.force = true.
+ * import record (size-based skip). Force re-import with options.force = true.
  */
 
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
@@ -17,7 +17,7 @@ import {
   insertMessages,
   upsertTickets,
   updateImportLog,
-  getImportedFileSizes,
+  getImportedFileInfo,
 } from './db-writer.js';
 
 // /prep-ticket slash command patterns (mirrors ticket-scorer.js internals)
@@ -275,8 +275,8 @@ async function importFile(db, file, projectId, options) {
 export async function importAll(db, options = {}) {
   const { force = false, verbose = false } = options;
 
-  const projects      = discoverProjects();
-  const importedSizes = getImportedFileSizes(db);
+  const projects     = discoverProjects();
+  const importedInfo = getImportedFileInfo(db);
 
   let filesProcessed  = 0;
   let filesSkipped    = 0;
@@ -295,7 +295,7 @@ export async function importAll(db, options = {}) {
     const toSkip   = [];
 
     for (const file of files) {
-      if (!force && importedSizes.get(file.path) === file.size) {
+      if (!force && importedInfo.get(file.path)?.fileSize === file.size) {
         toSkip.push(file);
       } else {
         toImport.push(file);
@@ -330,7 +330,7 @@ export async function importAll(db, options = {}) {
 
     for (const agentFile of agentFiles) {
       // Size-based skip check
-      if (!force && importedSizes.get(agentFile.path) === agentFile.size) continue;
+      if (!force && importedInfo.get(agentFile.path)?.fileSize === agentFile.size) continue;
 
       try {
         const agentData = await parseTranscript(agentFile.path);

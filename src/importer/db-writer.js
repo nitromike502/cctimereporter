@@ -238,50 +238,64 @@ export function upsertTickets(db, sessionId, tickets, primaryTicket) {
  * @param {string}      filePath
  * @param {string|null} sessionId
  * @param {number}      fileSize
- * @param {string}      status     'ok' or 'error'
+ * @param {string}      status          'ok', 'error', or 'skipped_old'
  * @param {string|null} errorMsg
+ * @param {string|null} [firstMessageAt]  ISO timestamp of first message in file
+ * @param {string|null} [lastMessageAt]   ISO timestamp of last message in file
  */
-export function updateImportLog(db, filePath, sessionId, fileSize, status, errorMsg) {
+export function updateImportLog(db, filePath, sessionId, fileSize, status, errorMsg, firstMessageAt = null, lastMessageAt = null) {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO import_log (
       file_path,
       session_id,
       file_size,
       status,
-      error_msg
+      error_msg,
+      first_message_at,
+      last_message_at
     ) VALUES (
       $file_path,
       $session_id,
       $file_size,
       $status,
-      $error_msg
+      $error_msg,
+      $first_message_at,
+      $last_message_at
     )
   `);
 
   stmt.run({
-    $file_path:  filePath,
-    $session_id: sessionId,
-    $file_size:  fileSize,
-    $status:     status,
-    $error_msg:  errorMsg ?? null,
+    $file_path:        filePath,
+    $session_id:       sessionId,
+    $file_size:        fileSize,
+    $status:           status,
+    $error_msg:        errorMsg ?? null,
+    $first_message_at: firstMessageAt,
+    $last_message_at:  lastMessageAt,
   });
 }
 
 /**
- * Returns a Map of file_path → file_size for all successfully imported files.
- * Used by the importer to skip unchanged files on re-import.
+ * Returns a Map of file_path → { fileSize, lastMessageAt } for all files
+ * with status 'ok' or 'skipped_old'. Used by the importer to skip unchanged
+ * files on re-import, and to cheaply re-skip files already known to be old.
  *
  * @param {import('node:sqlite').DatabaseSync} db
- * @returns {Map<string, number>}
+ * @returns {Map<string, { fileSize: number, lastMessageAt: string|null }>}
  */
-export function getImportedFileSizes(db) {
+export function getImportedFileInfo(db) {
   const rows = db.prepare(
-    `SELECT file_path, file_size FROM import_log WHERE status = 'ok'`
+    `SELECT file_path, file_size, last_message_at
+     FROM import_log
+     WHERE status IN ('ok', 'skipped_old')`
   ).all();
 
   const map = new Map();
   for (const row of rows) {
-    map.set(row.file_path, row.file_size);
+    map.set(row.file_path, {
+      fileSize: row.file_size,
+      lastMessageAt: row.last_message_at ?? null,
+    });
   }
   return map;
 }

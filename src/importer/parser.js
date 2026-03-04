@@ -5,7 +5,7 @@
  * and session-level metadata. Malformed lines are skipped with a warning.
  */
 
-import { createReadStream } from 'node:fs';
+import { createReadStream, openSync, readSync, closeSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
 /**
@@ -116,6 +116,37 @@ export async function parseTranscript(filePath) {
     agentName,
     userType,
   };
+}
+
+/**
+ * Reads the first 8 KB of a JSONL file synchronously and returns the timestamp
+ * of the first JSON line, or null on any error (empty file, malformed JSON,
+ * missing timestamp field, I/O error).
+ *
+ * This is intentionally synchronous — it is used as a cheap "should we skip
+ * this file?" decision before streaming the whole file, not in hot async code.
+ *
+ * @param {string} filePath - Absolute path to the .jsonl file
+ * @returns {string|null} - ISO timestamp string, or null
+ */
+export function peekFirstTimestamp(filePath) {
+  let fd;
+  try {
+    fd = openSync(filePath, 'r');
+    const buf = Buffer.alloc(8192);
+    const bytesRead = readSync(fd, buf, 0, 8192, 0);
+    const text = buf.slice(0, bytesRead).toString('utf8');
+    const newlineIdx = text.indexOf('\n');
+    const firstLine = newlineIdx === -1 ? text : text.slice(0, newlineIdx);
+    const trimmed = firstLine.trim();
+    if (!trimmed) return null;
+    const msg = JSON.parse(trimmed);
+    return msg.timestamp ?? null;
+  } catch (_) {
+    return null;
+  } finally {
+    if (fd !== undefined) try { closeSync(fd); } catch (_) { /* ignore */ }
+  }
 }
 
 /**
