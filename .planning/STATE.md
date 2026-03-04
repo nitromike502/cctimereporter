@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 9 of 10 complete (Day Summary)
-Plan: 1 of 1 in phase 9
-Status: Phase 9 verified and complete, ready for Phase 10
-Last activity: 2026-03-04 — Phase 9 executed and verified (4/4 must-haves passed)
+Phase: 10 of 10 (Theming and Tour) — in progress
+Plan: 1 of 2 in phase 10
+Status: In progress
+Last activity: 2026-03-04 — Completed 10-01-PLAN.md (theme infrastructure)
 
-Progress: [████████████░░░░░░░░] 67% v0.2.0 (6/9 plans done)
+Progress: [█████████████░░░░░░░] 72% v0.2.0 (7/10 plans done)
 
 ## Performance Metrics
 
@@ -58,6 +58,11 @@ Recent decisions affecting current work:
 - 09-01: DaySummary receives timelineData.projects (unfiltered), not visibleProjects — day totals accurate regardless of Gantt filter state
 - 09-01: Null ticket/branch rows sorted to bottom, displayed as (untracked)
 - 09-01: groupBy Map-based helper shared between ticketRows and branchRows computeds
+- 10-01: Dark mode uses [data-theme='dark'] on documentElement, not @media query — enables user toggle
+- 10-01: useTheme singleton at module level — all consumers share identical reactive ref
+- 10-01: FOWT prevention uses var (not const/let) in inline IIFE for broadest compat
+- 10-01: localStorage key is 'cctimereporter:theme' — namespaced to avoid collisions
+- 10-01: AppDatePicker drops matchMedia entirely — delegates to useTheme composable
 
 ### Pending Todos
 
@@ -69,6 +74,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: Phase 9 complete (1/1 plans, verified). Ready for Phase 10.
-Resume with: `/gsd:discuss-phase 10` or `/gsd:plan-phase 10`
+Last session: 2026-03-04T20:55:40Z
+Stopped at: Completed 10-01-PLAN.md (theme infrastructure)
+Resume file: None
