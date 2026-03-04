@@ -105,7 +105,7 @@ Plans:
   3. The tour can be dismissed at any step and does not reappear on subsequent visits
   4. Light and dark modes both render all UI elements legibly with no missing color assignments
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
 - [ ] 10-01: CSS custom property design tokens and light/dark toggle
