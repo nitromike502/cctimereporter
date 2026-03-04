@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 8 of 10 complete (Session Context)
-Plan: 2 of 2 in phase 8
-Status: Phase 8 verified and complete, ready for Phase 9
-Last activity: 2026-03-04 — Phase 8 executed and verified (3/3 must-haves passed)
+Phase: 9 of 10 in progress (Day Summary)
+Plan: 1 of ? in phase 9
+Status: In progress — Phase 9 plan 01 complete
+Last activity: 2026-03-04 — Completed 09-01-PLAN.md (DaySummary component + TimelinePage integration)
 
-Progress: [██████████░░░░░░░░░░] 55% v0.2.0 (5/9 plans done)
+Progress: [████████████░░░░░░░░] 60% v0.2.0 (6/9 plans done)
 
 ## Performance Metrics
 
@@ -29,6 +29,7 @@ Progress: [██████████░░░░░░░░░░] 55% v0.
 |-------|-------|-------|----------|
 | 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
 | 8 — Session Context | 2/2 | 6 min | 3 min |
+| 9 — Day Summary | 1/? | 2 min | 2 min |
 
 *Updated after each plan completion*
 
@@ -54,6 +55,9 @@ Recent decisions affecting current work:
 - 08-01: "No prompt" sentinel filtered at both reader and merge point (defense in depth)
 - 08-02: Summary row placed first in detail grid — highest-value context leads
 - 08-02: summaryText returns '' (not em-dash) when session is null — avoids stray dash in no-selection state
+- 09-01: DaySummary receives timelineData.projects (unfiltered), not visibleProjects — day totals accurate regardless of Gantt filter state
+- 09-01: Null ticket/branch rows sorted to bottom, displayed as (untracked)
+- 09-01: groupBy Map-based helper shared between ticketRows and branchRows computeds
 
 ### Pending Todos
 
@@ -65,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: Phase 8 complete (2/2 plans, verified). Ready for Phase 9.
-Resume with: `/gsd:discuss-phase 9` or `/gsd:plan-phase 9`
+Last session: 2026-03-04T20:27:34Z
+Stopped at: Completed 09-01-PLAN.md (DaySummary component + TimelinePage integration)
+Resume file: None
