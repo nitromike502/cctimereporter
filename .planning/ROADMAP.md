@@ -46,7 +46,7 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
   3. A user who has never imported sees a distinct welcome screen that explains the tool and has a clear call to action to import — not the same empty-date view returning users see
   4. During a first import, the UI shows progressive feedback (not a frozen spinner) so the user knows work is happening
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
 - [x] 07-01: Schema migration and import_log caching
@@ -66,12 +66,11 @@ Plans:
   2. Clicking a session bar for a project without sessions-index.json shows the first user message from that session as the summary
   3. Sessions that have neither an AI summary nor a first message show a graceful fallback (no blank panel, no error)
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 08-01: Parse sessions-index.json during import and store summaries
-- [ ] 08-02: Extract first user message as fallback during JSONL parsing
-- [ ] 08-03: Wire summary display into SessionDetailPanel
+- [ ] 08-01-PLAN.md — Schema migration, session-index reader, parser firstPrompt, and import pipeline integration
+- [ ] 08-02-PLAN.md — Timeline API first_prompt field and SessionDetailPanel summary row
 
 ### Phase 9: Day Summary
 
@@ -123,6 +122,6 @@ Plans:
 | 5. Timeline UI | v1.0 | 3/3 | Complete | 2026-02-28 |
 | 6. Timeline Polish | v1.0 | 2/2 | Complete | 2026-02-28 |
 | 7. Rolling Import and Onboarding | v0.2.0 | 3/3 | Complete | 2026-03-03 |
-| 8. Session Context | v0.2.0 | 0/3 | Not started | - |
+| 8. Session Context | v0.2.0 | 0/2 | Not started | - |
 | 9. Day Summary | v0.2.0 | 0/1 | Not started | - |
 | 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
