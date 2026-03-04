@@ -9,25 +9,26 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 7 of 10 complete (Rolling Import and Onboarding)
-Plan: 3 of 3 in phase 7
-Status: Phase 7 verified and complete, ready for Phase 8
-Last activity: 2026-03-03 — Phase 7 executed and verified (4/4 must-haves passed)
+Phase: 8 of 10 in progress (Session Context)
+Plan: 1 of 3 in phase 8
+Status: In progress — 08-01 complete, 08-02 and 08-03 remain
+Last activity: 2026-03-04 — Completed 08-01-PLAN.md (schema v5, session-index reader, firstPrompt extraction)
 
-Progress: [██████░░░░░░░░░░░░░░] 33% v0.2.0 (3/9 plans done)
+Progress: [████████░░░░░░░░░░░░] 44% v0.2.0 (4/9 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3 (v0.2.0)
-- Average duration: 2 min
-- Total execution time: 6 min
+- Total plans completed: 4 (v0.2.0)
+- Average duration: 2.75 min
+- Total execution time: 11 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
+| 8 — Session Context | 1/3 | 5 min | 5 min |
 
 *Updated after each plan completion*
 
@@ -47,10 +48,14 @@ Recent decisions affecting current work:
 - 07-02: totalSessions uses COUNT(*) prepared at registration time, same pattern as sessionStmt/messageStmt
 - 07-03: Welcome v-else-if ordered before empty-date v-else-if (totalSessions===0 implies projects.length===0)
 - 07-03: Empty-date state has no AppButton — returning users need nav hint, not import CTA
+- 08-01: sessions-index.json is INSIDE transcriptDir (not parent dir) — RESEARCH.md corrected old assumption
+- 08-01: firstPrompt truncated to 200 chars in JSONL extraction (matches sessions-index.json observed range)
+- 08-01: customTitle from sessions-index.json also merged; column already existed, no migration needed
+- 08-01: "No prompt" sentinel filtered at both reader and merge point (defense in depth)
 
 ### Pending Todos
 
-- Existing plan file: `.planning/session-summaries-plan.md` — review before planning phase 8
+None.
 
 ### Blockers/Concerns
 
@@ -58,6 +63,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Phase 7 complete (3/3 plans, verified). Ready for Phase 8.
-Resume with: `/gsd:discuss-phase 8` or `/gsd:plan-phase 8`
+Last session: 2026-03-04
+Stopped at: Completed 08-01-PLAN.md (2/2 tasks, all verifications passed)
+Resume with: Execute 08-02-PLAN.md (timeline API: add first_prompt to GET /api/timeline response)
