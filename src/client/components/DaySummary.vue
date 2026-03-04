@@ -35,6 +35,7 @@
           <thead>
             <tr>
               <th>Ticket</th>
+              <th>Project</th>
               <th class="col-right">Sessions</th>
               <th class="col-right">Working Time</th>
             </tr>
@@ -42,6 +43,7 @@
           <tbody>
             <tr v-for="row in ticketRows" :key="row.ticket ?? '__none__'">
               <td>{{ row.ticket ?? '(untracked)' }}</td>
+              <td>{{ row.projects }}</td>
               <td class="col-right">{{ row.sessionCount }}</td>
               <td class="col-right">{{ formatWorkingTime(row.workingTimeMs) }}</td>
             </tr>
@@ -54,6 +56,7 @@
           <thead>
             <tr>
               <th>Branch</th>
+              <th>Project</th>
               <th class="col-right">Sessions</th>
               <th class="col-right">Working Time</th>
             </tr>
@@ -61,6 +64,7 @@
           <tbody>
             <tr v-for="row in branchRows" :key="row.branch ?? '__none__'">
               <td>{{ row.branch ?? '(untracked)' }}</td>
+              <td>{{ row.projects }}</td>
               <td class="col-right">{{ row.sessionCount }}</td>
               <td class="col-right">{{ formatWorkingTime(row.workingTimeMs) }}</td>
             </tr>
@@ -105,7 +109,9 @@ function groupBy(sessions, keyFn) {
 }
 
 const allSessions = computed(() =>
-  props.projects.flatMap(p => p.sessions)
+  props.projects.flatMap(p =>
+    p.sessions.map(s => ({ ...s, projectDisplayName: p.displayName }))
+  )
 )
 
 const totalWorkingMs = computed(() =>
@@ -132,6 +138,7 @@ const ticketRows = computed(() => {
       ticket,
       sessionCount: sessions.length,
       workingTimeMs: sessions.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0),
+      projects: [...new Set(sessions.map(s => s.projectDisplayName))].sort().join(', '),
     }
     if (ticket === null) {
       nullRow = row
@@ -155,6 +162,7 @@ const branchRows = computed(() => {
       branch,
       sessionCount: sessions.length,
       workingTimeMs: sessions.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0),
+      projects: [...new Set(sessions.map(s => s.projectDisplayName))].sort().join(', '),
     }
     if (branch === null) {
       nullRow = row
