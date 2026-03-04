@@ -77,8 +77,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CTX-01 | Phase 8 | Complete |
 | CTX-02 | Phase 8 | Complete |
 | CTX-03 | Phase 8 | Complete |
-| UIX-01 | Phase 10 | Pending |
-| UIX-02 | Phase 10 | Pending |
+| UIX-01 | Phase 10 | Complete |
+| UIX-02 | Phase 10 | Complete |
 
 **Coverage:**
 - v0.2.0 requirements: 13 total

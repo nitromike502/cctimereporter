@@ -28,7 +28,7 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
 - [x] **Phase 7: Rolling Import and Onboarding** — Fast, bounded import with a welcoming first-run experience (completed 2026-03-03)
 - [x] **Phase 8: Session Context** — Sessions show AI-generated or prompt-derived summaries in the detail panel (completed 2026-03-04)
 - [x] **Phase 9: Day Summary** — Below-Gantt panel breaks down working time by project, ticket, and branch (completed 2026-03-04)
-- [ ] **Phase 10: Theming and Tour** — Light/dark toggle and a first-visit guided tour complete the UX
+- [x] **Phase 10: Theming and Tour** — Light/dark toggle and a first-visit guided tour complete the UX (completed 2026-03-04)
 
 ## Phase Details
 
@@ -108,8 +108,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 10-01: CSS custom property design tokens and light/dark toggle
-- [ ] 10-02: First-visit tour integration
+- [x] 10-01: CSS custom property design tokens and light/dark toggle
+- [x] 10-02: First-visit tour integration
 
 ## Progress
 
@@ -124,4 +124,4 @@ Plans:
 | 7. Rolling Import and Onboarding | v0.2.0 | 3/3 | Complete | 2026-03-03 |
 | 8. Session Context | v0.2.0 | 2/2 | Complete | 2026-03-04 |
 | 9. Day Summary | v0.2.0 | 1/1 | Complete | 2026-03-04 |
-| 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
+| 10. Theming and Tour | v0.2.0 | 2/2 | Complete | 2026-03-04 |
