@@ -9,10 +9,10 @@ Requirements for v0.2.0 UX & Insights. Each maps to roadmap phases.
 
 ### Import & Onboarding
 
-- [ ] **IMP-01**: Import defaults to rolling 30-day window — files older than cutoff are peeked and skipped
-- [ ] **IMP-02**: Cached timestamps in import_log enable instant re-skip on subsequent imports
-- [ ] **IMP-03**: First-time users see a welcome message explaining the tool and prompting import (distinct from empty-date state)
-- [ ] **IMP-04**: Import progress provides clear feedback that first import may take a moment
+- [x] **IMP-01**: Import defaults to rolling 30-day window — files older than cutoff are peeked and skipped
+- [x] **IMP-02**: Cached timestamps in import_log enable instant re-skip on subsequent imports
+- [x] **IMP-03**: First-time users see a welcome message explaining the tool and prompting import (distinct from empty-date state)
+- [x] **IMP-04**: Import progress provides clear feedback that first import may take a moment
 
 ### Day Summary
 
@@ -66,10 +66,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMP-01 | Phase 7 | Pending |
-| IMP-02 | Phase 7 | Pending |
-| IMP-03 | Phase 7 | Pending |
-| IMP-04 | Phase 7 | Pending |
+| IMP-01 | Phase 7 | Complete |
+| IMP-02 | Phase 7 | Complete |
+| IMP-03 | Phase 7 | Complete |
+| IMP-04 | Phase 7 | Complete |
 | SUM-01 | Phase 9 | Pending |
 | SUM-02 | Phase 9 | Pending |
 | SUM-03 | Phase 9 | Pending |
@@ -87,4 +87,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 — traceability populated after roadmap creation*
+*Last updated: 2026-03-03 — Phase 7 requirements marked Complete*

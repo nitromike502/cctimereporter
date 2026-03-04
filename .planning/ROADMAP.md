@@ -25,7 +25,7 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
 
 **Milestone Goal:** First-time users are welcomed and oriented; returning users see richer session context and a day summary that answers "how much did I actually work?"
 
-- [ ] **Phase 7: Rolling Import and Onboarding** — Fast, bounded import with a welcoming first-run experience
+- [x] **Phase 7: Rolling Import and Onboarding** — Fast, bounded import with a welcoming first-run experience (completed 2026-03-03)
 - [ ] **Phase 8: Session Context** — Sessions show AI-generated or prompt-derived summaries in the detail panel
 - [ ] **Phase 9: Day Summary** — Below-Gantt panel breaks down working time by project, ticket, and branch
 - [ ] **Phase 10: Theming and Tour** — Light/dark toggle and a first-visit guided tour complete the UX
@@ -49,9 +49,9 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
 **Plans:** TBD
 
 Plans:
-- [ ] 07-01: Schema migration and import_log caching
-- [ ] 07-02: Rolling 30-day import window with peek-and-skip
-- [ ] 07-03: Welcome state detection and onboarding UI
+- [x] 07-01: Schema migration and import_log caching
+- [x] 07-02: Rolling 30-day import window with peek-and-skip
+- [x] 07-03: Welcome state detection and onboarding UI
 
 ### Phase 8: Session Context
 
@@ -122,7 +122,7 @@ Plans:
 | 4. Component Library | v1.0 | 3/3 | Complete | 2026-02-27 |
 | 5. Timeline UI | v1.0 | 3/3 | Complete | 2026-02-28 |
 | 6. Timeline Polish | v1.0 | 2/2 | Complete | 2026-02-28 |
-| 7. Rolling Import and Onboarding | v0.2.0 | 0/3 | Not started | - |
+| 7. Rolling Import and Onboarding | v0.2.0 | 3/3 | Complete | 2026-03-03 |
 | 8. Session Context | v0.2.0 | 0/3 | Not started | - |
 | 9. Day Summary | v0.2.0 | 0/1 | Not started | - |
 | 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
