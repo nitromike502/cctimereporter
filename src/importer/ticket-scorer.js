@@ -8,7 +8,7 @@
  * Ported from Python PoC determine_primary_ticket() / determine_working_branch()
  * in scripts/import_transcripts.py.
  *
- * KEY DECISION (locked in CONTEXT.md): Ticket pattern is generic [a-zA-Z]{2,8}-\d+
+ * KEY DECISION (locked in CONTEXT.md): Ticket pattern is generic [A-Z]{2,8}-\d{1,6}
  * rather than AILASUP-specific, to support any project's ticket system.
  */
 
@@ -16,14 +16,32 @@ import { extractContentText } from './parser.js';
 
 // Generic ticket pattern — matches AILASUP-123, STORY-8, BUG-043, etc.
 // Exported so importers and tests can reuse it.
-export const TICKET_PATTERN = /[a-zA-Z]{2,8}-\d+/gi;
+// \b word boundaries prevent mid-word matches; \d{1,6} rejects timestamp-suffixed IDs.
+export const TICKET_PATTERN = /\b[A-Z]{2,8}-\d{1,6}\b/gi;
 
-// Prefixes that look like tickets but aren't (e.g. SHUTDOWN-1772338997982)
-export const TICKET_PREFIX_DENYLIST = new Set(['SHUTDOWN']);
+// Prefixes that look like tickets but aren't.
+// Does NOT include STORY, BUG, TASK, EPIC, FEATURE, ISSUE — those are legitimate ticket prefixes.
+export const TICKET_PREFIX_DENYLIST = new Set([
+  // Auto-generated IDs (timestamp or sequential suffixes)
+  'SHUTDOWN', 'APPROVAL', 'BASH',
+  // AI model names
+  'CLAUDE', 'OPUS', 'GEMINI', 'GPT', 'SONNET', 'HAIKU',
+  // CSS / design tokens
+  'GRAY', 'GREY', 'RED', 'GREEN', 'BLUE', 'ORANGE', 'YELLOW', 'PURPLE', 'PINK', 'WHITE', 'BLACK',
+  'PRIMARY', 'SECONDARY', 'SURFACE', 'ACCENT', 'NEUTRAL',
+  // Standards, encodings, tooling
+  'UTF', 'ISO', 'PSR', 'WSL', 'RFC', 'HTTP', 'SHA', 'MD',
+  // Framework / language names
+  'VUE', 'REACT', 'NODE', 'LARAVEL', 'CPYTHON', 'PYTHON', 'RUBY',
+  // Version identifiers
+  'VERSION', 'RELEASE',
+  // Placeholder / example ticket prefixes (documentation artifacts)
+  'TICKET', 'ABC', 'DEF', 'USER', 'PLAYER', 'TEAM', 'TEST', 'EXAMPLE', 'SAMPLE', 'DEMO',
+]);
 
 // /prep-ticket slash command patterns
-const PREP_TICKET_INLINE = /\/prep-ticket\s+([a-zA-Z]{2,8}-\d+)/i;
-const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-args>([a-zA-Z]{2,8}-\d+)<\/command-args>/is;
+const PREP_TICKET_INLINE = /\/prep-ticket\s+([A-Z]{2,8}-\d{1,6})/i;
+const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-args>([A-Z]{2,8}-\d{1,6})<\/command-args>/is;
 
 // Branches to skip when determining working branch
 const SKIP_BRANCHES = new Set(['main', 'master', 'develop', 'dev', 'staging']);
