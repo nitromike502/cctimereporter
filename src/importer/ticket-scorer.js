@@ -43,6 +43,11 @@ export const TICKET_PREFIX_DENYLIST = new Set([
 const PREP_TICKET_INLINE = /\/prep-ticket\s+([A-Z]{2,8}-\d{1,6})/i;
 const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-args>([A-Z]{2,8}-\d{1,6})<\/command-args>/is;
 
+// Minimum score a ticket must achieve to be considered the primary ticket.
+// Filters single-mention noise: a ticket mentioned once in content scores 10 pts (below threshold).
+// A ticket mentioned twice (20 pts) or once in content + once in branch (110+ pts) passes.
+export const MIN_TICKET_SCORE = 15;
+
 // Branches to skip when determining working branch
 const SKIP_BRANCHES = new Set(['main', 'master', 'develop', 'dev', 'staging']);
 const SKIP_PREFIXES = ['project-', 'target-version-'];
@@ -170,7 +175,7 @@ export function scoreTickets(messages, workingBranch) {
 
   if (ticketScores.size === 0) return null;
 
-  // Return highest-scoring ticket
+  // Return highest-scoring ticket, if it meets the minimum threshold
   let best = null;
   let bestScore = -Infinity;
   for (const [ticket, score] of ticketScores) {
@@ -180,5 +185,5 @@ export function scoreTickets(messages, workingBranch) {
     }
   }
 
-  return best;
+  return bestScore >= MIN_TICKET_SCORE ? best : null;
 }
