@@ -1,0 +1,48 @@
+.driver-popover {
+  background: var(--color-bg);
+  color: var(--color-body-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+}
+
+.driver-popover-title {
+  color: var(--color-heading);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+}
+
+.driver-popover-description {
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.driver-popover-progress-text {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+  background: var(--color-primary);
+  color: var(--color-navy);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-weight: 500;
+}
+
+.driver-popover-prev-btn:hover,
+.driver-popover-next-btn:hover {
+  filter: brightness(0.9);
+}
+
+.driver-popover-close-btn {
+  color: var(--color-muted);
+}
+
+.driver-popover-close-btn:hover {
+  color: var(--color-heading);
+}

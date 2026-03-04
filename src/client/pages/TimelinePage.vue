@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TimelineToolbar from '../components/TimelineToolbar.vue'
 import GanttChart from '../components/GanttChart.vue'
@@ -87,6 +87,7 @@ import SessionDetailPanel from '../components/SessionDetailPanel.vue'
 import AppButton from '../components/AppButton.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
 import DaySummary from '../components/DaySummary.vue'
+import { driver } from 'driver.js'
 
 // --- Router ---
 
@@ -111,6 +112,54 @@ function setIdleThreshold(val) {
   idleThreshold.value = val
   localStorage.setItem(THRESHOLD_KEY, String(val))
   fetchTimeline()
+}
+
+// --- Guided tour ---
+
+const TOUR_KEY = 'cctimereporter:tourSeen'
+
+function startTourIfNew() {
+  const tourDriver = driver({
+    showProgress: true,
+    onDestroyed: () => {
+      localStorage.setItem(TOUR_KEY, 'true')
+    },
+    steps: [
+      {
+        element: '.datepicker-wrapper',
+        popover: {
+          title: 'Navigate by Date',
+          description: 'Pick any date to view your Claude Code sessions for that day.',
+          side: 'bottom',
+        },
+      },
+      {
+        element: '.import-group',
+        popover: {
+          title: 'Import Sessions',
+          description: 'Click Import to scan your Claude Code transcripts and load them into the timeline.',
+          side: 'left',
+        },
+      },
+      {
+        element: '.gantt-chart',
+        popover: {
+          title: 'Session Timeline',
+          description: 'Each bar represents a coding session. Sessions are grouped by project. Click any bar to see details.',
+          side: 'top',
+        },
+      },
+      {
+        element: '.session-detail-panel',
+        popover: {
+          title: 'Session Details',
+          description: 'When you click a session bar, its ticket, branch, working time, and first prompt appear here.',
+          side: 'top',
+        },
+      },
+    ],
+  })
+  tourDriver.drive()
 }
 
 // --- Date management (URL-synced) ---
@@ -145,6 +194,11 @@ async function fetchTimeline() {
       selectedSession.value = fresh ?? null
     }
     // No visibility init needed — all projects visible by default (not in hiddenProjects set)
+    // Start guided tour on first visit when sessions are visible
+    if (data.projects.length > 0 && !localStorage.getItem(TOUR_KEY)) {
+      await nextTick()
+      startTourIfNew()
+    }
   } catch (e) {
     error.value = e.message
   } finally {
