@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -85,13 +85,15 @@ CREATE INDEX IF NOT EXISTS idx_tickets_session ON tickets(session_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_key ON tickets(ticket_key);
 
 CREATE TABLE IF NOT EXISTS import_log (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  session_id  TEXT,
-  file_path   TEXT NOT NULL,
-  file_size   INTEGER NOT NULL,
-  imported_at TEXT NOT NULL DEFAULT (datetime('now')),
-  status      TEXT NOT NULL,
-  error_msg   TEXT,
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id       TEXT,
+  file_path        TEXT NOT NULL,
+  file_size        INTEGER NOT NULL,
+  imported_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  status           TEXT NOT NULL,
+  error_msg        TEXT,
+  first_message_at TEXT,
+  last_message_at  TEXT,
   UNIQUE(file_path)
 );
 `;
@@ -109,6 +111,16 @@ export const MIGRATION_V2_TO_V3 = `
 ALTER TABLE sessions ADD COLUMN is_subagent BOOLEAN DEFAULT 0;
 ALTER TABLE sessions ADD COLUMN team_name TEXT;
 ALTER TABLE sessions ADD COLUMN agent_name TEXT;
+`;
+
+/**
+ * ALTER TABLE statements to migrate v3 → v4.
+ * Adds first_message_at and last_message_at columns to import_log
+ * for rolling-window import cache invalidation.
+ */
+export const MIGRATION_V3_TO_V4 = `
+ALTER TABLE import_log ADD COLUMN first_message_at TEXT;
+ALTER TABLE import_log ADD COLUMN last_message_at TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `

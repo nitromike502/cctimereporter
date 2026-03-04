@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3 } from './schema.js';
+import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3, MIGRATION_V3_TO_V4 } from './schema.js';
 
 export const DB_DIR = join(homedir(), '.cctimereporter');
 export const DB_PATH = join(DB_DIR, 'data.db');
@@ -55,6 +55,10 @@ function migrateV2toV3(db) {
   runMigration(db, MIGRATION_V2_TO_V3);
 }
 
+function migrateV3toV4(db) {
+  runMigration(db, MIGRATION_V3_TO_V4);
+}
+
 /**
  * Opens the database, creating it if it doesn't exist.
  * Handles schema version mismatches:
@@ -78,13 +82,19 @@ export function openDatabase() {
     const existingVersion = row.user_version;
 
     if (existingVersion === 1) {
-      // Auto-migrate v1 → v2 → v3.
+      // Auto-migrate v1 → v2 → v3 → v4.
       migrateV1toV2(db);
       migrateV2toV3(db);
+      migrateV3toV4(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion === 2) {
-      // Auto-migrate v2 → v3.
+      // Auto-migrate v2 → v3 → v4.
       migrateV2toV3(db);
+      migrateV3toV4(db);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+    } else if (existingVersion === 3) {
+      // Auto-migrate v3 → v4.
+      migrateV3toV4(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion !== 0 && existingVersion !== SCHEMA_VERSION) {
       // Unknown version — drop and recreate.
