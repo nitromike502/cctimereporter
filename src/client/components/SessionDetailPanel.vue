@@ -1,6 +1,10 @@
 <template>
   <div class="session-detail-panel">
     <div class="detail-grid">
+      <div class="detail-item detail-item--full">
+        <span class="detail-label">Summary</span>
+        <span class="detail-value detail-value--wrap">{{ summaryText }}</span>
+      </div>
       <div class="detail-item">
         <span class="detail-label">Session ID</span>
         <span class="detail-value">{{ sessionIdShort || '—' }}</span>
@@ -87,6 +91,12 @@ const idleGapCount = computed(() => {
   if (!props.session) return 0
   return props.session.idleGaps?.length ?? 0
 })
+
+/** Summary text: AI summary preferred, first user prompt as fallback, em-dash if neither */
+const summaryText = computed(() => {
+  if (!props.session) return ''
+  return props.session.summary || props.session.firstPrompt || '\u2014'
+})
 </script>
 
 <style scoped>
@@ -132,5 +142,16 @@ const idleGapCount = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.detail-item--full {
+  grid-column: 1 / -1;
+}
+
+.detail-value--wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.4;
 }
 </style>
