@@ -21,9 +21,10 @@
  * @prop {boolean} disabled - Disables the picker
  * @prop {string} placeholder - Placeholder text when no date is selected
  */
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch } from 'vue'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
+import { useTheme } from '../composables/useTheme.js'
 
 const props = defineProps({
   /** The selected date value */
@@ -56,26 +57,8 @@ const model = ref(props.modelValue)
 watch(model, (val) => emit('update:modelValue', val))
 watch(() => props.modelValue, (val) => { model.value = val })
 
-/** Dark mode detection via matchMedia */
-const isDark = ref(false)
-
-let mediaQuery = null
-
-function handleThemeChange(e) {
-  isDark.value = e.matches
-}
-
-onMounted(() => {
-  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  isDark.value = mediaQuery.matches
-  mediaQuery.addEventListener('change', handleThemeChange)
-})
-
-onUnmounted(() => {
-  if (mediaQuery) {
-    mediaQuery.removeEventListener('change', handleThemeChange)
-  }
-})
+/** Dark mode detection via shared useTheme composable */
+const { isDark } = useTheme()
 </script>
 
 <!-- Non-scoped: must penetrate @vuepic/vue-datepicker internal DOM -->
