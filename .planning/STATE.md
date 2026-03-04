@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Phase: 11 (Bug Fixes) — in progress
-Plan: 1/? in phase 11
+Plan: 2/? in phase 11
 Status: In progress
-Last activity: 2026-03-04 — Completed 11-01-PLAN.md (parser + subagent detection)
+Last activity: 2026-03-04 — Completed 11-02-PLAN.md (DaySummary column alignment + project column)
 
 Progress: [████████████████████] v0.2.0 complete + Phase 11 in progress
 
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - 11-01: SYNTHETIC_MSG_RE placed at module level in parser.js — regex guard is single-line addition to firstPrompt capture block
 - 11-01: isWorktreeProject computed in importAll() where project object is available, passed via options to importFile()
 - 11-01: isTeamSubagent rename clarifies Pattern B vs Pattern C subagent detection semantics
+- 11-02: width: 1% + white-space: nowrap is the CSS shrink-to-fit table column trick — name column gets all remaining space
+- 11-02: projectDisplayName tagged at allSessions flatMap — single source of truth, no duplication in each computed
+- 11-02: projects pre-computed as sorted comma-joined string in row object — simple template, deterministic display
 
 ### Roadmap Evolution
 
@@ -87,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04T21:50:04Z
-Stopped at: Completed 11-01-PLAN.md (parser + subagent detection bug fixes)
+Last session: 2026-03-04T21:11:26Z
+Stopped at: Completed 11-02-PLAN.md (DaySummary column alignment + project column)
 Resume file: None
