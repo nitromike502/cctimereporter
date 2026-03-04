@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.2.0 — COMPLETE
+**Current focus:** v0.2.0 — Phase 11 (Bug Fixes)
 
 ## Current Position
 
-Phase: 10 of 10 (Theming and Tour) — complete
-Plan: 2 of 2 in phase 10
-Status: Phase complete — v0.2.0 feature set done
-Last activity: 2026-03-04 — Completed 10-02-PLAN.md (guided tour)
+Phase: 11 (Bug Fixes) — in progress
+Plan: 1/? in phase 11
+Status: In progress
+Last activity: 2026-03-04 — Completed 11-01-PLAN.md (parser + subagent detection)
 
-Progress: [████████████████████] 100% v0.2.0 (10/10 plans done)
+Progress: [████████████████████] v0.2.0 complete + Phase 11 in progress
 
 ## Performance Metrics
 
@@ -69,10 +69,17 @@ Recent decisions affecting current work:
 - 10-02: driver-overrides.css imported after driver.css — guarantees override specificity
 - 10-02: TOUR_KEY = 'cctimereporter:tourSeen' follows existing namespaced localStorage key pattern
 - 10-02: nextTick() await before drive() ensures Gantt chart is rendered before driver.js queries selectors
+- 11-01: SYNTHETIC_MSG_RE placed at module level in parser.js — regex guard is single-line addition to firstPrompt capture block
+- 11-01: isWorktreeProject computed in importAll() where project object is available, passed via options to importFile()
+- 11-01: isTeamSubagent rename clarifies Pattern B vs Pattern C subagent detection semantics
+
+### Roadmap Evolution
+
+- Phase 11 added: Bug fixes for session summaries, subagent filtering, day summary table, and ticket false positives
 
 ### Pending Todos
 
-None — v0.2.0 complete. Next step: bump version to 0.2.0, tag, and publish to npm.
+Execute remaining Phase 11 bug fix plans.
 
 ### Blockers/Concerns
 
@@ -80,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04T20:58:58Z
-Stopped at: Completed 10-02-PLAN.md (guided tour) — v0.2.0 feature complete
+Last session: 2026-03-04T21:50:04Z
+Stopped at: Completed 11-01-PLAN.md (parser + subagent detection bug fixes)
 Resume file: None
