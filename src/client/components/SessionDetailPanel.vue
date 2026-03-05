@@ -47,6 +47,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { parseCommandXml } from '../../utils/parse-command-xml.js'
 
 /**
  * SessionDetailPanel — AWS Console-style persistent detail panel.
@@ -98,10 +99,13 @@ const idleGapCount = computed(() => {
   return props.session.idleGaps?.length ?? 0
 })
 
-/** Summary text: AI summary preferred, first user prompt as fallback, em-dash if neither */
+/** Summary text: AI summary preferred, first user prompt as fallback, em-dash if neither.
+ *  Applies parseCommandXml for display-time cleanup of existing imported data. */
 const summaryText = computed(() => {
   if (!props.session) return ''
-  return props.session.summary || props.session.firstPrompt || '\u2014'
+  const raw = props.session.summary || props.session.firstPrompt
+  if (!raw) return '\u2014'
+  return parseCommandXml(raw) || raw
 })
 </script>
 

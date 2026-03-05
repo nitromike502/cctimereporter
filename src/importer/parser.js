@@ -7,10 +7,11 @@
 
 import { createReadStream, openSync, readSync, closeSync } from 'node:fs';
 import { createInterface } from 'node:readline';
+import { parseCommandXml } from '../utils/parse-command-xml.js';
 
-// Patterns for synthetic/system-generated user messages that should not be captured as firstPrompt.
-// These are user-type messages with isMeta=undefined that contain XML command structures.
-const SYNTHETIC_MSG_RE = /^\s*(<command-name>|<teammate-message|<local-command)/;
+// Patterns for truly synthetic/system-generated user messages that should not be captured as firstPrompt.
+// Slash command XML (command-name, command-message, command-args) is handled separately by parseCommandXml.
+const SYNTHETIC_MSG_RE = /^\s*(<teammate-message|<local-command)/;
 
 /**
  * Parse a JSONL transcript file into structured session data.
@@ -95,9 +96,11 @@ export async function parseTranscript(filePath) {
     // Capture first prompt: first non-meta user message text, truncated to 200 chars
     if (!firstPrompt && msg.type === 'user' && !msg.isMeta) {
       const text = extractContentText(msg);
-      const trimmed = text?.trim();
-      if (trimmed && !SYNTHETIC_MSG_RE.test(trimmed)) {
-        firstPrompt = trimmed.slice(0, 200);
+      const trimmedText = text?.trim();
+      if (trimmedText && !SYNTHETIC_MSG_RE.test(trimmedText)) {
+        // Try parsing slash command XML into readable text
+        const parsed = parseCommandXml(trimmedText);
+        firstPrompt = (parsed || trimmedText).slice(0, 200);
       }
     }
 
