@@ -3,7 +3,11 @@
     <div class="detail-grid">
       <div class="detail-item detail-item--full">
         <span class="detail-label">Summary</span>
-        <span class="detail-value detail-value--wrap">{{ summaryText }}</span>
+        <span
+          class="detail-value detail-value--wrap"
+          :class="{ 'detail-value--clickable': session }"
+          @click="session && $emit('show-messages')"
+        >{{ summaryText }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Session ID</span>
@@ -53,6 +57,8 @@ import { computed } from 'vue'
  * @prop {Object} session     - Session object or null
  * @prop {string} projectName - Display name of the project owning this session
  */
+defineEmits(['show-messages'])
+
 const props = defineProps({
   session: {
     type: Object,
@@ -153,5 +159,15 @@ const summaryText = computed(() => {
   overflow: visible;
   text-overflow: unset;
   line-height: 1.4;
+}
+
+.detail-value--clickable {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.detail-value--clickable:hover {
+  color: var(--color-link);
+  text-decoration: underline;
 }
 </style>

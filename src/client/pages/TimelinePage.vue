@@ -43,6 +43,7 @@
       <SessionDetailPanel
         :session="selectedSession"
         :project-name="selectedProjectName"
+        @show-messages="messagesModalOpen = true"
       />
 
       <!-- Project filter bar -->
@@ -74,6 +75,12 @@
       <!-- Day summary: total time + per-project/ticket/branch breakdowns -->
       <DaySummary :projects="timelineData.projects" />
     </div>
+
+    <!-- Session messages modal -->
+    <SessionMessagesModal
+      v-model:open="messagesModalOpen"
+      :session-id="selectedSession?.sessionId ?? ''"
+    />
   </div>
 </template>
 
@@ -87,6 +94,7 @@ import SessionDetailPanel from '../components/SessionDetailPanel.vue'
 import AppButton from '../components/AppButton.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
 import DaySummary from '../components/DaySummary.vue'
+import SessionMessagesModal from '../components/SessionMessagesModal.vue'
 import { driver } from 'driver.js'
 
 // --- Router ---
@@ -104,6 +112,7 @@ const importRunning = ref(false)
 const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
 const selectedSession = ref(null)
+const messagesModalOpen = ref(false)
 // Idle threshold in minutes, persisted to localStorage
 const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
 const idleThreshold = ref(parseInt(localStorage.getItem(THRESHOLD_KEY), 10) || 10)
@@ -119,45 +128,67 @@ function setIdleThreshold(val) {
 const TOUR_KEY = 'cctimereporter:tourSeen'
 
 function startTourIfNew() {
+  const steps = [
+    {
+      element: '.datepicker-wrapper',
+      popover: {
+        title: 'Navigate by Date',
+        description: 'Pick any date to view your Claude Code sessions for that day.',
+        side: 'bottom',
+      },
+    },
+    {
+      element: '.import-group',
+      popover: {
+        title: 'Import Sessions',
+        description: 'Click Import to scan your Claude Code transcripts and load them into the timeline.',
+        side: 'left',
+      },
+    },
+    {
+      element: '.gantt-chart',
+      popover: {
+        title: 'Session Timeline',
+        description: 'Each bar represents a coding session. Sessions are grouped by project. Click any bar to see details.',
+        side: 'top',
+      },
+    },
+    {
+      element: '.session-detail-panel',
+      popover: {
+        title: 'Session Details',
+        description: 'When you click a session bar, its ticket, branch, working time, and first prompt appear here.',
+        side: 'top',
+      },
+    },
+  ]
+
+  if (colorizedProjects.value.length > 1) {
+    steps.push({
+      element: '.filter-bar',
+      popover: {
+        title: 'Filter by Project',
+        description: 'Use these checkboxes to show or hide individual projects in the timeline.',
+        side: 'bottom',
+      },
+    })
+  }
+
+  steps.push({
+    element: '.day-summary',
+    popover: {
+      title: 'Day Totals',
+      description: 'See total working time for the day, broken down by project, ticket, and branch.',
+      side: 'top',
+    },
+  })
+
   const tourDriver = driver({
     showProgress: true,
     onDestroyed: () => {
       localStorage.setItem(TOUR_KEY, 'true')
     },
-    steps: [
-      {
-        element: '.datepicker-wrapper',
-        popover: {
-          title: 'Navigate by Date',
-          description: 'Pick any date to view your Claude Code sessions for that day.',
-          side: 'bottom',
-        },
-      },
-      {
-        element: '.import-group',
-        popover: {
-          title: 'Import Sessions',
-          description: 'Click Import to scan your Claude Code transcripts and load them into the timeline.',
-          side: 'left',
-        },
-      },
-      {
-        element: '.gantt-chart',
-        popover: {
-          title: 'Session Timeline',
-          description: 'Each bar represents a coding session. Sessions are grouped by project. Click any bar to see details.',
-          side: 'top',
-        },
-      },
-      {
-        element: '.session-detail-panel',
-        popover: {
-          title: 'Session Details',
-          description: 'When you click a session bar, its ticket, branch, working time, and first prompt appear here.',
-          side: 'top',
-        },
-      },
-    ],
+    steps,
   })
   tourDriver.drive()
 }
