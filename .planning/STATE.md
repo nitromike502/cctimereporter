@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 11 of 11 (Import Progress Indicator) — in progress
-Plan: 1 of 2 in phase 11
-Status: In progress
-Last activity: 2026-03-05 — Completed 11-01-PLAN.md (import progress backend)
+Phase: 11 of 11 (Import Progress Indicator) — complete
+Plan: 2 of 2 in phase 11
+Status: Phase complete
+Last activity: 2026-03-05 — Completed 11-02-PLAN.md (frontend SSE progress)
 
-Progress: [██████████████░░░░░░] 75% v0.2.0 (8/11 plans done)
+Progress: [████████████████████] 100% v0.2.0 (9/9 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v0.2.0)
-- Average duration: 2.3 min
-- Total execution time: 16 min
+- Total plans completed: 9 (v0.2.0)
+- Average duration: 2.0 min
+- Total execution time: 18 min
 
 **By Phase:**
 
@@ -30,7 +30,7 @@ Progress: [██████████████░░░░░░] 75% v0.
 | 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
 | 8 — Session Context | 2/2 | 6 min | 3 min |
 | 9 — Day Summary | 1/1 | 2 min | 2 min |
-| 11 — Import Progress Indicator | 1/2 | 2 min | 2 min |
+| 11 — Import Progress Indicator | 2/2 | 3 min | 1.5 min |
 
 *Updated after each plan completion*
 
@@ -68,6 +68,8 @@ Recent decisions affecting current work:
 - 11-01: onProgress fires after each file with { phase, processed, total, currentFile }
 - 11-01: reply.hijack() used for SSE in Fastify; client disconnect tracked via request.raw 'close'
 - 11-01: Agent files included in total count for accurate progress denominator
+- 11-02: importProgress starts at { processed: 0, total: 0 } for indeterminate-to-determinate transition
+- 11-02: EventSource ref stored separately for explicit cleanup on unmount
 
 ### Pending Todos
 
@@ -83,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-06T03:41:48Z
-Stopped at: Completed 11-01-PLAN.md (import progress backend)
+Last session: 2026-03-06T03:45:13Z
+Stopped at: Completed 11-02-PLAN.md (frontend SSE progress) — Phase 11 complete
 Resume file: None
