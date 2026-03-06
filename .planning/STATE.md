@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.2.0 — Phase 10: Theming and Tour
+**Current focus:** v0.2.0 — Phase 11: Import Progress Indicator
 
 ## Current Position
 
-Phase: 10 of 10 (Theming and Tour) — in progress
-Plan: 1 of 2 in phase 10
+Phase: 11 of 11 (Import Progress Indicator) — in progress
+Plan: 1 of 2 in phase 11
 Status: In progress
-Last activity: 2026-03-04 — Completed 10-01-PLAN.md (theme infrastructure)
+Last activity: 2026-03-05 — Completed 11-01-PLAN.md (import progress backend)
 
-Progress: [█████████████░░░░░░░] 72% v0.2.0 (7/10 plans done)
+Progress: [██████████████░░░░░░] 75% v0.2.0 (8/11 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6 (v0.2.0)
+- Total plans completed: 7 (v0.2.0)
 - Average duration: 2.3 min
-- Total execution time: 14 min
+- Total execution time: 16 min
 
 **By Phase:**
 
@@ -30,6 +30,7 @@ Progress: [█████████████░░░░░░░] 72% v0.
 | 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
 | 8 — Session Context | 2/2 | 6 min | 3 min |
 | 9 — Day Summary | 1/1 | 2 min | 2 min |
+| 11 — Import Progress Indicator | 1/2 | 2 min | 2 min |
 
 *Updated after each plan completion*
 
@@ -63,10 +64,18 @@ Recent decisions affecting current work:
 - 10-01: FOWT prevention uses var (not const/let) in inline IIFE for broadest compat
 - 10-01: localStorage key is 'cctimereporter:theme' — namespaced to avoid collisions
 - 10-01: AppDatePicker drops matchMedia entirely — delegates to useTheme composable
+- 11-01: Two-pass import architecture (discovery then execution) for determinate progress reporting
+- 11-01: onProgress fires after each file with { phase, processed, total, currentFile }
+- 11-01: reply.hijack() used for SSE in Fastify; client disconnect tracked via request.raw 'close'
+- 11-01: Agent files included in total count for accurate progress denominator
 
 ### Pending Todos
 
 None.
+
+### Roadmap Evolution
+
+- Phase 11 added: Import Progress Indicator — real-time feedback during transcript import showing per-session status
 
 ### Blockers/Concerns
 
@@ -74,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-04T20:55:40Z
-Stopped at: Completed 10-01-PLAN.md (theme infrastructure)
+Last session: 2026-03-06T03:41:48Z
+Stopped at: Completed 11-01-PLAN.md (import progress backend)
 Resume file: None
