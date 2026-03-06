@@ -289,7 +289,7 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
  * }>}
  */
 export async function importAll(db, options = {}) {
-  const { force = false, verbose = false, maxAgeDays = 30 } = options;
+  const { force = false, verbose = false, maxAgeDays = 30, onProgress } = options;
 
   const cutoffDate = maxAgeDays != null
     ? new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000).toISOString()
@@ -298,37 +298,34 @@ export async function importAll(db, options = {}) {
   const projects     = discoverProjects();
   const importedInfo = getImportedFileInfo(db);
 
-  let filesProcessed  = 0;
   let filesSkipped    = 0;
   let totalMessages   = 0;
   const errors        = [];
 
+  // --- First pass: discovery ---
+  // Collect all work items so we know total file count upfront.
+  const projectWork = [];
+
   for (const project of projects) {
-    // Get or create project record
     const projectId = getOrCreateProject(db, project.projectPath, project.transcriptDir);
-
-    // Find transcript files for this project
     const files = findTranscriptFiles(project.transcriptDir);
-
-    // Read session index once per project (returns empty Map if file absent)
     const sessionIndex = readSessionIndex(project.transcriptDir);
 
-    // Split into files to import and files to skip
     const toImport = [];
-    const toSkip   = [];
+    let skippedCount = 0;
 
     for (const file of files) {
       const cached = importedInfo.get(file.path);
 
       // Skip 1: size unchanged (existing behavior, fast path)
       if (!force && cached?.fileSize === file.size) {
-        toSkip.push(file);
+        skippedCount++;
         continue;
       }
 
       // Skip 2: rolling window — cached lastMessageAt is before cutoff
       if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) {
-        toSkip.push(file);
+        skippedCount++;
         continue;
       }
 
@@ -346,9 +343,34 @@ export async function importAll(db, options = {}) {
       toImport.push(file);
     }
 
-    filesSkipped += toSkip.length;
+    filesSkipped += skippedCount;
 
-    // Import each file
+    // Discover agent files that need importing
+    const agentFiles = findAgentFiles(project.transcriptDir);
+    const agentToImport = [];
+
+    for (const agentFile of agentFiles) {
+      if (!force && importedInfo.get(agentFile.path)?.fileSize === agentFile.size) continue;
+      agentToImport.push(agentFile);
+    }
+
+    projectWork.push({ project, projectId, toImport, sessionIndex, agentToImport });
+  }
+
+  // Calculate total files across all projects
+  let totalFiles = 0;
+  for (const pw of projectWork) {
+    totalFiles += pw.toImport.length + pw.agentToImport.length;
+  }
+
+  let processedFiles = 0;
+  let filesProcessed = 0; // Only counts successfully imported transcript files (not agents)
+
+  onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, currentFile: null });
+
+  // --- Second pass: import ---
+  for (const { project, projectId, toImport, sessionIndex, agentToImport } of projectWork) {
+    // Import each transcript file
     for (const file of toImport) {
       try {
         const result = await importFile(db, file, projectId, { verbose }, sessionIndex);
@@ -366,16 +388,14 @@ export async function importAll(db, options = {}) {
           // Don't propagate log errors
         }
       }
+
+      processedFiles++;
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: file.sessionId });
     }
 
     // Import Pattern A subagent files (tool-invoked agents)
     // Messages merge into the parent session — no new session records created.
-    const agentFiles = findAgentFiles(project.transcriptDir);
-
-    for (const agentFile of agentFiles) {
-      // Size-based skip check
-      if (!force && importedInfo.get(agentFile.path)?.fileSize === agentFile.size) continue;
-
+    for (const agentFile of agentToImport) {
       try {
         const agentData = await parseTranscript(agentFile.path);
         const agentMessages = agentData.messages
@@ -413,6 +433,9 @@ export async function importAll(db, options = {}) {
           process.stderr.write(`  Warning: agent file ${agentFile.name}: ${err.message}\n`);
         }
       }
+
+      processedFiles++;
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: agentFile.parentSessionId });
     }
 
     // Update project last_import_at after all files processed
@@ -420,6 +443,8 @@ export async function importAll(db, options = {}) {
       `UPDATE projects SET last_import_at = datetime('now') WHERE id = ?`
     ).run(projectId);
   }
+
+  onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, currentFile: null });
 
   if (verbose) {
     process.stderr.write(
