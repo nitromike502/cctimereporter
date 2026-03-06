@@ -9,9 +9,13 @@
           @click="session && $emit('show-messages')"
         >{{ summaryText }}</span>
       </div>
+      <div v-if="session?.customTitle" class="detail-item">
+        <span class="detail-label">Session Name</span>
+        <span class="detail-value">{{ session.customTitle }}</span>
+      </div>
       <div class="detail-item">
         <span class="detail-label">Session ID</span>
-        <span class="detail-value">{{ sessionIdShort || '—' }}</span>
+        <span class="detail-value" :title="session?.sessionId">{{ sessionIdShort || '—' }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Ticket</span>
