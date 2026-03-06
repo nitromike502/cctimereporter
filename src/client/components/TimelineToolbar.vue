@@ -82,7 +82,14 @@
           @click="emit('import')"
         >Import</AppButton>
         <div v-if="importRunning" class="progress-container">
-          <AppProgressBar :indeterminate="true" />
+          <AppProgressBar
+            :value="props.importProgress.processed"
+            :max="props.importProgress.total || 1"
+            :indeterminate="props.importProgress.total === 0"
+          />
+          <span v-if="props.importProgress.total > 0" class="progress-text">
+            {{ props.importProgress.processed }} / {{ props.importProgress.total }}
+          </span>
         </div>
       </div>
     </div>
@@ -121,6 +128,11 @@ const props = defineProps({
   threshold: {
     type: Number,
     default: 10,
+  },
+  /** Import progress with processed/total counts */
+  importProgress: {
+    type: Object,
+    default: () => ({ processed: 0, total: 0 }),
   },
 })
 
@@ -211,6 +223,13 @@ function yesterdayStr() {
 
 .progress-container {
   width: 200px;
+}
+
+.progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .threshold-control {
