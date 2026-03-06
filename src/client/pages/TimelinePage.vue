@@ -4,6 +4,7 @@
     <TimelineToolbar
       :date="selectedDate"
       :import-running="importRunning"
+      :import-progress="importProgress"
       :threshold="idleThreshold"
       @navigate="navigateToDate"
       @import="triggerImport"
@@ -78,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TimelineToolbar from '../components/TimelineToolbar.vue'
 import GanttChart from '../components/GanttChart.vue'
@@ -99,6 +100,8 @@ const timelineData = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const importRunning = ref(false)
+const importProgress = ref({ processed: 0, total: 0 })
+const importEventSource = ref(null)
 // Set of hidden projectIds. Persists across date changes. All visible by default.
 const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
@@ -224,25 +227,37 @@ const legendItems = computed(() =>
 
 // --- Import ---
 
-async function triggerImport() {
+function triggerImport() {
   if (importRunning.value) return
   importRunning.value = true
-  try {
-    const res = await fetch('/api/import', { method: 'POST' })
-    if (res.status === 409) return // Import already running on server — ignore
-    if (!res.ok) throw new Error('Import failed')
-    // Auto-refresh timeline after successful import
-    await fetchTimeline()
-  } catch (e) {
-    error.value = e.message
-  } finally {
+  importProgress.value = { processed: 0, total: 0 }
+
+  const source = new EventSource('/api/import/progress')
+  importEventSource.value = source
+
+  source.addEventListener('progress', (e) => {
+    importProgress.value = JSON.parse(e.data)
+  })
+
+  source.addEventListener('complete', () => {
+    source.close()
+    importEventSource.value = null
     importRunning.value = false
-  }
+    fetchTimeline()
+  })
+
+  source.addEventListener('error', () => {
+    source.close()
+    importEventSource.value = null
+    importRunning.value = false
+    error.value = 'Import failed'
+  })
 }
 
 // --- Lifecycle ---
 
 onMounted(fetchTimeline)
+onUnmounted(() => { importEventSource.value?.close() })
 watch(() => route.query.date, () => {
   selectedSession.value = null
   fetchTimeline()
