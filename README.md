@@ -24,7 +24,8 @@ The timeline page (`/timeline?date=YYYY-MM-DD`) shows:
 - **Idle gaps** rendered as faded segments within each bar (gaps > configurable threshold)
 - **Project grouping** with color-coded swim lanes and a legend
 - **Session labels** using a fallback chain: ticket ID, git branch, or first words of the initial prompt
-- **Click-to-detail panel** showing session ID, ticket, branch, project, working time, wall-clock span, message count, and idle gap count
+- **Click-to-detail panel** showing session name, session ID, ticket, branch, project, working time, wall-clock span, message count, and idle gap count
+- **Message preview modal** showing the first messages of a session conversation
 
 ### Navigation
 
@@ -33,6 +34,10 @@ The timeline page (`/timeline?date=YYYY-MM-DD`) shows:
 - Date picker for jumping to any date
 - URL updates to `/timeline?date=YYYY-MM-DD` (bookmarkable)
 - Project filter checkboxes to show/hide individual projects
+
+### Import
+
+Clicking **Import** shows a progress bar with file counts as transcripts are processed. The import streams progress via Server-Sent Events so you can see exactly how many files remain.
 
 ### Import Pipeline
 
@@ -91,6 +96,8 @@ scripts/                   Python proof-of-concept (reference implementation)
 | GET | `/api/timeline?date=YYYY-MM-DD` | Sessions grouped by project for a date, with idle gaps and working time |
 | GET | `/api/projects` | List of all known projects |
 | POST | `/api/import` | Trigger a full import (409 if already running) |
+| GET | `/api/import/progress` | Trigger import with SSE progress streaming (409 if already running) |
+| GET | `/api/sessions/:id/messages` | First messages of a session for preview |
 
 ### Tech Stack
 

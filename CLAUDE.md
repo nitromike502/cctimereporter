@@ -52,14 +52,16 @@ src/importer/                  Import pipeline
 src/server/index.js            Fastify server factory with static file serving
 src/server/routes/timeline.js  GET /api/timeline — sessions with idle gaps and working time
 src/server/routes/projects.js  GET /api/projects — project list
-src/server/routes/import.js    POST /api/import — trigger import with concurrency guard
+src/server/routes/import.js    POST /api/import + GET /api/import/progress (SSE streaming)
+src/server/routes/messages.js  GET /api/sessions/:id/messages — session message preview
+src/utils/parse-command-xml.js Slash command XML tag parser
 src/client/                    Vue 3 frontend
   main.js                      App entry: tokens.css, router, createApp
   router/index.js              Routes: /timeline (main), /components (preview), / (redirect)
   styles/tokens.css            Design tokens (CSS custom properties)
   pages/TimelinePage.vue       Main timeline page with Gantt chart
   pages/ComponentsPage.vue     Component library preview page
-  components/                  Reusable components (Gantt*, App*, Timeline*, SessionDetail*)
+  components/                  Reusable components (Gantt*, App*, Timeline*, SessionDetail*, SessionMessagesModal)
 ```
 
 ### API Endpoints
@@ -68,17 +70,26 @@ src/client/                    Vue 3 frontend
 |--------|------|-------------|
 | GET | `/api/timeline?date=YYYY-MM-DD` | Sessions grouped by project, with idle gaps and working time |
 | GET | `/api/projects` | List of all known projects |
-| POST | `/api/import` | Trigger full import (409 if already running) |
+| POST | `/api/import` | Trigger full import, return JSON result (409 if already running) |
+| GET | `/api/import/progress` | Trigger import with SSE progress streaming (409 if already running) |
+| GET | `/api/sessions/:id/messages` | First messages of a session (up to 10, stops at first tool_use) |
 
 ### Import Pipeline
 
+Two-pass architecture: discovery pass collects all files and counts totals, then import pass processes files with progress callbacks.
+
 ```
-JSONL files (~/.claude/projects/*/…/*.jsonl)
-  → parseTranscript()          — async readline streaming
-  → detectForks()              — builds parent→children tree, classifies real vs progress forks
-  → determineWorkingBranch()   — frequency + ticket pattern preference
-  → scoreTickets()             — multi-source scoring system
-  → upsertSession/insertMessages/upsertTickets  — SQLite writes
+Pass 1 — Discovery:
+  discoverProjects() → findTranscriptFiles() → skip checks → collect work items + total count
+
+Pass 2 — Import (with onProgress callback for SSE streaming):
+  JSONL files (~/.claude/projects/*/…/*.jsonl)
+    → parseTranscript()          — async readline streaming
+    → detectForks()              — builds parent→children tree, classifies real vs progress forks
+    → determineWorkingBranch()   — frequency + ticket pattern preference
+    → scoreTickets()             — multi-source scoring system (with MIN_TICKET_SCORE threshold)
+    → upsertSession/insertMessages/upsertTickets  — SQLite writes
+    → onProgress({ phase, processed, total, currentFile })
 ```
 
 ### Ticket Detection Scoring
@@ -114,12 +125,13 @@ Custom component library with design tokens in `tokens.css`. All components live
 
 ## Dependencies
 
-- **Runtime:** fastify, @fastify/static, vue, vue-router, reka-ui, @vuepic/vue-datepicker
+- **Runtime:** fastify, @fastify/static, driver.js, vue, vue-router, reka-ui, @vuepic/vue-datepicker
 - **Dev:** vite, @vitejs/plugin-vue
 - **Built-in:** `node:sqlite` (Node 22+), `node:readline`, `node:fs`, `node:path`
 
 ## File Layout
 
 - `README.md` — Project overview, quick start, and development guide
+- `CHANGELOG.md` — Version history
 - `references/claude-transcript-schema.md` — JSONL transcript format reference
 - `scripts/` — Python proof-of-concept (reference implementation, separate database)
