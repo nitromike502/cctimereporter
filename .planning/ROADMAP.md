@@ -128,8 +128,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Backend: onProgress callback in importAll() and GET /api/import/progress SSE endpoint
-- [ ] 11-02-PLAN.md — Frontend: EventSource consumption and determinate progress bar with counts
+- [x] 11-01-PLAN.md — Backend: onProgress callback in importAll() and GET /api/import/progress SSE endpoint
+- [x] 11-02-PLAN.md — Frontend: EventSource consumption and determinate progress bar with counts
 
 ## Progress
 
@@ -145,4 +145,4 @@ Plans:
 | 8. Session Context | v0.2.0 | 2/2 | Complete | 2026-03-04 |
 | 9. Day Summary | v0.2.0 | 1/1 | Complete | 2026-03-04 |
 | 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
-| 11. Import Progress Indicator | v0.2.0 | 0/2 | Not started | - |
+| 11. Import Progress Indicator | v0.2.0 | 2/2 | Complete | 2026-03-05 |
