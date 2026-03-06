@@ -38,6 +38,7 @@ export async function parseTranscript(filePath) {
   let teamName = null;
   let agentName = null;
   let userType = null;
+  let isTeamMember = false;
 
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: 'utf8' }),
@@ -88,6 +89,11 @@ export async function parseTranscript(filePath) {
     }
     if (!agentName && msg.agentName) {
       agentName = msg.agentName;
+      // Team members have agentName on regular messages from the start.
+      // Renamed sessions only get agentName via a standalone "agent-name" entry.
+      if (msg.type !== 'agent-name' && msg.teamName) {
+        isTeamMember = true;
+      }
     }
     if (!userType && msg.userType) {
       userType = msg.userType;
@@ -134,6 +140,7 @@ export async function parseTranscript(filePath) {
     teamName,
     agentName,
     userType,
+    isTeamMember,
   };
 }
 

@@ -207,12 +207,11 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
   const toolUseCount = countToolUses(messages);
 
   // 7. Detect subagent
-  // Pattern B: team-based subagents (userType=external + agentName set)
-  // userType === "external" alone is NOT sufficient — team leaders also have it.
-  // The agentName check distinguishes subagents from team leaders.
+  // Pattern B: team-based subagents — identified by having teamName + agentName on
+  // regular messages from the start. Team leaders and renamed sessions are NOT subagents;
+  // they only get agentName via standalone "agent-name" metadata entries.
   // Pattern C: worktree-based subagent projects (-tmp- or .claude/worktrees/ in path)
-  const isTeamSubagent = data.userType === 'external' && data.agentName != null;
-  const isSubagent = isTeamSubagent || isWorktreeProject;
+  const isSubagent = data.isTeamMember || isWorktreeProject;
 
   // 8. Merge session index data with JSONL-parsed data
   // Priority: session-index summary > JSONL summary (JSONL never has summary in practice)
