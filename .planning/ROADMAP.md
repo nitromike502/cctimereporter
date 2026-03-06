@@ -4,7 +4,7 @@
 
 - SHIPPED **v1.0 MVP** — Phases 1-6 (shipped 2026-03-01)
 - SHIPPED **v0.2.0 UX and Insights** — Phases 7-11 (shipped 2026-03-04)
-- IN PROGRESS **v0.3.0 Session Polish** — Phases 12-14
+- SHIPPED **v0.3.0 Session Polish** — Phases 12-15 (shipped 2026-03-05)
 
 ## Current Milestone: v0.3.0 Session Polish
 
@@ -36,6 +36,15 @@ Plans:
 
 Plans:
 - [x] 14-01: Session messages modal with clickable summary
+
+### Phase 15: Session Naming
+
+**Goal:** Import session UUID and custom name from Claude Code, use as session label in Gantt chart and detail panel
+**Depends on:** Phase 14
+**Plans:** 1/1 — completed 2026-03-05
+
+Plans:
+- [x] 15-01: Add session custom title to timeline and UI
 
 ---
 
@@ -86,3 +95,4 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 | 12. Tour Enhancements | v0.3.0 | 1/1 | Complete | 2026-03-04 |
 | 13. Summary Parser | v0.3.0 | 1/1 | Complete | 2026-03-04 |
 | 14. Session Message Modal | v0.3.0 | 1/1 | Complete | 2026-03-04 |
+| 15. Session Naming | v0.3.0 | 1/1 | Complete | 2026-03-05 |
