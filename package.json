@@ -1,6 +1,6 @@
 {
   "name": "cctimereporter",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Visual timeline of Claude Code sessions",
   "type": "module",
   "bin": {
@@ -11,6 +11,7 @@
     "src/db",
     "src/importer",
     "src/server",
+    "src/utils",
     "src/version-check.js",
     "dist"
   ],
