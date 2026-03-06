@@ -1,41 +1,54 @@
 <template>
   <div class="session-detail-panel">
     <div class="detail-grid">
-      <div class="detail-item detail-item--full">
-        <span class="detail-label">Summary</span>
-        <span class="detail-value detail-value--wrap">{{ summaryText }}</span>
+      <!-- Column 1: Session identity -->
+      <div class="detail-item">
+        <span class="detail-label">Session Name:</span>
+        <span class="detail-value">{{ session?.customTitle || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Session ID</span>
-        <span class="detail-value">{{ sessionIdShort || '—' }}</span>
+        <span class="detail-label">Session ID:</span>
+        <span class="detail-value" :title="session?.sessionId">{{ sessionIdShort || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Ticket</span>
-        <span class="detail-value">{{ session?.ticket || '—' }}</span>
+        <span class="detail-label">Messages:</span>
+        <span class="detail-value">
+          {{ session?.messageCount ?? '\u00A0' }}
+          <a
+            v-if="session"
+            class="detail-link"
+            href="#"
+            @click.prevent="$emit('show-messages')"
+          >view</a>
+        </span>
+      </div>
+
+      <!-- Column 2: Context -->
+      <div class="detail-item">
+        <span class="detail-label">Project:</span>
+        <span class="detail-value">{{ (session && projectName) || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Branch</span>
-        <span class="detail-value">{{ session?.branch || '—' }}</span>
+        <span class="detail-label">Ticket:</span>
+        <span class="detail-value">{{ session?.ticket || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Project</span>
-        <span class="detail-value">{{ (session && projectName) || '—' }}</span>
+        <span class="detail-label">Branch:</span>
+        <span class="detail-value">{{ session?.branch || '\u00A0' }}</span>
+      </div>
+
+      <!-- Column 3: Timing -->
+      <div class="detail-item">
+        <span class="detail-label">Working Time:</span>
+        <span class="detail-value">{{ workingTimeLabel || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Working Time</span>
-        <span class="detail-value">{{ workingTimeLabel || '—' }}</span>
+        <span class="detail-label">Start:</span>
+        <span class="detail-value">{{ startDateTime || '\u00A0' }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Wall-Clock Span</span>
-        <span class="detail-value">{{ wallClockSpan || '—' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Messages</span>
-        <span class="detail-value">{{ session?.messageCount ?? '—' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Idle Gaps</span>
-        <span class="detail-value">{{ session ? idleGapCount : '—' }}</span>
+        <span class="detail-label">End:</span>
+        <span class="detail-value">{{ endDateTime || '\u00A0' }}</span>
       </div>
     </div>
   </div>
@@ -53,6 +66,8 @@ import { computed } from 'vue'
  * @prop {Object} session     - Session object or null
  * @prop {string} projectName - Display name of the project owning this session
  */
+defineEmits(['show-messages'])
+
 const props = defineProps({
   session: {
     type: Object,
@@ -77,25 +92,25 @@ const workingTimeLabel = computed(() => {
   return `${minutes} min`
 })
 
-/** Wall-clock span: "HH:MM AM – HH:MM PM" */
-const wallClockSpan = computed(() => {
+/** Format a datetime as "HH:MM AM, Mon DD" */
+function formatDateTime(isoStr) {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${time}, ${date}`
+}
+
+/** Session start datetime */
+const startDateTime = computed(() => {
   if (!props.session) return ''
-  const opts = { hour: '2-digit', minute: '2-digit' }
-  const start = new Date(props.session.startTime).toLocaleTimeString('en-US', opts)
-  const end = new Date(props.session.endTime).toLocaleTimeString('en-US', opts)
-  return `${start} – ${end}`
+  return formatDateTime(props.session.startTime)
 })
 
-/** Number of idle gaps */
-const idleGapCount = computed(() => {
-  if (!props.session) return 0
-  return props.session.idleGaps?.length ?? 0
-})
-
-/** Summary text: AI summary preferred, first user prompt as fallback, em-dash if neither */
-const summaryText = computed(() => {
+/** Session end datetime */
+const endDateTime = computed(() => {
   if (!props.session) return ''
-  return props.session.summary || props.session.firstPrompt || '\u2014'
+  return formatDateTime(props.session.endTime)
 })
 </script>
 
@@ -117,15 +132,17 @@ const summaryText = computed(() => {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--spacing-sm);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  gap: var(--spacing-xs) var(--spacing-lg);
   width: 100%;
 }
 
 .detail-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 9px;
 }
 
 .detail-label {
@@ -144,14 +161,14 @@ const summaryText = computed(() => {
   white-space: nowrap;
 }
 
-.detail-item--full {
-  grid-column: 1 / -1;
+.detail-link {
+  font-size: var(--font-size-xs);
+  color: var(--color-link);
+  margin-left: var(--spacing-xs);
+  text-decoration: none;
 }
 
-.detail-value--wrap {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
-  line-height: 1.4;
+.detail-link:hover {
+  text-decoration: underline;
 }
 </style>

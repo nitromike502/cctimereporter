@@ -2,82 +2,64 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-02)
+See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.2.0 — Phase 11: Import Progress Indicator
+**Current focus:** v0.3.0 shipped + Import Progress Indicator complete
 
 ## Current Position
 
-Phase: 11 of 11 (Import Progress Indicator) — complete
-Plan: 2 of 2 in phase 11
-Status: Phase complete
-Last activity: 2026-03-05 — Completed 11-02-PLAN.md (frontend SSE progress)
+Phase: 15 of 15 (Session Naming) — complete
+Status: v0.3.0 milestone complete + Import Progress Indicator feature branch merged
+Last activity: 2026-03-05 — Completed Import Progress Indicator (Phase 16)
 
-Progress: [████████████████████] 100% v0.2.0 (9/9 plans done)
+Progress: [████████████████████] 100% v0.3.0 (4/4 phases done)
 
 ## Performance Metrics
 
-**Velocity:**
-- Total plans completed: 9 (v0.2.0)
-- Average duration: 2.0 min
-- Total execution time: 18 min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 7 — Rolling Import and Onboarding | 3/3 | 6 min | 2 min |
-| 8 — Session Context | 2/2 | 6 min | 3 min |
-| 9 — Day Summary | 1/1 | 2 min | 2 min |
-| 11 — Import Progress Indicator | 2/2 | 3 min | 1.5 min |
-
-*Updated after each plan completion*
+**v0.3.0 Velocity:**
+- Total plans completed: 4
+- Phases: 4 (12-15)
+- Phases 12-14 executed in parallel via team, Phase 15 direct execution
 
 ## Accumulated Context
 
 ### Decisions
 
 All v1.0 decisions logged in PROJECT.md Key Decisions table.
+All v0.2.0 decisions archived in .planning/milestones/v0.2.0-ROADMAP.md.
 
-Recent decisions affecting current work:
-- Roadmap: 4 phases (7-10), grouped by coupling — import/onboarding, session context, day summary, theming+tour
-- 07-01: getImportedFileInfo includes 'skipped_old' status for instant re-skip on subsequent import runs
-- 07-01: peekFirstTimestamp is synchronous — appropriate as a skip-gate, not hot async code
-- 07-01: updateImportLog params default to null for full backward compatibility
-- 07-02: maxAgeDays defaults to 30 in importAll(); route passes undefined when not in body (importAll uses default)
-- 07-02: Peek-and-skip records firstTs as both first/last_message_at — sufficient for re-skip
-- 07-02: totalSessions uses COUNT(*) prepared at registration time, same pattern as sessionStmt/messageStmt
-- 07-03: Welcome v-else-if ordered before empty-date v-else-if (totalSessions===0 implies projects.length===0)
-- 07-03: Empty-date state has no AppButton — returning users need nav hint, not import CTA
-- 08-01: sessions-index.json is INSIDE transcriptDir (not parent dir) — RESEARCH.md corrected old assumption
-- 08-01: firstPrompt truncated to 200 chars in JSONL extraction (matches sessions-index.json observed range)
-- 08-01: customTitle from sessions-index.json also merged; column already existed, no migration needed
-- 08-01: "No prompt" sentinel filtered at both reader and merge point (defense in depth)
-- 08-02: Summary row placed first in detail grid — highest-value context leads
-- 08-02: summaryText returns '' (not em-dash) when session is null — avoids stray dash in no-selection state
-- 09-01: DaySummary receives timelineData.projects (unfiltered), not visibleProjects — day totals accurate regardless of Gantt filter state
-- 09-01: Null ticket/branch rows sorted to bottom, displayed as (untracked)
-- 09-01: groupBy Map-based helper shared between ticketRows and branchRows computeds
-- 10-01: Dark mode uses [data-theme='dark'] on documentElement, not @media query — enables user toggle
-- 10-01: useTheme singleton at module level — all consumers share identical reactive ref
-- 10-01: FOWT prevention uses var (not const/let) in inline IIFE for broadest compat
-- 10-01: localStorage key is 'cctimereporter:theme' — namespaced to avoid collisions
-- 10-01: AppDatePicker drops matchMedia entirely — delegates to useTheme composable
-- 11-01: Two-pass import architecture (discovery then execution) for determinate progress reporting
-- 11-01: onProgress fires after each file with { phase, processed, total, currentFile }
-- 11-01: reply.hijack() used for SSE in Fastify; client disconnect tracked via request.raw 'close'
-- 11-01: Agent files included in total count for accurate progress denominator
-- 11-02: importProgress starts at { processed: 0, total: 0 } for indeterminate-to-determinate transition
-- 11-02: EventSource ref stored separately for explicit cleanup on unmount
+v0.3.0 decisions:
+- 12-01: Dynamic steps array for tour — filter-bar step gated on colorizedProjects.value.length > 1
+- 12-01: TOUR_KEY not reset — existing users don't re-see tour (intentional)
+- 13-01: parseCommandXml utility shared between import-time and display-time
+- 13-01: SYNTHETIC_MSG_RE narrowed to only teammate-message and local-command
+- 13-01: Display-time parsing fixes existing DB data without re-import
+- 14-01: Messages read from JSONL files directly (messages DB table has no content column)
+- 14-01: Reka UI Dialog primitives used for accessible modal
+- 14-01: Modal stops at 10 messages or first tool_use, whichever comes first
+- 15-01: customTitle at top of GanttBar label fallback chain (user name overrides all)
+- 15-01: No schema/import changes — custom_title already stored from v1→v2 migration
+- 15-01: Session Name field conditionally shown only when custom_title exists
 
-### Pending Todos
-
-None.
+Import Progress Indicator decisions:
+- 16-01: Two-pass import architecture (discovery then execution) for determinate progress reporting
+- 16-01: onProgress fires after each file with { phase, processed, total, currentFile }
+- 16-01: reply.hijack() used for SSE in Fastify; client disconnect tracked via request.raw 'close'
+- 16-01: Agent files included in total count for accurate progress denominator
+- 16-02: importProgress starts at { processed: 0, total: 0 } for indeterminate-to-determinate transition
+- 16-02: EventSource ref stored separately for explicit cleanup on unmount
 
 ### Roadmap Evolution
 
-- Phase 11 added: Import Progress Indicator — real-time feedback during transcript import showing per-session status
+- v1.0 shipped 2026-03-01 (Phases 1-6)
+- v0.2.0 shipped 2026-03-04 (Phases 7-11)
+- v0.3.0 shipped 2026-03-05 (Phases 12-15)
+- Import Progress Indicator added and completed 2026-03-05
+
+### Pending Todos
+
+None — v0.3.0 complete + Import Progress Indicator merged.
 
 ### Blockers/Concerns
 
@@ -85,6 +67,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-06T03:45:13Z
-Stopped at: Completed 11-02-PLAN.md (frontend SSE progress) — Phase 11 complete
+Last session: 2026-03-05
+Stopped at: Import Progress Indicator feature branch merged into main
 Resume file: None

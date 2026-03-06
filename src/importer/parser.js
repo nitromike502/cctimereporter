@@ -7,6 +7,11 @@
 
 import { createReadStream, openSync, readSync, closeSync } from 'node:fs';
 import { createInterface } from 'node:readline';
+import { parseCommandXml } from '../utils/parse-command-xml.js';
+
+// Patterns for truly synthetic/system-generated user messages that should not be captured as firstPrompt.
+// Slash command XML (command-name, command-message, command-args) is handled separately by parseCommandXml.
+const SYNTHETIC_MSG_RE = /^\s*(<teammate-message|<local-command)/;
 
 /**
  * Parse a JSONL transcript file into structured session data.
@@ -33,6 +38,7 @@ export async function parseTranscript(filePath) {
   let teamName = null;
   let agentName = null;
   let userType = null;
+  let isTeamMember = false;
 
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: 'utf8' }),
@@ -83,6 +89,11 @@ export async function parseTranscript(filePath) {
     }
     if (!agentName && msg.agentName) {
       agentName = msg.agentName;
+      // Team members have agentName on regular messages from the start.
+      // Renamed sessions only get agentName via a standalone "agent-name" entry.
+      if (msg.type !== 'agent-name' && msg.teamName) {
+        isTeamMember = true;
+      }
     }
     if (!userType && msg.userType) {
       userType = msg.userType;
@@ -91,9 +102,11 @@ export async function parseTranscript(filePath) {
     // Capture first prompt: first non-meta user message text, truncated to 200 chars
     if (!firstPrompt && msg.type === 'user' && !msg.isMeta) {
       const text = extractContentText(msg);
-      const trimmed = text?.trim();
-      if (trimmed) {
-        firstPrompt = trimmed.slice(0, 200);
+      const trimmedText = text?.trim();
+      if (trimmedText && !SYNTHETIC_MSG_RE.test(trimmedText)) {
+        // Try parsing slash command XML into readable text
+        const parsed = parseCommandXml(trimmedText);
+        firstPrompt = (parsed || trimmedText).slice(0, 200);
       }
     }
 
@@ -127,6 +140,7 @@ export async function parseTranscript(filePath) {
     teamName,
     agentName,
     userType,
+    isTeamMember,
   };
 }
 

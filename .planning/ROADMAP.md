@@ -3,7 +3,50 @@
 ## Milestones
 
 - SHIPPED **v1.0 MVP** — Phases 1-6 (shipped 2026-03-01)
-- IN PROGRESS **v0.2.0 UX and Insights** — Phases 7-10
+- SHIPPED **v0.2.0 UX and Insights** — Phases 7-11 (shipped 2026-03-04)
+- SHIPPED **v0.3.0 Session Polish** — Phases 12-15 (shipped 2026-03-05)
+
+## Current Milestone: v0.3.0 Session Polish
+
+**Goal:** Improve session context visibility — better tour coverage, cleaner summaries, and deeper message inspection.
+
+### Phase 12: Tour Enhancements
+
+**Goal:** Add tour steps for the project filter checkboxes and the day summary totals at the bottom of the page
+**Depends on:** Phase 11
+**Plans:** 1/1 — completed 2026-03-04
+
+Plans:
+- [x] 12-01: Add filter and day summary tour steps
+
+### Phase 13: Summary Parser
+
+**Goal:** Parse slash command XML tags in session summaries into human-readable text
+**Depends on:** Phase 11
+**Plans:** 1/1 — completed 2026-03-04
+
+Plans:
+- [x] 13-01: Parse slash command XML in session summaries
+
+### Phase 14: Session Message Modal
+
+**Goal:** Make the session summary clickable in the detail panel to open a modal showing the first 10 messages or up to the first tool execution
+**Depends on:** Phase 13
+**Plans:** 1/1 — completed 2026-03-04
+
+Plans:
+- [x] 14-01: Session messages modal with clickable summary
+
+### Phase 15: Session Naming
+
+**Goal:** Import session UUID and custom name from Claude Code, use as session label in Gantt chart and detail panel
+**Depends on:** Phase 14
+**Plans:** 1/1 — completed 2026-03-05
+
+Plans:
+- [x] 15-01: Add session custom title to timeline and UI
+
+---
 
 ## Phases
 
@@ -21,95 +64,18 @@ See: `.planning/milestones/v1-ROADMAP.md` for full details.
 
 </details>
 
-### v0.2.0 UX and Insights (In Progress)
+<details>
+<summary>v0.2.0 UX and Insights (Phases 7-11) — SHIPPED 2026-03-04</summary>
 
-**Milestone Goal:** First-time users are welcomed and oriented; returning users see richer session context and a day summary that answers "how much did I actually work?"
+- [x] Phase 7: Rolling Import and Onboarding (3/3 plans) — completed 2026-03-03
+- [x] Phase 8: Session Context (2/2 plans) — completed 2026-03-04
+- [x] Phase 9: Day Summary (1/1 plans) — completed 2026-03-04
+- [x] Phase 10: Theming and Tour (2/2 plans) — completed 2026-03-04
+- [x] Phase 11: Bug Fixes (3/3 plans) — completed 2026-03-04
 
-- [x] **Phase 7: Rolling Import and Onboarding** — Fast, bounded import with a welcoming first-run experience (completed 2026-03-03)
-- [x] **Phase 8: Session Context** — Sessions show AI-generated or prompt-derived summaries in the detail panel (completed 2026-03-04)
-- [x] **Phase 9: Day Summary** — Below-Gantt panel breaks down working time by project, ticket, and branch (completed 2026-03-04)
-- [ ] **Phase 10: Theming and Tour** — Light/dark toggle and a first-visit guided tour complete the UX
+See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 
-## Phase Details
-
-### Phase 7: Rolling Import and Onboarding
-
-**Goal:** Import is fast by default and first-time users understand what to do
-
-**Depends on:** Phase 6 (v1.0 complete)
-
-**Requirements:** IMP-01, IMP-02, IMP-03, IMP-04
-
-**Success Criteria** (what must be TRUE):
-  1. Running import on a project with 90 days of transcripts only processes the last 30 days of files without prompting
-  2. Running import a second time skips already-processed files instantly without re-reading them
-  3. A user who has never imported sees a distinct welcome screen that explains the tool and has a clear call to action to import — not the same empty-date view returning users see
-  4. During a first import, the UI shows progressive feedback (not a frozen spinner) so the user knows work is happening
-
-**Plans:** 3 plans
-
-Plans:
-- [x] 07-01: Schema migration and import_log caching
-- [x] 07-02: Rolling 30-day import window with peek-and-skip
-- [x] 07-03: Welcome state detection and onboarding UI
-
-### Phase 8: Session Context
-
-**Goal:** Every session in the Gantt chart carries a human-readable summary that explains what was worked on
-
-**Depends on:** Phase 7
-
-**Requirements:** CTX-01, CTX-02, CTX-03
-
-**Success Criteria** (what must be TRUE):
-  1. Clicking a session bar for a project that has sessions-index.json shows the AI-generated summary in the SessionDetailPanel
-  2. Clicking a session bar for a project without sessions-index.json shows the first user message from that session as the summary
-  3. Sessions that have neither an AI summary nor a first message show a graceful fallback (no blank panel, no error)
-
-**Plans:** 2 plans
-
-Plans:
-- [x] 08-01-PLAN.md — Schema migration, session-index reader, parser firstPrompt, and import pipeline integration
-- [x] 08-02-PLAN.md — Timeline API first_prompt field and SessionDetailPanel summary row
-
-### Phase 9: Day Summary
-
-**Goal:** Below the Gantt chart, users can see a breakdown of exactly how their working time was spent that day
-
-**Depends on:** Phase 7
-
-**Requirements:** SUM-01, SUM-02, SUM-03, SUM-04
-
-**Success Criteria** (what must be TRUE):
-  1. A total working time figure is visible below the Gantt chart for the selected day
-  2. A per-project table shows each project worked on, its session count, and its working time — sorted by working time descending
-  3. A per-ticket table shows each ticket touched that day with session count and working time, with unticket sessions grouped separately
-  4. A per-branch table shows each branch worked on that day with session count and working time
-
-**Plans:** 1 plan
-
-Plans:
-- [x] 09-01: DaySummary component with total and tabbed breakdowns
-
-### Phase 10: Theming and Tour
-
-**Goal:** The app respects the user's light/dark preference and new users are guided to key features on their first visit
-
-**Depends on:** Phase 9
-
-**Requirements:** UIX-01, UIX-02
-
-**Success Criteria** (what must be TRUE):
-  1. A toggle in the toolbar switches between light and dark mode and the preference persists across page reloads
-  2. Opening the app with a fresh localStorage triggers a tour that highlights the date picker, import button, Gantt chart, and session detail panel in sequence
-  3. The tour can be dismissed at any step and does not reappear on subsequent visits
-  4. Light and dark modes both render all UI elements legibly with no missing color assignments
-
-**Plans:** 2 plans
-
-Plans:
-- [ ] 10-01: CSS custom property design tokens and light/dark toggle
-- [ ] 10-02: First-visit tour integration
+</details>
 
 ### Phase 11: Import Progress Indicator
 
@@ -144,5 +110,10 @@ Plans:
 | 7. Rolling Import and Onboarding | v0.2.0 | 3/3 | Complete | 2026-03-03 |
 | 8. Session Context | v0.2.0 | 2/2 | Complete | 2026-03-04 |
 | 9. Day Summary | v0.2.0 | 1/1 | Complete | 2026-03-04 |
-| 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
-| 11. Import Progress Indicator | v0.2.0 | 2/2 | Complete | 2026-03-05 |
+| 10. Theming and Tour | v0.2.0 | 2/2 | Complete | 2026-03-04 |
+| 11. Bug Fixes | v0.2.0 | 3/3 | Complete | 2026-03-04 |
+| 12. Tour Enhancements | v0.3.0 | 1/1 | Complete | 2026-03-04 |
+| 13. Summary Parser | v0.3.0 | 1/1 | Complete | 2026-03-04 |
+| 14. Session Message Modal | v0.3.0 | 1/1 | Complete | 2026-03-04 |
+| 15. Session Naming | v0.3.0 | 1/1 | Complete | 2026-03-05 |
+| 16. Import Progress Indicator | — | 2/2 | Complete | 2026-03-05 |

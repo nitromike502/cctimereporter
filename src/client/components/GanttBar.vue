@@ -26,6 +26,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { parseCommandXml } from '../../utils/parse-command-xml.js'
 
 /**
  * GanttBar — a single session bar positioned absolutely within its parent container.
@@ -118,13 +119,15 @@ const segments = computed(() => {
   return segs
 })
 
-/** Session label using ticket -> branch -> summary -> sessionId fallback chain */
+/** Session label using customTitle -> ticket -> branch -> summary -> sessionId fallback chain */
 const label = computed(() => {
+  if (props.session.customTitle) return props.session.customTitle
   if (props.session.ticket) return props.session.ticket
   if (props.session.branch) return props.session.branch
   if (props.session.summary) {
-    const words = props.session.summary.split(/\s+/).slice(0, 5).join(' ')
-    return words.length < props.session.summary.length ? words + '...' : words
+    const parsed = parseCommandXml(props.session.summary) || props.session.summary
+    const words = parsed.split(/\s+/).slice(0, 5).join(' ')
+    return words.length < parsed.length ? words + '...' : words
   }
   return props.session.sessionId.slice(0, 8)
 })

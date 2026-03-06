@@ -681,3 +681,86 @@ Many fields are optional and may be absent:
 - `slug` - not always present
 - `agentId` - only for sub-agent conversations
 - `thinkingMetadata` - only when extended thinking enabled
+
+---
+
+## Transcript File Layout
+
+All session transcripts live in `~/.claude/projects/<encoded-project-path>/`:
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| Regular sessions | `<uuid>.jsonl` | Top-level JSONL file |
+| Team leader sessions | `<uuid>.jsonl` | Top-level JSONL file (same as regular) |
+| Team member sessions | `<uuid>.jsonl` | Top-level JSONL file (same as regular, NOT in subdirectories) |
+| Tool-invoked subagents | `<uuid>/subagents/agent-*.jsonl` | Subdirectory named after the parent session UUID |
+| Tool results | `<uuid>/tool-results/` | Tool output files for a session |
+
+Team leader sessions have a corresponding `<uuid>/subagents/` subdirectory containing their team member agent files. Team member sessions themselves are always top-level JSONL files -- they are not stored inside subdirectories.
+
+---
+
+## Distinguishing Session Types by JSONL Content
+
+All sessions (regular, team leader, team member) have `userType: "external"` on their messages. The session type is determined by examining message-level fields, not file location.
+
+### Regular session
+
+- No `teamName` or `agentName` on messages
+- May have a `type: "agent-name"` metadata entry if renamed via `/rename`
+- May have a `type: "custom-title"` metadata entry
+
+### Team leader
+
+- `teamName` appears on messages ONLY after the `/team` command is used (not from the start of the session)
+- `agentName` only appears on a standalone `type: "agent-name"` metadata entry (from `/rename`), NOT on regular messages
+- Has a `<uuid>/subagents/` subdirectory containing team member agent files
+- `has_subagents` may be true if inline agents were also used
+
+### Team member
+
+- `teamName` AND `agentName` present on EVERY message from line 0
+- Both fields appear on regular message types (`user`, `assistant`, `progress`, `system`)
+- The `agentName` value is the name assigned when the team member was created
+- No `<uuid>/` subdirectory exists for the team member session
+
+### Renamed session (via /rename)
+
+- Gets a standalone `type: "agent-name"` entry with an `agentName` field
+- Gets a standalone `type: "custom-title"` entry with a `customTitle` field
+- Regular messages do NOT have `agentName` on them
+- This is the key distinction from team members: renamed sessions have `agentName` only in metadata entries, while team members have it on every message
+
+### Field presence summary
+
+| Field on messages | Regular | Team leader | Team member | Renamed |
+|-------------------|---------|-------------|-------------|---------|
+| `teamName` | No | After `/team` | Every message | No |
+| `agentName` (on messages) | No | No | Every message | No |
+| `agentName` (metadata only) | No | Optional | N/A | Yes |
+| `customTitle` (metadata) | Optional | Optional | No | Yes |
+
+---
+
+## Subagent Detection Logic
+
+The importer classifies sessions into types using two detection mechanisms.
+
+### Team member detection
+
+The parser sets `isTeamMember = true` when a non-metadata message has both `teamName` and `agentName` fields present. This correctly identifies team members because:
+
+- Team leaders only have `agentName` on `type: "agent-name"` metadata entries, not on regular messages
+- Renamed sessions only have `agentName` on metadata entries, not on regular messages
+- Only team members have `agentName` on every regular message
+
+### Worktree-based subagent detection
+
+Worktree-based subagents are detected by path pattern rather than JSONL content. A session is classified as a worktree subagent when the project path contains either:
+
+- `-tmp-` in the path
+- `.claude/worktrees/` in the path
+
+### Tool-invoked subagent detection
+
+Tool-invoked subagents (launched via the `Task` tool) are identified by their file path matching the pattern `<uuid>/subagents/agent-*.jsonl`. These are stored as subdirectories of their parent session.

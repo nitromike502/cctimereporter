@@ -21,6 +21,12 @@ import {
   getImportedFileInfo,
 } from './db-writer.js';
 
+// Worktree-based subagent project path patterns.
+// Claude Code's EnterWorktree creates projects at paths like:
+//   /home/user/project/.claude/worktrees/tmp-pr-review-abc123/
+// These are registered in ~/.claude.json as separate projects with -tmp- in the path.
+const WORKTREE_PROJECT_RE = /\/-tmp-|\/\.claude\/worktrees\//;
+
 // /prep-ticket slash command patterns (mirrors ticket-scorer.js internals)
 const PREP_TICKET_INLINE = /\/prep-ticket\s+([a-zA-Z]{2,8}-\d+)/i;
 const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-args>([a-zA-Z]{2,8}-\d+)<\/command-args>/is;
@@ -167,7 +173,7 @@ function getOrCreateProject(db, projectPath, transcriptDir) {
  * @returns {{ messageCount: number, workingBranch: string|null, primaryTicket: string|null }}
  */
 async function importFile(db, file, projectId, options, sessionIndex = new Map()) {
-  const { verbose } = options;
+  const { verbose, isWorktreeProject = false } = options;
 
   if (verbose) {
     process.stderr.write(`  Importing ${file.sessionId.slice(0, 8)}...\n`);
@@ -200,10 +206,12 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
   // 6. Tool use count
   const toolUseCount = countToolUses(messages);
 
-  // 7. Detect subagent (Pattern B: team-based)
-  // userType === "external" alone is NOT sufficient — team leaders also have it.
-  // The agentName check distinguishes subagents from team leaders.
-  const isSubagent = data.userType === 'external' && data.agentName != null;
+  // 7. Detect subagent
+  // Pattern B: team-based subagents — identified by having teamName + agentName on
+  // regular messages from the start. Team leaders and renamed sessions are NOT subagents;
+  // they only get agentName via standalone "agent-name" metadata entries.
+  // Pattern C: worktree-based subagent projects (-tmp- or .claude/worktrees/ in path)
+  const isSubagent = data.isTeamMember || isWorktreeProject;
 
   // 8. Merge session index data with JSONL-parsed data
   // Priority: session-index summary > JSONL summary (JSONL never has summary in practice)
@@ -373,7 +381,8 @@ export async function importAll(db, options = {}) {
     // Import each transcript file
     for (const file of toImport) {
       try {
-        const result = await importFile(db, file, projectId, { verbose }, sessionIndex);
+        const isWorktreeProject = WORKTREE_PROJECT_RE.test(project.projectPath);
+        const result = await importFile(db, file, projectId, { verbose, isWorktreeProject }, sessionIndex);
         filesProcessed++;
         totalMessages += result.messageCount;
       } catch (err) {
