@@ -111,6 +111,26 @@ Plans:
 - [ ] 10-01: CSS custom property design tokens and light/dark toggle
 - [ ] 10-02: First-visit tour integration
 
+### Phase 11: Import Progress Indicator
+
+**Goal:** Users see real-time progress feedback during transcript import — either a percentage or a per-session status list — so they know work is happening and how much remains
+
+**Depends on:** Phase 10
+
+**Requirements:** TBD
+
+**Success Criteria** (what must be TRUE):
+  1. During import, the UI shows how many transcripts have been processed out of the total discovered
+  2. Progress updates in real time as each transcript completes (not just at the end)
+  3. The user can see which sessions have been imported, which are in progress, and which are pending
+  4. First-time users importing 10-30 days of transcripts see continuous feedback, not a frozen spinner
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Backend: onProgress callback in importAll() and GET /api/import/progress SSE endpoint
+- [ ] 11-02-PLAN.md — Frontend: EventSource consumption and determinate progress bar with counts
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -125,3 +145,4 @@ Plans:
 | 8. Session Context | v0.2.0 | 2/2 | Complete | 2026-03-04 |
 | 9. Day Summary | v0.2.0 | 1/1 | Complete | 2026-03-04 |
 | 10. Theming and Tour | v0.2.0 | 0/2 | Not started | - |
+| 11. Import Progress Indicator | v0.2.0 | 0/2 | Not started | - |
