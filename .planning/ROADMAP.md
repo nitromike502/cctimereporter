@@ -43,8 +43,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Git commit and MCP tool call detection and scoring (message-level sources)
-- [ ] 18-02-PLAN.md — Session summary/title detection and scoring (session-level source)
+- [x] 18-01-PLAN.md — Git commit and MCP tool call detection and scoring (message-level sources)
+- [x] 18-02-PLAN.md — Session summary/title detection and scoring (session-level source)
 
 ---
 
@@ -109,4 +109,4 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 | 15. Session Naming | v0.3.0 | 1/1 | Complete | 2026-03-05 |
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
-| 18. Ticket Detection Pipeline | v0.4.0 | 0/2 | Not started | - |
+| 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
