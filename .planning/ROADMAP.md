@@ -24,10 +24,11 @@
   4. After running a full re-import, all user-set session names and ticket overrides are still present (not overwritten)
   5. A session with a user-set name shows that name on the Gantt bar and in the detail panel, regardless of ticket or branch data
   6. User can clear a custom name or ticket to revert to the automatic fallback
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md — Backend: schema migration v5->v6, upsert fix, PATCH API, timeline response update
+- [ ] 17-02-PLAN.md — Frontend: edit modal, detail panel integration, display logic updates
 
 ### Phase 18: Ticket Detection Pipeline
 
@@ -106,5 +107,5 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 | 14. Session Message Modal | v0.3.0 | 1/1 | Complete | 2026-03-04 |
 | 15. Session Naming | v0.3.0 | 1/1 | Complete | 2026-03-05 |
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
-| 17. Session Editing | v0.4.0 | 0/? | Not started | - |
+| 17. Session Editing | v0.4.0 | 0/2 | Not started | - |
 | 18. Ticket Detection Pipeline | v0.4.0 | 0/? | Not started | - |
