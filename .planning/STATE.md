@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-07)
 
 ## Current Position
 
-Phase: 17 of 19 (Session Editing)
-Plan: 2 of 2 in phase 17
-Status: Phase 17 complete
-Last activity: 2026-03-07 — Completed 17-02-PLAN.md
+Phase: 18 of 19 (Ticket Detection Pipeline)
+Plan: 1 of 2 in phase 18
+Status: In progress
+Last activity: 2026-03-07 — Completed 18-01-PLAN.md
 
-Progress: [██████████░░░░░░░░░░] 50% v0.4.0 (2/4 plans)
+Progress: [███████████████░░░░░] 75% v0.4.0 (3/4 plans)
 
 ## Performance Metrics
 
@@ -23,8 +23,8 @@ Progress: [██████████░░░░░░░░░░] 50% v0.
 - Phases: 4 (12-15)
 
 **v0.4.0 Velocity:**
-- Total plans completed: 2
-- Phases in progress: 1 (17 complete)
+- Total plans completed: 3
+- Phases in progress: 2 (17 complete, 18 in progress)
 
 ## Accumulated Context
 
@@ -44,6 +44,9 @@ v0.4.0 decisions:
 - Empty strings normalized to null in PATCH endpoint for clean storage
 - nameReadOnly when Claude Code named session AND user hasn't set custom name
 - Optimistic update mutates timelineData in-place to avoid full refetch and scroll reset
+- Git commit scoring: 100pt base + 10pt additional (same weight as branch detection)
+- MCP server prefix matching uses startsWith for flexibility (github matches github_issues, etc.)
+- Intentional parallel parsing in detection vs scoring — detection populates tickets table, scoring determines primary_ticket
 
 ### Roadmap Evolution
 
@@ -63,5 +66,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Completed 17-02-PLAN.md (session editing frontend)
+Stopped at: Completed 18-01-PLAN.md (git commit + MCP tool ticket detection)
 Resume file: None
