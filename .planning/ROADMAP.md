@@ -16,12 +16,14 @@
 **Goal:** Users can edit session names and ticket IDs from the UI, and edits persist across re-imports
 **Depends on:** Phase 16
 **Requirements:** NAME-01, NAME-02, NAME-03, NAME-04, TICK-03
+**UX Decision:** Editing happens in a modal dialog (not inline) so we can show a notice that custom names are local to this app and do not persist back to Claude Code. The modal includes a copiable CLI command (`claude --session-id <id>`) for users who want to resume the session in Claude Code to rename it there.
 **Success Criteria** (what must be TRUE):
-  1. User can click a session name in the detail panel, type a new name, and save it with Enter or blur
-  2. User can click the ticket field in the detail panel and type a ticket ID to override the auto-detected primary ticket
-  3. After running a full re-import, all user-set session names and ticket overrides are still present (not overwritten)
-  4. A session with a user-set name shows that name on the Gantt bar and in the detail panel, regardless of ticket or branch data
-  5. User can clear a custom name or ticket to revert to the automatic fallback
+  1. User can open an edit modal from the detail panel to set a custom session name and/or ticket ID
+  2. The modal displays a notice explaining that changes are local and do not persist to Claude Code
+  3. The modal shows a copiable CLI command to resume the session in Claude Code
+  4. After running a full re-import, all user-set session names and ticket overrides are still present (not overwritten)
+  5. A session with a user-set name shows that name on the Gantt bar and in the detail panel, regardless of ticket or branch data
+  6. User can clear a custom name or ticket to revert to the automatic fallback
 **Plans:** TBD
 
 Plans:
