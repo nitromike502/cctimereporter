@@ -251,7 +251,6 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
 
   // 3. Ticket / branch detection
   const workingBranch = determineWorkingBranch(messages);
-  const primaryTicket = scoreTickets(messages, workingBranch);
 
   // 4. Fork detection
   const forkData = detectForks(messages);
@@ -280,6 +279,21 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
   const firstPromptValue = indexFirstPrompt ?? data.firstPrompt ?? null;
   // Also populate customTitle from index if available
   const customTitleValue = indexEntry?.customTitle ?? data.customTitle ?? null;
+
+  // Scan summary/title for ticket references (session-level, not message-level)
+  const summaryTexts = [summaryValue, customTitleValue].filter(Boolean);
+  const summaryTickets = [];
+  for (const text of summaryTexts) {
+    for (const match of text.matchAll(TICKET_PATTERN)) {
+      const key = match[0].toUpperCase();
+      if (!TICKET_PREFIX_DENYLIST.has(key.split('-')[0])) {
+        summaryTickets.push({ ticket_key: key, source: 'summary', detected_at: null });
+      }
+    }
+  }
+  const uniqueSummaryTickets = [...new Map(summaryTickets.map(t => [t.ticket_key, t])).values()];
+
+  const primaryTicket = scoreTickets(messages, workingBranch, { summary: summaryValue, customTitle: customTitleValue });
 
   // Upsert session
   upsertSession(db, {
@@ -327,6 +341,7 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
 
   // 10. Collect and upsert tickets (always call to clean up old tickets on re-import)
   const tickets = collectTickets(messages);
+  tickets.push(...uniqueSummaryTickets);
   upsertTickets(db, file.sessionId, tickets, primaryTicket);
 
   // 11. Update import log (with timestamps for rolling window re-skip on subsequent runs)
