@@ -45,6 +45,7 @@
         :session="selectedSession"
         :project-name="selectedProjectName"
         @show-messages="messagesModalOpen = true"
+        @edit="editModalOpen = true"
       />
 
       <!-- Project filter bar -->
@@ -82,6 +83,13 @@
       v-model:open="messagesModalOpen"
       :session-id="selectedSession?.sessionId ?? ''"
     />
+
+    <!-- Session edit modal -->
+    <SessionEditModal
+      v-model:open="editModalOpen"
+      :session="selectedSession"
+      @saved="onSessionEdited"
+    />
   </div>
 </template>
 
@@ -96,6 +104,7 @@ import AppButton from '../components/AppButton.vue'
 import AppCheckbox from '../components/AppCheckbox.vue'
 import DaySummary from '../components/DaySummary.vue'
 import SessionMessagesModal from '../components/SessionMessagesModal.vue'
+import SessionEditModal from '../components/SessionEditModal.vue'
 import { driver } from 'driver.js'
 
 // --- Router ---
@@ -116,6 +125,7 @@ const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
 const selectedSession = ref(null)
 const messagesModalOpen = ref(false)
+const editModalOpen = ref(false)
 // Idle threshold in minutes, persisted to localStorage
 const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
 const idleThreshold = ref(parseInt(localStorage.getItem(THRESHOLD_KEY), 10) || 10)
@@ -251,6 +261,30 @@ function onSelectSession(session) {
     selectedSession.value = null
   } else {
     selectedSession.value = session
+  }
+}
+
+/**
+ * Handles session edit save — optimistic UI update without full timeline refetch.
+ */
+function onSessionEdited({ userLabel, userTicket }) {
+  if (selectedSession.value) {
+    selectedSession.value = {
+      ...selectedSession.value,
+      userLabel,
+      userTicket,
+    }
+    // Also update the session in timelineData so GanttBar and DaySummary reflect changes
+    if (timelineData.value) {
+      for (const project of timelineData.value.projects) {
+        const session = project.sessions.find(s => s.sessionId === selectedSession.value.sessionId)
+        if (session) {
+          session.userLabel = userLabel
+          session.userTicket = userTicket
+          break
+        }
+      }
+    }
   }
 }
 

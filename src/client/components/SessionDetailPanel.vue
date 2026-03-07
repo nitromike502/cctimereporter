@@ -2,9 +2,23 @@
   <div class="session-detail-panel">
     <div class="detail-grid">
       <!-- Column 1: Session identity -->
-      <div class="detail-item">
+      <div class="detail-item detail-item--editable">
         <span class="detail-label">Session Name:</span>
-        <span class="detail-value">{{ session?.customTitle || '\u00A0' }}</span>
+        <span class="detail-value">
+          {{ session?.userLabel || session?.customTitle || '\u00A0' }}
+          <span v-if="session?.userLabel" class="custom-indicator" title="Custom name"></span>
+        </span>
+        <button
+          v-if="session"
+          class="edit-btn"
+          @click.stop="$emit('edit')"
+          aria-label="Edit session"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="m15 5 4 4"/>
+          </svg>
+        </button>
       </div>
       <div class="detail-item">
         <span class="detail-label">Session ID:</span>
@@ -30,7 +44,10 @@
       </div>
       <div class="detail-item">
         <span class="detail-label">Ticket:</span>
-        <span class="detail-value">{{ session?.ticket || '\u00A0' }}</span>
+        <span class="detail-value">
+          {{ (session?.userTicket || session?.ticket) || '\u00A0' }}
+          <span v-if="session?.userTicket" class="custom-indicator" title="Custom ticket"></span>
+        </span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Branch:</span>
@@ -66,7 +83,7 @@ import { computed } from 'vue'
  * @prop {Object} session     - Session object or null
  * @prop {string} projectName - Display name of the project owning this session
  */
-defineEmits(['show-messages'])
+defineEmits(['show-messages', 'edit'])
 
 const props = defineProps({
   session: {
@@ -170,5 +187,44 @@ const endDateTime = computed(() => {
 
 .detail-link:hover {
   text-decoration: underline;
+}
+
+.detail-item--editable {
+  position: relative;
+}
+
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  margin-left: var(--spacing-xs);
+  vertical-align: middle;
+}
+
+.detail-item--editable:hover .edit-btn {
+  opacity: 1;
+}
+
+.edit-btn:hover {
+  color: var(--color-link);
+  background: var(--color-bg);
+}
+
+.custom-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-link);
+  margin-left: var(--spacing-xs);
+  vertical-align: middle;
 }
 </style>
