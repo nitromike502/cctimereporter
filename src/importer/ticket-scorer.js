@@ -116,17 +116,19 @@ export function determineWorkingBranch(messages) {
  * - /prep-ticket slash command: 500 pts (700 if in first user message)
  * - Working branch contains ticket: 100 pts base
  * - Each message where gitBranch contains ticket: 5 pts/message
- * - Content mention in user messages: 10 pts/mention
  * - Git commit message: 100 pts base, +10 per additional commit
  * - MCP tool call input: 100 pts base, +10 per additional call
+ * - Session summary/title: 25 pts flat (no accumulation)
+ * - Content mention in user messages: 10 pts/mention
  *
  * All ticket keys are normalized to uppercase before scoring.
  *
  * @param {Array<object>} messages - Messages array from parseTranscript()
  * @param {string|null} workingBranch - From determineWorkingBranch()
+ * @param {{ summary?: string|null, customTitle?: string|null }} [sessionMeta={}] - Optional session-level text to scan
  * @returns {string|null} - Highest-scoring ticket key or null
  */
-export function scoreTickets(messages, workingBranch) {
+export function scoreTickets(messages, workingBranch, { summary, customTitle } = {}) {
   const ticketScores = new Map();
 
   function addScore(ticket, points) {
@@ -141,6 +143,19 @@ export function scoreTickets(messages, workingBranch) {
     TICKET_PATTERN.lastIndex = 0;
     for (const match of workingBranch.matchAll(TICKET_PATTERN)) {
       addScore(match[0], 100);
+    }
+  }
+
+  // Summary/title scoring: 25pts flat per unique ticket (no accumulation)
+  const summaryTexts = [summary, customTitle].filter(Boolean);
+  const summaryTicketsSeen = new Set();
+  for (const text of summaryTexts) {
+    for (const match of text.matchAll(TICKET_PATTERN)) {
+      const key = match[0].toUpperCase();
+      if (!summaryTicketsSeen.has(key)) {
+        addScore(key, 25);
+        summaryTicketsSeen.add(key);
+      }
     }
   }
 
