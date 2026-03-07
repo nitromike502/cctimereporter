@@ -42,7 +42,13 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-No active milestone. Next milestone TBD.
+**Current Milestone: v0.4.0 — Session Intelligence**
+
+**Goal:** Make sessions more identifiable and actionable — users can name sessions from the UI and get better automatic ticket detection.
+
+**Target features:**
+- Session naming via app UI (set/edit custom session names)
+- Improved ticket auto-discovery (additional detection methods beyond current slash commands, branch patterns, and content mentions)
 
 ### Out of Scope
 
@@ -106,6 +112,8 @@ Database: SQLite with WAL mode, schema v5, auto-migration.
 | [data-theme='dark'] toggle | User control over light/dark, not just @media | ✓ Good |
 | Ticket denylist + score threshold | Eliminates false positives (OPUS-4, UTF-8, etc.) | ✓ Good — 35+ prefixes filtered |
 | Worktree path pattern detection | Filters -tmp- and .claude/worktrees/ subagents | ✓ Good |
+| Query-time worktree grouping | Group worktree sessions under parent project at display time, not import time | ✓ Good — keeps raw data clean |
+| Import raw, derive at query time | User preference: minimize import-time transformations | ✓ Good — philosophy for future changes |
 
 ---
-*Last updated: 2026-03-04 after v0.2.0 milestone completion*
+*Last updated: 2026-03-07 after v0.4.0 milestone start*
