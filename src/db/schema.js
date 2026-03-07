@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   team_name               TEXT,
   agent_name              TEXT,
   first_prompt            TEXT,
+  user_label              TEXT,
+  user_ticket             TEXT,
   imported_at             TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (project_id) REFERENCES projects(id)
 );
@@ -130,6 +132,17 @@ ALTER TABLE import_log ADD COLUMN last_message_at TEXT;
  */
 export const MIGRATION_V4_TO_V5 = `
 ALTER TABLE sessions ADD COLUMN first_prompt TEXT;
+`;
+
+/**
+ * ALTER TABLE statements to migrate v5 → v6.
+ * Adds user-editable columns for session naming and ticket override.
+ * These columns are deliberately omitted from the import upsert so
+ * user edits survive re-imports.
+ */
+export const MIGRATION_V5_TO_V6 = `
+ALTER TABLE sessions ADD COLUMN user_label TEXT;
+ALTER TABLE sessions ADD COLUMN user_ticket TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `

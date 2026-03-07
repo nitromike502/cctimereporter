@@ -7,7 +7,12 @@
 
 /**
  * Upserts a session row.
- * Uses INSERT OR REPLACE so repeated imports update existing rows.
+ * Uses INSERT ... ON CONFLICT(session_id) DO UPDATE SET to update import-managed
+ * columns while preserving user-editable columns (user_label, user_ticket).
+ * Unlike INSERT OR REPLACE which deletes and re-inserts (losing user columns),
+ * ON CONFLICT DO UPDATE modifies the existing row in place. The user_label and
+ * user_ticket columns are deliberately omitted from the UPDATE SET clause so
+ * user edits survive re-imports.
  *
  * @param {import('node:sqlite').DatabaseSync} db
  * @param {object} sessionData
@@ -36,7 +41,7 @@
  */
 export function upsertSession(db, sessionData) {
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO sessions (
+    INSERT INTO sessions (
       session_id,
       project_id,
       file_path,
@@ -89,6 +94,31 @@ export function upsertSession(db, sessionData) {
       $agent_name,
       $first_prompt
     )
+    ON CONFLICT(session_id) DO UPDATE SET
+      project_id              = excluded.project_id,
+      file_path               = excluded.file_path,
+      file_size               = excluded.file_size,
+      file_modified_at        = excluded.file_modified_at,
+      working_branch          = excluded.working_branch,
+      primary_ticket          = excluded.primary_ticket,
+      summary                 = excluded.summary,
+      custom_title            = excluded.custom_title,
+      slug                    = excluded.slug,
+      first_message_at        = excluded.first_message_at,
+      last_message_at         = excluded.last_message_at,
+      last_updated_at         = excluded.last_updated_at,
+      message_count           = excluded.message_count,
+      user_message_count      = excluded.user_message_count,
+      assistant_message_count = excluded.assistant_message_count,
+      tool_use_count          = excluded.tool_use_count,
+      fork_count              = excluded.fork_count,
+      real_fork_count         = excluded.real_fork_count,
+      is_compacted            = excluded.is_compacted,
+      has_subagents           = excluded.has_subagents,
+      is_subagent             = excluded.is_subagent,
+      team_name               = excluded.team_name,
+      agent_name              = excluded.agent_name,
+      first_prompt            = excluded.first_prompt
   `);
 
   stmt.run({
