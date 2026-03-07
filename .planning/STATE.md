@@ -5,22 +5,26 @@
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.4.0 Session Intelligence — Phase 17: Session Naming
+**Current focus:** v0.4.0 Session Intelligence — Phase 18: Ticket Detection Pipeline
 
 ## Current Position
 
-Phase: 17 of 19 (Session Naming)
-Plan: 1 of 2 in phase 17
-Status: In progress
-Last activity: 2026-03-07 — Completed 17-01-PLAN.md
+Phase: 17 of 19 (Session Editing)
+Plan: 2 of 2 in phase 17
+Status: Phase 17 complete
+Last activity: 2026-03-07 — Completed 17-02-PLAN.md
 
-Progress: [██████░░░░░░░░░░░░░░] 25% v0.4.0 (1/4 plans)
+Progress: [██████████░░░░░░░░░░] 50% v0.4.0 (2/4 plans)
 
 ## Performance Metrics
 
 **v0.3.0 Velocity:**
 - Total plans completed: 4
 - Phases: 4 (12-15)
+
+**v0.4.0 Velocity:**
+- Total plans completed: 2
+- Phases in progress: 1 (17 complete)
 
 ## Accumulated Context
 
@@ -38,6 +42,8 @@ v0.4.0 decisions:
 - User ticket override stored on sessions table, not tickets table — tickets table gets wiped on re-import
 - ON CONFLICT DO UPDATE omits user_label/user_ticket from SET clause (not COALESCE) — simpler, same effect
 - Empty strings normalized to null in PATCH endpoint for clean storage
+- nameReadOnly when Claude Code named session AND user hasn't set custom name
+- Optimistic update mutates timelineData in-place to avoid full refetch and scroll reset
 
 ### Roadmap Evolution
 
@@ -57,5 +63,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Completed 17-01-PLAN.md (session editing backend)
+Stopped at: Completed 17-02-PLAN.md (session editing frontend)
 Resume file: None
