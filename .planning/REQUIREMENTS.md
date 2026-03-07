@@ -9,16 +9,16 @@ Requirements for Session Intelligence milestone. Each maps to roadmap phases.
 
 ### Session Naming
 
-- [ ] **NAME-01**: User can set a custom name for any session via inline edit in the timeline UI
-- [ ] **NAME-02**: Custom session names persist across re-imports (upsert uses COALESCE to preserve user data)
-- [ ] **NAME-03**: Custom name takes priority in label chain: custom name > ticket > branch > first words
-- [ ] **NAME-04**: User can clear a custom name to revert to the auto-generated label
+- [x] **NAME-01**: User can set a custom name for any session via inline edit in the timeline UI
+- [x] **NAME-02**: Custom session names persist across re-imports (upsert uses COALESCE to preserve user data)
+- [x] **NAME-03**: Custom name takes priority in label chain: custom name > ticket > branch > first words
+- [x] **NAME-04**: User can clear a custom name to revert to the auto-generated label
 
 ### Ticket Detection
 
 - [ ] **TICK-01**: Import scans git commit messages in tool_result blocks for ticket patterns (~50pts)
 - [ ] **TICK-02**: Import scans session summary/title text for ticket patterns (~25pts)
-- [ ] **TICK-03**: User can manually set or override the primary ticket for a session via UI
+- [x] **TICK-03**: User can manually set or override the primary ticket for a session via UI
 - [ ] **TICK-05**: Import scans MCP tool calls (Atlassian, Linear, etc.) in transcripts for ticket patterns
 
 ## Future Requirements
@@ -52,13 +52,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAME-01 | Phase 17 | Pending |
-| NAME-02 | Phase 17 | Pending |
-| NAME-03 | Phase 17 | Pending |
-| NAME-04 | Phase 17 | Pending |
+| NAME-01 | Phase 17 | Complete |
+| NAME-02 | Phase 17 | Complete |
+| NAME-03 | Phase 17 | Complete |
+| NAME-04 | Phase 17 | Complete |
 | TICK-01 | Phase 18 | Pending |
 | TICK-02 | Phase 18 | Pending |
-| TICK-03 | Phase 17 | Pending |
+| TICK-03 | Phase 17 | Complete |
 | TICK-05 | Phase 18 | Pending |
 
 **Coverage:**
