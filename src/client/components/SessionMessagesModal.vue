@@ -23,7 +23,7 @@
             :class="`message-item--${msg.role}`"
           >
             <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
-            <pre class="message-content">{{ msg.content }}</pre>
+            <pre class="message-content">{{ formatContent(msg) }}</pre>
           </div>
         </div>
       </DialogContent>
@@ -41,6 +41,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from 'reka-ui'
+import { parseCommandXml } from '../../utils/parse-command-xml.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -52,6 +53,13 @@ defineEmits(['update:open'])
 const messages = ref([])
 const loading = ref(false)
 const error = ref(null)
+
+function formatContent(msg) {
+  if (msg.role === 'user') {
+    return parseCommandXml(msg.content) ?? msg.content
+  }
+  return msg.content
+}
 
 watch(
   () => [props.open, props.sessionId],
