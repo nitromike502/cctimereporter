@@ -48,6 +48,10 @@ const PREP_TICKET_XML = /<command-name>\/prep-ticket<\/command-name>.*?<command-
 // A ticket mentioned twice (20 pts) or once in content + once in branch (110+ pts) passes.
 export const MIN_TICKET_SCORE = 15;
 
+// MCP server name prefixes that indicate ticket-management tools.
+// Used to detect ticket references in MCP tool_use inputs.
+export const MCP_TICKET_PREFIXES = ['atlassian', 'linear', 'github', 'tickets'];
+
 // Branches to skip when determining working branch
 const SKIP_BRANCHES = new Set(['main', 'master', 'develop', 'dev', 'staging']);
 const SKIP_PREFIXES = ['project-', 'target-version-'];

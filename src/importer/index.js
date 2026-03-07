@@ -12,7 +12,7 @@ import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discove
 import { parseTranscript, peekFirstTimestamp } from './parser.js';
 import { readSessionIndex } from './session-index.js';
 import { detectForks } from './fork-detector.js';
-import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST } from './ticket-scorer.js';
+import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST, MCP_TICKET_PREFIXES } from './ticket-scorer.js';
 import {
   upsertSession,
   insertMessages,
@@ -74,6 +74,64 @@ function detectTicketsFromMessage(msg) {
           source: 'content',
           detected_at: msg.timestamp,
         });
+      }
+    }
+
+    // Git commit messages in tool_result blocks
+    // Pattern: [branch hash] commit message
+    const rawContent = msg.rawMessage?.message?.content;
+    if (Array.isArray(rawContent)) {
+      for (const block of rawContent) {
+        if (block.type !== 'tool_result') continue;
+        let resultText = '';
+        if (typeof block.content === 'string') {
+          resultText = block.content;
+        } else if (Array.isArray(block.content)) {
+          resultText = block.content
+            .filter(b => b.type === 'text')
+            .map(b => b.text)
+            .join('\n');
+        }
+        if (!resultText) continue;
+
+        const commitPattern = /\[[^\]]+\s+[0-9a-f]{7,}\]\s+(.+?)(?:\n|$)/g;
+        for (const commitMatch of resultText.matchAll(commitPattern)) {
+          TICKET_PATTERN.lastIndex = 0;
+          for (const ticketMatch of commitMatch[1].matchAll(TICKET_PATTERN)) {
+            const key = ticketMatch[0].toUpperCase();
+            if (TICKET_PREFIX_DENYLIST.has(key.split('-')[0])) continue;
+            results.push({
+              ticket_key: key,
+              source: 'git_commit',
+              detected_at: msg.timestamp,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Assistant messages: scan MCP tool_use inputs for ticket references
+  if (msg.type === 'assistant') {
+    const rawContent = msg.rawMessage?.message?.content;
+    if (Array.isArray(rawContent)) {
+      for (const block of rawContent) {
+        if (block.type !== 'tool_use' || !block.name?.startsWith('mcp__')) continue;
+        const parts = block.name.split('__');
+        const server = parts[1] || '';
+        if (!MCP_TICKET_PREFIXES.some(p => server.startsWith(p))) continue;
+
+        const inputStr = JSON.stringify(block.input || {});
+        TICKET_PATTERN.lastIndex = 0;
+        for (const ticketMatch of inputStr.matchAll(TICKET_PATTERN)) {
+          const key = ticketMatch[0].toUpperCase();
+          if (TICKET_PREFIX_DENYLIST.has(key.split('-')[0])) continue;
+          results.push({
+            ticket_key: key,
+            source: 'mcp_tool',
+            detected_at: msg.timestamp,
+          });
+        }
       }
     }
   }
