@@ -5,16 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.4.0 Session Intelligence — Phase 18: Ticket Detection Pipeline
+**Current focus:** v0.4.0 Session Intelligence — Phase 18 complete, ready for Phase 19
 
 ## Current Position
 
 Phase: 18 of 19 (Ticket Detection Pipeline)
-Plan: 1 of 2 in phase 18
-Status: In progress
-Last activity: 2026-03-07 — Completed 18-01-PLAN.md
+Plan: 2 of 2 in phase 18
+Status: Phase complete
+Last activity: 2026-03-07 — Completed 18-02-PLAN.md
 
-Progress: [███████████████░░░░░] 75% v0.4.0 (3/4 plans)
+Progress: [████████████████████] 100% Phase 18 (2/2 plans)
+Overall:  [████████████████░░░░] 80% v0.4.0 (4/5 plans)
 
 ## Performance Metrics
 
@@ -23,8 +24,8 @@ Progress: [███████████████░░░░░] 75% v0.
 - Phases: 4 (12-15)
 
 **v0.4.0 Velocity:**
-- Total plans completed: 3
-- Phases in progress: 2 (17 complete, 18 in progress)
+- Total plans completed: 4
+- Phases complete: 2 (17, 18)
 
 ## Accumulated Context
 
@@ -47,6 +48,8 @@ v0.4.0 decisions:
 - Git commit scoring: 100pt base + 10pt additional (same weight as branch detection)
 - MCP server prefix matching uses startsWith for flexibility (github matches github_issues, etc.)
 - Intentional parallel parsing in detection vs scoring — detection populates tickets table, scoring determines primary_ticket
+- Summary/title scoring: 25pts flat (no accumulation) — low weight since summary is generated text
+- scoreTickets() relocated after session-index merge for correct data flow
 
 ### Roadmap Evolution
 
@@ -66,5 +69,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Completed 18-01-PLAN.md (git commit + MCP tool ticket detection)
+Stopped at: Completed 18-02-PLAN.md (summary/title ticket detection — Phase 18 complete)
 Resume file: None
