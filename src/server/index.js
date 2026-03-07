@@ -13,6 +13,7 @@ import { timelineRoute } from './routes/timeline.js';
 import { projectsRoute } from './routes/projects.js';
 import { importRoute } from './routes/import.js';
 import { messagesRoute } from './routes/messages.js';
+import { sessionsRoute } from './routes/sessions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distPath = join(__dirname, '../../dist');
@@ -30,6 +31,7 @@ export function createServer(db) {
   app.register(projectsRoute, { db });
   app.register(importRoute, { db });
   app.register(messagesRoute, { db });
+  app.register(sessionsRoute, { db });
 
   // Serve built Vue SPA from dist/
   app.register(fastifyStatic, {
