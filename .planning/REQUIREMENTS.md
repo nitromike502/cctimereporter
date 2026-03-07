@@ -19,7 +19,6 @@ Requirements for Session Intelligence milestone. Each maps to roadmap phases.
 - [ ] **TICK-01**: Import scans git commit messages in tool_result blocks for ticket patterns (~50pts)
 - [ ] **TICK-02**: Import scans session summary/title text for ticket patterns (~25pts)
 - [ ] **TICK-03**: User can manually set or override the primary ticket for a session via UI
-- [ ] **TICK-04**: User can configure a ticket link URL template so ticket IDs link to the external issue tracker
 - [ ] **TICK-05**: Import scans MCP tool calls (Atlassian, Linear, etc.) in transcripts for ticket patterns
 
 ## Future Requirements
@@ -31,6 +30,7 @@ Deferred to later milestones. Tracked but not in current roadmap.
 - **TICK-F1**: Multi-ticket display (show all detected tickets, not just primary)
 - **TICK-F2**: Ticket denylist management UI (currently hardcoded)
 - **TICK-F3**: User-defined regex patterns for custom ticket detection
+- **TICK-F4**: Configurable ticket link URL template so ticket IDs link to external issue tracker
 
 ### Session Intelligence
 
@@ -59,12 +59,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TICK-01 | Phase 18 | Pending |
 | TICK-02 | Phase 18 | Pending |
 | TICK-03 | Phase 17 | Pending |
-| TICK-04 | Phase 19 | Pending |
 | TICK-05 | Phase 18 | Pending |
 
 **Coverage:**
-- v0.4.0 requirements: 9 total
-- Mapped to phases: 9
+- v0.4.0 requirements: 8 total
+- Mapped to phases: 8
 - Unmapped: 0
 
 ---

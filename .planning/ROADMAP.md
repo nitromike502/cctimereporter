@@ -5,7 +5,7 @@
 - SHIPPED **v1.0 MVP** — Phases 1-6 (shipped 2026-03-01)
 - SHIPPED **v0.2.0 UX and Insights** — Phases 7-11 (shipped 2026-03-04)
 - SHIPPED **v0.3.0 Session Polish** — Phases 12-16 (shipped 2026-03-05)
-- **v0.4.0 Session Intelligence** — Phases 17-19 (in progress)
+- **v0.4.0 Session Intelligence** — Phases 17-18 (in progress)
 
 ## Current Milestone: v0.4.0 Session Intelligence
 
@@ -43,20 +43,6 @@ Plans:
 
 Plans:
 - [ ] 18-01: TBD
-
-### Phase 19: Ticket Links
-
-**Goal:** Ticket IDs in the UI become clickable links to the user's external issue tracker
-**Depends on:** Phase 17 (ticket display exists), Phase 18 (more tickets available to link)
-**Requirements:** TICK-04
-**Success Criteria** (what must be TRUE):
-  1. User can configure a ticket link URL template (e.g., `https://jira.example.com/browse/{ticket}`)
-  2. When a template is configured, all ticket IDs in the timeline UI are rendered as clickable links
-  3. Template configuration persists across sessions (stored in localStorage or DB settings)
-**Plans:** TBD
-
-Plans:
-- [ ] 19-01: TBD
 
 ---
 
@@ -122,4 +108,3 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 0/? | Not started | - |
 | 18. Ticket Detection Pipeline | v0.4.0 | 0/? | Not started | - |
-| 19. Ticket Links | v0.4.0 | 0/? | Not started | - |
