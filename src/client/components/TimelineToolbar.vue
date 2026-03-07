@@ -74,24 +74,12 @@
         placeholder="Jump to date..."
         @update:model-value="onDatePicked"
       />
-      <div class="import-group">
-        <AppButton
-          variant="primary"
-          size="sm"
-          :loading="importRunning"
-          @click="emit('import')"
-        >Import</AppButton>
-        <div v-if="importRunning" class="progress-container">
-          <AppProgressBar
-            :value="props.importProgress.processed"
-            :max="props.importProgress.total || 1"
-            :indeterminate="props.importProgress.total === 0"
-          />
-          <span v-if="props.importProgress.total > 0" class="progress-text">
-            {{ props.importProgress.processed }} / {{ props.importProgress.total }}
-          </span>
-        </div>
-      </div>
+      <AppButton
+        variant="primary"
+        size="sm"
+        :loading="importRunning"
+        @click="emit('import')"
+      >Import</AppButton>
     </div>
   </div>
 </template>
@@ -101,7 +89,6 @@ import { computed, ref } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import AppButton from './AppButton.vue'
 import AppDatePicker from './AppDatePicker.vue'
-import AppProgressBar from './AppProgressBar.vue'
 import NumberStepper from './NumberStepper.vue'
 
 /**
@@ -128,11 +115,6 @@ const props = defineProps({
   threshold: {
     type: Number,
     default: 10,
-  },
-  /** Import progress with processed/total counts */
-  importProgress: {
-    type: Object,
-    default: () => ({ processed: 0, total: 0 }),
   },
 })
 
@@ -212,24 +194,6 @@ function yesterdayStr() {
   align-items: center;
   gap: var(--spacing-sm);
   margin-left: auto;
-}
-
-.import-group {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--spacing-xs);
-}
-
-.progress-container {
-  width: 200px;
-}
-
-.progress-text {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
-  text-align: center;
-  white-space: nowrap;
 }
 
 .threshold-control {

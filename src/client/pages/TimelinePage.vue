@@ -4,12 +4,23 @@
     <TimelineToolbar
       :date="selectedDate"
       :import-running="importRunning"
-      :import-progress="importProgress"
       :threshold="idleThreshold"
       @navigate="navigateToDate"
       @import="triggerImport"
       @update:threshold="setIdleThreshold"
     />
+
+    <!-- Import progress overlay -->
+    <div v-if="importRunning" class="import-progress-overlay">
+      <AppProgressBar
+        :value="importProgress.processed"
+        :max="importProgress.total || 1"
+        :indeterminate="importProgress.total === 0"
+      />
+      <span v-if="importProgress.total > 0" class="import-progress-text">
+        {{ importProgress.processed }} / {{ importProgress.total }}
+      </span>
+    </div>
 
     <!-- Error banner -->
     <div v-if="error" class="timeline-error">
@@ -105,6 +116,7 @@ import AppCheckbox from '../components/AppCheckbox.vue'
 import DaySummary from '../components/DaySummary.vue'
 import SessionMessagesModal from '../components/SessionMessagesModal.vue'
 import SessionEditModal from '../components/SessionEditModal.vue'
+import AppProgressBar from '../components/AppProgressBar.vue'
 import { driver } from 'driver.js'
 
 // --- Router ---
@@ -388,6 +400,33 @@ watch(() => route.query.date, () => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.import-progress-overlay {
+  position: fixed;
+  top: var(--spacing-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(500px, 90%);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.import-progress-overlay :deep(.progress-root) {
+  flex: 1;
+}
+
+.import-progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .timeline-content {
