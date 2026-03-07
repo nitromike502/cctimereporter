@@ -19,6 +19,7 @@
         :style="{ left: seg.leftPct + '%', width: seg.widthPct + '%' }"
       />
       <span class="bar-label">{{ label }}</span>
+      <span v-if="session.userLabel || session.userTicket" class="customized-dot" title="Custom name or ticket">*</span>
     </div>
     <span v-if="session.continuesIntoNextDay" class="continuation-icon next" title="Continues into next day">&#9654;</span>
   </div>
@@ -119,8 +120,9 @@ const segments = computed(() => {
   return segs
 })
 
-/** Session label using customTitle -> ticket -> branch -> summary -> sessionId fallback chain */
+/** Session label using userLabel -> customTitle -> ticket -> branch -> summary -> sessionId fallback chain */
 const label = computed(() => {
+  if (props.session.userLabel) return props.session.userLabel
   if (props.session.customTitle) return props.session.customTitle
   if (props.session.ticket) return props.session.ticket
   if (props.session.branch) return props.session.branch
@@ -209,5 +211,16 @@ const label = computed(() => {
   text-overflow: ellipsis;
   display: block;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.customized-dot {
+  position: relative;
+  z-index: 1;
+  font-size: var(--font-size-xs);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 28px;
+  vertical-align: top;
+  margin-left: -2px;
 }
 </style>

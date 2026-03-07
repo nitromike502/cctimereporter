@@ -129,7 +129,7 @@ const projectRows = computed(() =>
 )
 
 const ticketRows = computed(() => {
-  const grouped = groupBy(allSessions.value, s => s.ticket || null)
+  const grouped = groupBy(allSessions.value, s => (s.userTicket || s.ticket) || null)
   const rows = []
   let nullRow = null
 
