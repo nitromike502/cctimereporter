@@ -1,0 +1,72 @@
+# Requirements: CC Time Reporter v0.4.0
+
+**Defined:** 2026-03-07
+**Core Value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
+
+## v0.4.0 Requirements
+
+Requirements for Session Intelligence milestone. Each maps to roadmap phases.
+
+### Session Naming
+
+- [ ] **NAME-01**: User can set a custom name for any session via inline edit in the timeline UI
+- [ ] **NAME-02**: Custom session names persist across re-imports (upsert uses COALESCE to preserve user data)
+- [ ] **NAME-03**: Custom name takes priority in label chain: custom name > ticket > branch > first words
+- [ ] **NAME-04**: User can clear a custom name to revert to the auto-generated label
+
+### Ticket Detection
+
+- [ ] **TICK-01**: Import scans git commit messages in tool_result blocks for ticket patterns (~50pts)
+- [ ] **TICK-02**: Import scans session summary/title text for ticket patterns (~25pts)
+- [ ] **TICK-03**: User can manually set or override the primary ticket for a session via UI
+- [ ] **TICK-04**: User can configure a ticket link URL template so ticket IDs link to the external issue tracker
+- [ ] **TICK-05**: Import scans MCP tool calls (Atlassian, Linear, etc.) in transcripts for ticket patterns
+
+## Future Requirements
+
+Deferred to later milestones. Tracked but not in current roadmap.
+
+### Ticket Detection
+
+- **TICK-F1**: Multi-ticket display (show all detected tickets, not just primary)
+- **TICK-F2**: Ticket denylist management UI (currently hardcoded)
+- **TICK-F3**: User-defined regex patterns for custom ticket detection
+
+### Session Intelligence
+
+- **SESS-F1**: Subagent working time attribution to parent session
+- **SESS-F2**: Fork visualization as sub-rows in timeline
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Real-time session tracking | Manual refresh via UI button is sufficient |
+| Automatic session naming via AI | Summaries from sessions-index.json already provide this |
+| Ticket creation from UI | Read-only tool, not a project management app |
+| Multi-ticket scoring display | Complexity; single primary ticket is clear enough for v0.4.0 |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| NAME-01 | - | Pending |
+| NAME-02 | - | Pending |
+| NAME-03 | - | Pending |
+| NAME-04 | - | Pending |
+| TICK-01 | - | Pending |
+| TICK-02 | - | Pending |
+| TICK-03 | - | Pending |
+| TICK-04 | - | Pending |
+| TICK-05 | - | Pending |
+
+**Coverage:**
+- v0.4.0 requirements: 9 total
+- Mapped to phases: 0
+- Unmapped: 9
+
+---
+*Requirements defined: 2026-03-07*
+*Last updated: 2026-03-07 after initial definition*
