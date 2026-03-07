@@ -73,6 +73,29 @@ function getDisplayName(projectPath) {
   return last;
 }
 
+// Worktree path patterns:
+// Actual paths: /home/user/project/.claude/worktrees/branch-name
+// Encoded orphan dirs: -home-user-project--claude-worktrees-branch-name
+const WORKTREE_PATH_RE = /\/\.claude\/worktrees\/[^/]+$/;
+const WORKTREE_ENCODED_RE = /--claude-worktrees-[^/]+$/;
+
+/**
+ * If a project path is a worktree, extract the parent project path.
+ * Works for both actual paths and encoded orphan directory names.
+ *
+ * @param {string} projectPath
+ * @returns {string|null} Parent project path, or null if not a worktree
+ */
+function getWorktreeParentPath(projectPath) {
+  if (WORKTREE_PATH_RE.test(projectPath)) {
+    return projectPath.replace(/\/\.claude\/worktrees\/[^/]+$/, '');
+  }
+  if (WORKTREE_ENCODED_RE.test(projectPath)) {
+    return projectPath.replace(/--claude-worktrees-[^/]+$/, '');
+  }
+  return null;
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -82,7 +105,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function timelineRoute(fastify, opts) {
   const { db } = opts;
 
-  // Sessions overlapping a UTC time range (local day converted to UTC)
+  // Sessions overlapping a UTC time range (local day converted to UTC).
+  // Excludes team-member subagents (is_subagent=1 with team_name) but
+  // includes team leaders and worktree sessions (grouped in JS below).
   const sessionStmt = db.prepare(`
     SELECT
       s.session_id,
@@ -102,7 +127,9 @@ export async function timelineRoute(fastify, opts) {
     FROM sessions s
     JOIN projects p ON s.project_id = p.id
     WHERE s.first_message_at < ? AND s.last_message_at >= ?
-      AND (s.is_subagent = 0 OR s.is_subagent IS NULL)
+      AND (s.is_subagent = 0 OR s.is_subagent IS NULL
+           OR (p.project_path LIKE '%/.claude/worktrees/%'
+               OR p.project_path LIKE '%--claude-worktrees-%'))
     ORDER BY s.first_message_at
   `);
 
@@ -116,6 +143,7 @@ export async function timelineRoute(fastify, opts) {
   `);
 
   const totalSessionsStmt = db.prepare('SELECT COUNT(*) AS cnt FROM sessions');
+  const allProjectPathsStmt = db.prepare('SELECT project_path FROM projects');
 
   fastify.get('/api/timeline', async (request, reply) => {
     const now = new Date();
@@ -138,8 +166,20 @@ export async function timelineRoute(fastify, opts) {
     // first_message_at < dayEnd AND last_message_at >= dayStart → overlaps the day
     const sessions = sessionStmt.all(dayEndUTC, dayStartUTC);
 
-    // Group sessions by project using a Map keyed by project_id
+    // Group sessions by project using a Map keyed by display project path.
+    // Worktree sessions are merged under their parent project.
     const projectMap = new Map();
+
+    // Build lookups for worktree→parent resolution.
+    // Maps both actual paths and their encoded forms to the canonical project_path.
+    // Actual: /home/claude/cctimereporter → encoded: -home-claude-cctimereporter
+    const projectPathLookup = new Map();
+    for (const { project_path } of allProjectPathsStmt.all()) {
+      projectPathLookup.set(project_path, project_path);
+      // Also map the encoded form so orphan dirs can find their parent
+      const encoded = project_path.replace(/\//g, '-');
+      projectPathLookup.set(encoded, project_path);
+    }
 
     for (const row of sessions) {
       // Get message timestamps for working time computation
@@ -181,15 +221,22 @@ export async function timelineRoute(fastify, opts) {
         realForkCount: row.real_fork_count,
       };
 
-      if (!projectMap.has(row.project_id)) {
-        projectMap.set(row.project_id, {
+      // Resolve worktree projects to their parent for grouping.
+      // getWorktreeParentPath returns the stripped path (actual or encoded),
+      // then projectPathLookup resolves it to the canonical project_path.
+      const extractedParent = getWorktreeParentPath(row.project_path);
+      const resolvedParent = extractedParent ? projectPathLookup.get(extractedParent) : null;
+      const groupPath = resolvedParent ?? row.project_path;
+
+      if (!projectMap.has(groupPath)) {
+        projectMap.set(groupPath, {
           projectId: row.project_id,
-          projectPath: row.project_path,
-          displayName: getDisplayName(row.project_path),
+          projectPath: groupPath,
+          displayName: getDisplayName(groupPath),
           sessions: [],
         });
       }
-      projectMap.get(row.project_id).sessions.push(sessionObj);
+      projectMap.get(groupPath).sessions.push(sessionObj);
     }
 
     const { cnt: totalSessions } = totalSessionsStmt.get();
