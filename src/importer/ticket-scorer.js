@@ -117,6 +117,8 @@ export function determineWorkingBranch(messages) {
  * - Working branch contains ticket: 100 pts base
  * - Each message where gitBranch contains ticket: 5 pts/message
  * - Content mention in user messages: 10 pts/mention
+ * - Git commit message: 100 pts base, +10 per additional commit
+ * - MCP tool call input: 100 pts base, +10 per additional call
  *
  * All ticket keys are normalized to uppercase before scoring.
  *
@@ -147,7 +149,13 @@ export function scoreTickets(messages, workingBranch) {
     msg => msg.type === 'user' && !msg.isMeta
   );
 
+  // Track base scoring for git commit and MCP tool sources (100pt base, 10pt additional)
+  const gitCommitBaseSeen = new Set();
+  const mcpToolBaseSeen = new Set();
+
   // Per-message scoring
+  // Parallel parsing with detectTicketsFromMessage() — intentional;
+  // detection populates tickets table, scoring determines primary_ticket
   for (const msg of messages) {
     // Branch frequency bonus: 5 pts per message per ticket in gitBranch
     if (msg.gitBranch) {
@@ -160,19 +168,76 @@ export function scoreTickets(messages, workingBranch) {
     // User message content scanning
     if (msg.type === 'user') {
       const text = extractContentText(msg.rawMessage);
-      if (!text) continue;
+      if (text) {
+        // Check for /prep-ticket slash command (highest priority)
+        const prepMatch = PREP_TICKET_INLINE.exec(text) || PREP_TICKET_XML.exec(text);
+        if (prepMatch) {
+          const isFirst = firstUserMsg && msg.uuid === firstUserMsg.uuid;
+          addScore(prepMatch[1], isFirst ? 700 : 500);
+        }
 
-      // Check for /prep-ticket slash command (highest priority)
-      const prepMatch = PREP_TICKET_INLINE.exec(text) || PREP_TICKET_XML.exec(text);
-      if (prepMatch) {
-        const isFirst = firstUserMsg && msg.uuid === firstUserMsg.uuid;
-        addScore(prepMatch[1], isFirst ? 700 : 500);
+        // Check for generic content mentions: 10 pts/mention
+        TICKET_PATTERN.lastIndex = 0;
+        for (const match of text.matchAll(TICKET_PATTERN)) {
+          addScore(match[0], 10);
+        }
       }
 
-      // Check for generic content mentions: 10 pts/mention
-      TICKET_PATTERN.lastIndex = 0;
-      for (const match of text.matchAll(TICKET_PATTERN)) {
-        addScore(match[0], 10);
+      // Git commit messages in tool_result blocks: 100 pts base, +10 per additional
+      const rawContent = msg.rawMessage?.message?.content;
+      if (Array.isArray(rawContent)) {
+        for (const block of rawContent) {
+          if (block.type !== 'tool_result') continue;
+          let resultText = '';
+          if (typeof block.content === 'string') {
+            resultText = block.content;
+          } else if (Array.isArray(block.content)) {
+            resultText = block.content
+              .filter(b => b.type === 'text')
+              .map(b => b.text)
+              .join('\n');
+          }
+          if (!resultText) continue;
+
+          const commitPattern = /\[[^\]]+\s+[0-9a-f]{7,}\]\s+(.+?)(?:\n|$)/g;
+          for (const commitMatch of resultText.matchAll(commitPattern)) {
+            TICKET_PATTERN.lastIndex = 0;
+            for (const ticketMatch of commitMatch[1].matchAll(TICKET_PATTERN)) {
+              const key = ticketMatch[0].toUpperCase();
+              if (gitCommitBaseSeen.has(key)) {
+                addScore(ticketMatch[0], 10);
+              } else {
+                addScore(ticketMatch[0], 100);
+                gitCommitBaseSeen.add(key);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // MCP tool call inputs: 100 pts base, +10 per additional call
+    if (msg.type === 'assistant') {
+      const rawContent = msg.rawMessage?.message?.content;
+      if (Array.isArray(rawContent)) {
+        for (const block of rawContent) {
+          if (block.type !== 'tool_use' || !block.name?.startsWith('mcp__')) continue;
+          const parts = block.name.split('__');
+          const server = parts[1] || '';
+          if (!MCP_TICKET_PREFIXES.some(p => server.startsWith(p))) continue;
+
+          const inputStr = JSON.stringify(block.input || {});
+          TICKET_PATTERN.lastIndex = 0;
+          for (const ticketMatch of inputStr.matchAll(TICKET_PATTERN)) {
+            const key = ticketMatch[0].toUpperCase();
+            if (mcpToolBaseSeen.has(key)) {
+              addScore(ticketMatch[0], 10);
+            } else {
+              addScore(ticketMatch[0], 100);
+              mcpToolBaseSeen.add(key);
+            }
+          }
+        }
       }
     }
   }
