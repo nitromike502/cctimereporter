@@ -52,21 +52,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAME-01 | - | Pending |
-| NAME-02 | - | Pending |
-| NAME-03 | - | Pending |
-| NAME-04 | - | Pending |
-| TICK-01 | - | Pending |
-| TICK-02 | - | Pending |
-| TICK-03 | - | Pending |
-| TICK-04 | - | Pending |
-| TICK-05 | - | Pending |
+| NAME-01 | Phase 17 | Pending |
+| NAME-02 | Phase 17 | Pending |
+| NAME-03 | Phase 17 | Pending |
+| NAME-04 | Phase 17 | Pending |
+| TICK-01 | Phase 18 | Pending |
+| TICK-02 | Phase 18 | Pending |
+| TICK-03 | Phase 17 | Pending |
+| TICK-04 | Phase 19 | Pending |
+| TICK-05 | Phase 18 | Pending |
 
 **Coverage:**
 - v0.4.0 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-07*
-*Last updated: 2026-03-07 after initial definition*
+*Last updated: 2026-03-07 after roadmap creation*
