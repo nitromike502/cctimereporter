@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-07)
 ## Current Position
 
 Phase: 17 of 19 (Session Naming)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-07 — Roadmap created for v0.4.0
+Plan: 1 of 2 in phase 17
+Status: In progress
+Last activity: 2026-03-07 — Completed 17-01-PLAN.md
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% v0.4.0
+Progress: [██████░░░░░░░░░░░░░░] 25% v0.4.0 (1/4 plans)
 
 ## Performance Metrics
 
@@ -36,6 +36,8 @@ v0.4.0 decisions:
 - New user_label column separate from import-managed custom_title — prevents import clobber
 - INSERT ON CONFLICT DO UPDATE with COALESCE replaces INSERT OR REPLACE — protects user edits
 - User ticket override stored on sessions table, not tickets table — tickets table gets wiped on re-import
+- ON CONFLICT DO UPDATE omits user_label/user_ticket from SET clause (not COALESCE) — simpler, same effect
+- Empty strings normalized to null in PATCH endpoint for clean storage
 
 ### Roadmap Evolution
 
@@ -55,5 +57,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-07
-Stopped at: Roadmap created for v0.4.0, ready to plan Phase 17
+Stopped at: Completed 17-01-PLAN.md (session editing backend)
 Resume file: None
