@@ -3,9 +3,12 @@
     <DialogPortal>
       <DialogOverlay class="modal-overlay" />
       <DialogContent class="modal-content">
-        <DialogTitle class="modal-title">Session Messages</DialogTitle>
+        <DialogTitle class="modal-title">
+          Session Messages
+          <span v-if="totalCount > 0" class="modal-title-count">{{ totalCount }} messages with text</span>
+        </DialogTitle>
         <DialogDescription class="sr-only">
-          First messages from this session
+          First and last messages from this session
         </DialogDescription>
 
         <button class="modal-close" @click="$emit('update:open', false)" aria-label="Close">
@@ -17,8 +20,22 @@
         <div v-else-if="messages.length === 0" class="modal-empty">No messages found.</div>
         <div v-else class="modal-messages">
           <div
-            v-for="(msg, i) in messages"
-            :key="i"
+            v-for="(msg, i) in firstMessages"
+            :key="'first-' + i"
+            class="message-item"
+            :class="`message-item--${msg.role}`"
+          >
+            <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
+            <pre class="message-content">{{ formatContent(msg) }}</pre>
+          </div>
+
+          <div v-if="skipped > 0" class="message-divider">
+            <span class="divider-text">{{ skipped }} messages skipped</span>
+          </div>
+
+          <div
+            v-for="(msg, i) in lastMessages"
+            :key="'last-' + i"
             class="message-item"
             :class="`message-item--${msg.role}`"
           >
@@ -32,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   DialogRoot,
   DialogPortal,
@@ -51,8 +68,22 @@ const props = defineProps({
 defineEmits(['update:open'])
 
 const messages = ref([])
+const totalCount = ref(0)
+const skipped = ref(0)
 const loading = ref(false)
 const error = ref(null)
+
+const HEAD_COUNT = 5
+
+const firstMessages = computed(() => {
+  if (skipped.value === 0) return messages.value
+  return messages.value.slice(0, HEAD_COUNT)
+})
+
+const lastMessages = computed(() => {
+  if (skipped.value === 0) return []
+  return messages.value.slice(HEAD_COUNT)
+})
 
 function formatContent(msg) {
   if (msg.role === 'user') {
@@ -68,11 +99,15 @@ watch(
     loading.value = true
     error.value = null
     messages.value = []
+    totalCount.value = 0
+    skipped.value = 0
     try {
       const res = await fetch(`/api/sessions/${encodeURIComponent(id)}/messages`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       messages.value = data.messages
+      totalCount.value = data.totalCount ?? data.messages.length
+      skipped.value = data.skipped ?? 0
     } catch (e) {
       error.value = e.message
     } finally {
@@ -113,6 +148,15 @@ watch(
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+}
+
+.modal-title-count {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--color-muted);
 }
 
 .sr-only {
@@ -168,7 +212,6 @@ watch(
 .message-item {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
 }
 
 .message-item--user {
@@ -180,17 +223,21 @@ watch(
 }
 
 .message-role {
-  display: inline-block;
+  display: block;
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-muted);
-  margin-bottom: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: color-mix(in srgb, var(--color-bg-secondary) 50%, var(--color-bg));
 }
 
 .message-item--user .message-role {
   color: var(--color-link);
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, var(--color-bg));
 }
 
 .message-content {
@@ -200,8 +247,27 @@ watch(
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
   line-height: 1.5;
   max-height: 200px;
   overflow-y: auto;
+}
+
+.message-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.divider-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  width: 100%;
+  text-align: center;
 }
 </style>
