@@ -1,17 +1,16 @@
 /**
  * GET /api/sessions/:id/messages
  *
- * Returns the first messages of a session for preview in the UI modal.
- * Reads the original JSONL file to extract message content (not stored in DB).
- *
- * Stops at 10 user/assistant messages or the first assistant message
- * containing a tool_use block, whichever comes first.
+ * Returns the first 5 and last 5 text-bearing messages of a session for
+ * preview in the UI modal. Skips tool-only messages (no visible text).
+ * Returns both groups plus a count of skipped messages in between.
  */
 
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 
-const MAX_MESSAGES = 10;
+const HEAD_COUNT = 5;
+const TAIL_COUNT = 5;
 
 /**
  * Extract plain text from a message's content field.
@@ -27,17 +26,6 @@ function extractText(content) {
     .filter(block => block.type === 'text')
     .map(block => block.text ?? '')
     .join('\n');
-}
-
-/**
- * Check if an assistant message's content contains a tool_use block.
- *
- * @param {*} content - message.content array
- * @returns {boolean}
- */
-function hasToolUse(content) {
-  if (!Array.isArray(content)) return false;
-  return content.some(block => block.type === 'tool_use');
 }
 
 /**
@@ -61,7 +49,7 @@ export async function messagesRoute(fastify, opts) {
     }
 
     const filePath = row.file_path;
-    const messages = [];
+    const allTextMessages = [];
 
     try {
       const rl = createInterface({
@@ -89,32 +77,14 @@ export async function messagesRoute(fastify, opts) {
         const content = msg.message?.content;
         if (content == null) continue;
 
-        const role = msg.type; // 'user' or 'assistant'
-
-        // For assistant messages, check for tool_use before adding
-        if (role === 'assistant' && hasToolUse(content)) {
-          // Include any text from this message before stopping
-          const text = extractText(content);
-          if (text.trim()) {
-            messages.push({
-              role,
-              content: text,
-              timestamp: msg.timestamp ?? null,
-            });
-          }
-          break;
-        }
-
         const text = extractText(content);
         if (!text.trim()) continue;
 
-        messages.push({
-          role,
+        allTextMessages.push({
+          role: msg.type,
           content: text,
           timestamp: msg.timestamp ?? null,
         });
-
-        if (messages.length >= MAX_MESSAGES) break;
       }
     } catch (err) {
       if (err.code === 'ENOENT') {
@@ -124,6 +94,18 @@ export async function messagesRoute(fastify, opts) {
       throw err;
     }
 
-    return { messages };
+    const total = allTextMessages.length;
+
+    // If 10 or fewer, return all as a single list (no split needed)
+    if (total <= HEAD_COUNT + TAIL_COUNT) {
+      return { messages: allTextMessages, totalCount: total, skipped: 0 };
+    }
+
+    // Otherwise, return first N and last N with skip count
+    const first = allTextMessages.slice(0, HEAD_COUNT);
+    const last = allTextMessages.slice(-TAIL_COUNT);
+    const skipped = total - HEAD_COUNT - TAIL_COUNT;
+
+    return { messages: [...first, ...last], totalCount: total, skipped };
   });
 }
