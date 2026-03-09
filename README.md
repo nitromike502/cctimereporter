@@ -25,6 +25,7 @@ The timeline page (`/timeline?date=YYYY-MM-DD`) shows:
 - **Project grouping** with color-coded swim lanes and a legend
 - **Session labels** using a fallback chain: ticket ID, git branch, or first words of the initial prompt
 - **Click-to-detail panel** showing session name, session ID, ticket, branch, project, working time, wall-clock span, message count, and idle gap count
+- **Session editing** from the detail panel — users can edit session names and ticket IDs, and edits persist across re-imports
 - **Message preview modal** showing the first messages of a session conversation
 
 ### Navigation
@@ -46,7 +47,7 @@ The import pipeline:
 1. **Discovers** all projects from `~/.claude.json` and `~/.claude/projects/`
 2. **Parses** JSONL transcript files with streaming readline
 3. **Detects forks** (parent-child tree, real vs progress forks)
-4. **Scores tickets** using a multi-source system (slash commands, branch patterns, content mentions)
+4. **Scores tickets** using a multi-source system (slash commands, branch patterns, content mentions, git commits, MCP tool calls, session summaries)
 5. **Writes to SQLite** with idempotent upserts (re-importing is safe and skips unchanged files)
 
 ## Configuration
@@ -98,6 +99,7 @@ scripts/                   Python proof-of-concept (reference implementation)
 | POST | `/api/import` | Trigger a full import (409 if already running) |
 | GET | `/api/import/progress` | Trigger import with SSE progress streaming (409 if already running) |
 | GET | `/api/sessions/:id/messages` | First messages of a session for preview |
+| PATCH | `/api/sessions/:id` | Update user-editable fields (user_label, user_ticket) |
 
 ### Tech Stack
 

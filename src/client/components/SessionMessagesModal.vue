@@ -26,7 +26,16 @@
             :class="`message-item--${msg.role}`"
           >
             <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
-            <pre class="message-content">{{ formatContent(msg) }}</pre>
+            <pre
+              :ref="setContentRef('first-' + i)"
+              class="message-content"
+              :class="{ 'message-content--collapsed': !expandedMessages['first-' + i] }"
+            >{{ truncateContent(formatContent(msg), expandedMessages['first-' + i]) }}</pre>
+            <button
+              v-if="isOverflow('first-' + i, formatContent(msg))"
+              class="message-expand"
+              @click="expandedMessages['first-' + i] = !expandedMessages['first-' + i]"
+            >{{ expandedMessages['first-' + i] ? 'Show less' : 'Show more' }}</button>
           </div>
 
           <div v-if="skipped > 0" class="message-divider">
@@ -40,7 +49,16 @@
             :class="`message-item--${msg.role}`"
           >
             <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
-            <pre class="message-content">{{ formatContent(msg) }}</pre>
+            <pre
+              :ref="setContentRef('last-' + i)"
+              class="message-content"
+              :class="{ 'message-content--collapsed': !expandedMessages['last-' + i] }"
+            >{{ truncateContent(formatContent(msg), expandedMessages['last-' + i]) }}</pre>
+            <button
+              v-if="isOverflow('last-' + i, formatContent(msg))"
+              class="message-expand"
+              @click="expandedMessages['last-' + i] = !expandedMessages['last-' + i]"
+            >{{ expandedMessages['last-' + i] ? 'Show less' : 'Show more' }}</button>
           </div>
         </div>
       </DialogContent>
@@ -49,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onBeforeUpdate } from 'vue'
 import {
   DialogRoot,
   DialogPortal,
@@ -58,7 +76,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from 'reka-ui'
-import { parseCommandXml } from '../../utils/parse-command-xml.js'
+import { cleanUserMessage } from '../../utils/parse-command-xml.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -73,7 +91,29 @@ const skipped = ref(0)
 const loading = ref(false)
 const error = ref(null)
 
-const HEAD_COUNT = 5
+const HEAD_COUNT = 10
+const MAX_COLLAPSED_CHARS = 2000
+const expandedMessages = reactive({})
+const overflowMessages = reactive({})
+
+// Template refs for message content elements
+const contentRefs = ref({})
+function setContentRef(key) {
+  return (el) => {
+    if (el) {
+      contentRefs.value[key] = el
+    }
+  }
+}
+
+// After messages render, check which ones overflow their 300px max-height
+function detectOverflows() {
+  nextTick(() => {
+    for (const [key, el] of Object.entries(contentRefs.value)) {
+      overflowMessages[key] = el.scrollHeight > el.clientHeight
+    }
+  })
+}
 
 const firstMessages = computed(() => {
   if (skipped.value === 0) return messages.value
@@ -87,9 +127,19 @@ const lastMessages = computed(() => {
 
 function formatContent(msg) {
   if (msg.role === 'user') {
-    return parseCommandXml(msg.content) ?? msg.content
+    return cleanUserMessage(msg.content)
   }
   return msg.content
+}
+
+function isOverflow(key, text) {
+  // Show button if DOM element overflows OR text exceeds hard cap
+  return overflowMessages[key] || (text && text.length > MAX_COLLAPSED_CHARS)
+}
+
+function truncateContent(text, expanded) {
+  if (!text || expanded || text.length <= MAX_COLLAPSED_CHARS) return text
+  return text.slice(0, MAX_COLLAPSED_CHARS) + '...'
 }
 
 watch(
@@ -101,6 +151,9 @@ watch(
     messages.value = []
     totalCount.value = 0
     skipped.value = 0
+    Object.keys(expandedMessages).forEach(k => delete expandedMessages[k])
+    Object.keys(overflowMessages).forEach(k => delete overflowMessages[k])
+    contentRefs.value = {}
     try {
       const res = await fetch(`/api/sessions/${encodeURIComponent(id)}/messages`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -108,6 +161,7 @@ watch(
       messages.value = data.messages
       totalCount.value = data.totalCount ?? data.messages.length
       skipped.value = data.skipped ?? 0
+      detectOverflows()
     } catch (e) {
       error.value = e.message
     } finally {
@@ -249,8 +303,30 @@ watch(
   margin: 0;
   padding: var(--spacing-sm) var(--spacing-md);
   line-height: 1.5;
-  max-height: 200px;
-  overflow-y: auto;
+}
+
+.message-content--collapsed {
+  max-height: 300px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black 240px, transparent 300px);
+  mask-image: linear-gradient(to bottom, black 240px, transparent 300px);
+}
+
+.message-expand {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  text-align: center;
+}
+
+.message-expand:hover {
+  background: var(--color-bg-secondary);
 }
 
 .message-divider {

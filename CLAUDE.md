@@ -40,8 +40,8 @@ python3 timeline.py 2026-02-05                     # Generate HTML timeline
 
 ```
 bin/cli.js                     Entry point: version check, DB open, Fastify start, browser open
-src/db/schema.js               Schema DDL v3, migration constants
-src/db/index.js                openDatabase() with auto-migration (v1→v2→v3)
+src/db/schema.js               Schema DDL v6, migration constants
+src/db/index.js                openDatabase() with auto-migration (v1→v2→v3→v4→v5→v6)
 src/importer/                  Import pipeline
   discovery.js                 Project discovery from ~/.claude.json + filesystem
   parser.js                    Async JSONL streaming parser
@@ -54,6 +54,7 @@ src/server/routes/timeline.js  GET /api/timeline — sessions with idle gaps and
 src/server/routes/projects.js  GET /api/projects — project list
 src/server/routes/import.js    POST /api/import + GET /api/import/progress (SSE streaming)
 src/server/routes/messages.js  GET /api/sessions/:id/messages — session message preview
+src/server/routes/sessions.js  PATCH /api/sessions/:id — user-editable session fields
 src/utils/parse-command-xml.js Slash command XML tag parser
 src/client/                    Vue 3 frontend
   main.js                      App entry: tokens.css, router, createApp
@@ -73,6 +74,7 @@ src/client/                    Vue 3 frontend
 | POST | `/api/import` | Trigger full import, return JSON result (409 if already running) |
 | GET | `/api/import/progress` | Trigger import with SSE progress streaming (409 if already running) |
 | GET | `/api/sessions/:id/messages` | First messages of a session (up to 10, stops at first tool_use) |
+| PATCH | `/api/sessions/:id` | Update user-editable fields (user_label, user_ticket) |
 
 ### Import Pipeline
 
@@ -94,9 +96,12 @@ Pass 2 — Import (with onProgress callback for SSE streaming):
 
 ### Ticket Detection Scoring
 
-Primary ticket is determined by a scoring system across sources:
+Primary ticket is determined by a scoring system across 6 sources:
 - `/prep-ticket` slash command: 500 points (700 if in first message)
 - Working branch pattern: 100 base + 5/message
+- Git commit message: 100 base + 10/additional commit
+- MCP tool call input: 100 base + 10/additional call
+- Session summary/title: 25 points flat
 - Content mentions: 10/mention
 - Ticket pattern: generic `[A-Z]{2,8}-\d+`
 
@@ -107,7 +112,7 @@ Messages are grouped by session per date. Consecutive message gaps <= idle thres
 ### Database
 
 - **Location:** `~/.cctimereporter/data.db`
-- **Schema version:** 3 (auto-migrates from v1 or v2)
+- **Schema version:** 6 (auto-migrates from v1 through v5)
 - **Core tables:** `projects`, `sessions`, `messages`, `tickets`, `import_log`
 - **Features:** WAL mode, foreign keys enabled, prepared statement caching
 
@@ -118,7 +123,7 @@ Custom component library with design tokens in `tokens.css`. All components live
 ## Key Constants
 
 - `DEFAULT_IDLE_THRESHOLD_MIN`: 10 (in `src/server/routes/timeline.js`)
-- `SCHEMA_VERSION`: 3 (in `src/db/schema.js`)
+- `SCHEMA_VERSION`: 6 (in `src/db/schema.js`)
 - `DEFAULT_PORT`: 3847 (in `bin/cli.js`)
 - `CLAUDE_PROJECTS_DIR`: `~/.claude/projects` (in `src/importer/discovery.js`)
 - Database path: `~/.cctimereporter/data.db` (in `src/db/index.js`)

@@ -9,8 +9,8 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 
-const HEAD_COUNT = 5;
-const TAIL_COUNT = 5;
+const HEAD_COUNT = 10;
+const TAIL_COUNT = 10;
 
 /**
  * Extract plain text from a message's content field.

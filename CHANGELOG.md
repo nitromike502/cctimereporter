@@ -4,6 +4,13 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-03-07
+
+### Added
+
+- **Session editing (Phase 17):** Schema v6 migration adding `user_label` and `user_ticket` columns to sessions. New `PATCH /api/sessions/:id` endpoint for updating user-editable fields. Edit modal UI accessible from the detail panel. User edits persist across re-imports. Includes a copiable CLI command to resume the session in Claude Code.
+- **Expanded ticket detection pipeline (Phase 18):** Three new ticket detection sources: git commit messages (100pt base + 10/additional commit), MCP tool call inputs (100pt base + 10/additional call), and session summary/title text (25pt flat). Total detection sources now at 6.
+
 ## [0.3.1] - 2026-03-05
 
 ### Fixed
