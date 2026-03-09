@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Session editing (Phase 17):** Schema v6 migration adding `user_label` and `user_ticket` columns to sessions. New `PATCH /api/sessions/:id` endpoint for updating user-editable fields. Edit modal UI accessible from the detail panel. User edits persist across re-imports. Includes a copiable CLI command to resume the session in Claude Code.
 - **Expanded ticket detection pipeline (Phase 18):** Three new ticket detection sources: git commit messages (100pt base + 10/additional commit), MCP tool call inputs (100pt base + 10/additional call), and session summary/title text (25pt flat). Total detection sources now at 6.
+- **Messages modal improvements:** XML cleaning for user messages (task notifications, bash input/output, local command output, skill expansion tags stripped). Expandable message cards with fade gradient and Show more/less toggle replace scroll-within-scroll. Message count increased from 5+5 to 10+10.
 
 ## [0.3.1] - 2026-03-05
 
