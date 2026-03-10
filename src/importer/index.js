@@ -372,12 +372,21 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
 export async function importAll(db, options = {}) {
   const { force = false, verbose = false, maxAgeDays = 30, onProgress } = options;
 
+  const importStart = Date.now();
+  const log = (msg) => process.stderr.write(`[import] ${msg}\n`);
+
+  log(`Starting import: maxAgeDays=${maxAgeDays}, force=${force}`);
+
   const cutoffDate = maxAgeDays != null
     ? new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000).toISOString()
     : null;
 
+  if (cutoffDate) log(`Cutoff date: ${cutoffDate}`);
+
   const projects     = discoverProjects();
   const importedInfo = getImportedFileInfo(db);
+
+  log(`Discovered ${projects.length} projects, ${importedInfo.size} cached entries`);
 
   let filesSkipped    = 0;
   let totalMessages   = 0;
@@ -393,20 +402,22 @@ export async function importAll(db, options = {}) {
     const sessionIndex = readSessionIndex(project.transcriptDir);
 
     const toImport = [];
-    let skippedCount = 0;
+    let skippedSize = 0;
+    let skippedWindow = 0;
+    let skippedOld = 0;
 
     for (const file of files) {
       const cached = importedInfo.get(file.path);
 
       // Skip 1: size unchanged (existing behavior, fast path)
       if (!force && cached?.fileSize === file.size) {
-        skippedCount++;
+        skippedSize++;
         continue;
       }
 
       // Skip 2: rolling window — cached lastMessageAt is before cutoff
       if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) {
-        skippedCount++;
+        skippedWindow++;
         continue;
       }
 
@@ -416,7 +427,7 @@ export async function importAll(db, options = {}) {
         if (firstTs && firstTs < cutoffDate) {
           // Record as skipped_old so subsequent imports don't re-peek (IMP-02)
           updateImportLog(db, file.path, file.sessionId, file.size, 'skipped_old', null, firstTs, firstTs);
-          filesSkipped++;
+          skippedOld++;
           continue;
         }
       }
@@ -424,7 +435,10 @@ export async function importAll(db, options = {}) {
       toImport.push(file);
     }
 
+    const skippedCount = skippedSize + skippedWindow + skippedOld;
     filesSkipped += skippedCount;
+
+    log(`  ${project.projectPath}: ${files.length} files, ${toImport.length} to import, ${skippedCount} skipped (size=${skippedSize}, window=${skippedWindow}, old=${skippedOld}), ${agentToImport.length} agents`);
 
     // Discover agent files that need importing
     const agentFiles = findAgentFiles(project.transcriptDir);
@@ -447,17 +461,23 @@ export async function importAll(db, options = {}) {
   let processedFiles = 0;
   let filesProcessed = 0; // Only counts successfully imported transcript files (not agents)
 
+  const discoveryMs = Date.now() - importStart;
+  log(`Discovery complete in ${discoveryMs}ms: ${totalFiles} to process, ${filesSkipped} skipped`);
+
   onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, skipped: filesSkipped, currentFile: null });
 
   // --- Second pass: import ---
   for (const { project, projectId, toImport, sessionIndex, agentToImport } of projectWork) {
     // Import each transcript file
     for (const file of toImport) {
+      const fileStart = Date.now();
       try {
         const isWorktreeProject = WORKTREE_PROJECT_RE.test(project.projectPath);
         const result = await importFile(db, file, projectId, { verbose, isWorktreeProject }, sessionIndex);
         filesProcessed++;
         totalMessages += result.messageCount;
+        const fileMs = Date.now() - fileStart;
+        if (fileMs > 500) log(`  Slow file (${fileMs}ms, ${result.messageCount} msgs, ${(file.size / 1024).toFixed(0)}KB): ${file.name}`);
       } catch (err) {
         const errMsg = `${file.name}: ${err.message}`;
         errors.push(errMsg);
@@ -527,6 +547,9 @@ export async function importAll(db, options = {}) {
   }
 
   onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: null });
+
+  const totalMs = Date.now() - importStart;
+  log(`Import complete in ${(totalMs / 1000).toFixed(1)}s: ${filesProcessed} files, ${totalMessages} messages, ${filesSkipped} skipped, ${errors.length} errors`);
 
   if (verbose) {
     process.stderr.write(
