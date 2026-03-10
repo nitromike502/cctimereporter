@@ -447,7 +447,7 @@ export async function importAll(db, options = {}) {
   let processedFiles = 0;
   let filesProcessed = 0; // Only counts successfully imported transcript files (not agents)
 
-  onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, currentFile: null });
+  onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, skipped: filesSkipped, currentFile: null });
 
   // --- Second pass: import ---
   for (const { project, projectId, toImport, sessionIndex, agentToImport } of projectWork) {
@@ -472,7 +472,7 @@ export async function importAll(db, options = {}) {
       }
 
       processedFiles++;
-      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: file.sessionId });
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: file.sessionId });
     }
 
     // Import Pattern A subagent files (tool-invoked agents)
@@ -517,7 +517,7 @@ export async function importAll(db, options = {}) {
       }
 
       processedFiles++;
-      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: agentFile.parentSessionId });
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: agentFile.parentSessionId });
     }
 
     // Update project last_import_at after all files processed
@@ -526,7 +526,7 @@ export async function importAll(db, options = {}) {
     ).run(projectId);
   }
 
-  onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, currentFile: null });
+  onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: null });
 
   if (verbose) {
     process.stderr.write(
