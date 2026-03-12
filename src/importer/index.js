@@ -8,9 +8,9 @@
  * import record (size-based skip). Force re-import with options.force = true.
  */
 
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { readConfig, CONFIG_DIR } from '../utils/config.js';
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
 import { parseTranscript, peekFirstTimestamp } from './parser.js';
 import { readSessionIndex } from './session-index.js';
@@ -376,10 +376,19 @@ export async function importAll(db, options = {}) {
   const { force = false, verbose = false, maxAgeDays = 30, onProgress } = options;
 
   const importStart = Date.now();
-  const logDir = join(homedir(), '.cctimereporter');
-  mkdirSync(logDir, { recursive: true });
-  const logFile = join(logDir, 'import.log');
+  const config = readConfig();
+  const logEnabled = config.importLog.enabled;
+  const logFile = join(CONFIG_DIR, 'import.log');
+
+  if (logEnabled) {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    if (config.importLog.clearOnStart) {
+      try { writeFileSync(logFile, ''); } catch (_) {}
+    }
+  }
+
   const log = (msg) => {
+    if (!logEnabled) return;
     try {
       const line = `[${new Date().toISOString()}] ${msg}\n`;
       appendFileSync(logFile, line);

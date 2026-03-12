@@ -19,6 +19,20 @@ if (_nodeMajor < 22) {
 const { openDatabase } = await import('../src/db/index.js');
 const { createServer } = await import('../src/server/index.js');
 const { spawn } = await import('node:child_process');
+const { readConfig, writeConfig } = await import('../src/utils/config.js');
+
+// Handle --debug-import flag: enable import logging and exit
+if (process.argv.includes('--debug-import')) {
+  const config = readConfig();
+  config.importLog.enabled = !config.importLog.enabled;
+  writeConfig(config);
+  process.stdout.write(`Import debug logging ${config.importLog.enabled ? 'enabled' : 'disabled'}.\n`);
+  process.stdout.write(`Config: ~/.cctimereporter/config.json\n`);
+  if (config.importLog.enabled) {
+    process.stdout.write(`Log file: ~/.cctimereporter/import.log\n`);
+  }
+  process.exit(0);
+}
 
 // Open the database (creates and migrates if needed).
 const db = openDatabase();
