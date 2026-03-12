@@ -74,18 +74,41 @@
         placeholder="Jump to date..."
         @update:model-value="onDatePicked"
       />
-      <AppButton
-        variant="primary"
-        size="sm"
-        :loading="importRunning"
-        @click="emit('import')"
-      >Import</AppButton>
+      <div class="import-group">
+        <AppButton
+          variant="primary"
+          size="sm"
+          :loading="importRunning"
+          @click="emit('import', { full: false })"
+        >Import</AppButton>
+        <button
+          class="import-dropdown-toggle"
+          type="button"
+          :disabled="importRunning"
+          aria-label="Import options"
+          @click="showImportMenu = !showImportMenu"
+        >
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div v-if="showImportMenu" class="import-menu">
+          <button class="import-menu-item" @click="showImportMenu = false; emit('import', { full: false })">
+            Import Recent
+            <span class="import-menu-hint">Last 2 days</span>
+          </button>
+          <button class="import-menu-item" @click="showImportMenu = false; emit('import', { full: true })">
+            Full Import
+            <span class="import-menu-hint">Last 30 days</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import AppButton from './AppButton.vue'
 import AppDatePicker from './AppDatePicker.vue'
@@ -119,6 +142,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['navigate', 'import', 'update:threshold'])
+
+const showImportMenu = ref(false)
+
+function onClickOutside(e) {
+  if (showImportMenu.value && !e.target.closest('.import-group')) {
+    showImportMenu.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', onClickOutside))
+onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
 const { isDark, toggle } = useTheme()
 
@@ -294,6 +327,78 @@ function yesterdayStr() {
 
 .info-example strong {
   color: var(--color-heading);
+}
+
+.import-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.import-group :deep(.app-button) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.import-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  padding: 0;
+  border: 1px solid var(--color-primary, #4e9af1);
+  border-left: 1px solid color-mix(in srgb, var(--color-primary, #4e9af1) 70%, #000);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-primary, #4e9af1);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.import-dropdown-toggle:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary, #4e9af1) 85%, #000);
+}
+
+.import-dropdown-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.import-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: transparent;
+  color: var(--color-body-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.import-menu-item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.import-menu-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
 }
 
 .theme-toggle {

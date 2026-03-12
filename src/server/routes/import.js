@@ -26,7 +26,8 @@ export async function importRoute(fastify, opts) {
 
     importRunning = true;
     try {
-      const { maxAgeDays } = request.body ?? {};
+      const parsed = parseInt(request.body?.maxAgeDays, 10);
+      const maxAgeDays = Number.isFinite(parsed) ? parsed : undefined;
       const result = await importAll(db, { maxAgeDays });
       return { ok: true, ...result };
     } finally {
@@ -62,9 +63,8 @@ export async function importRoute(fastify, opts) {
     }
 
     try {
-      const maxAgeDays = request.query.maxAgeDays != null
-        ? parseInt(request.query.maxAgeDays, 10)
-        : undefined;
+      const parsed = parseInt(request.query.maxAgeDays, 10);
+      const maxAgeDays = Number.isFinite(parsed) ? parsed : undefined;
 
       const result = await importAll(db, {
         maxAgeDays,

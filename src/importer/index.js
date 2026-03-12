@@ -8,6 +8,9 @@
  * import record (size-based skip). Force re-import with options.force = true.
  */
 
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
 import { parseTranscript, peekFirstTimestamp } from './parser.js';
 import { readSessionIndex } from './session-index.js';
@@ -372,12 +375,29 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
 export async function importAll(db, options = {}) {
   const { force = false, verbose = false, maxAgeDays = 30, onProgress } = options;
 
+  const importStart = Date.now();
+  const logDir = join(homedir(), '.cctimereporter');
+  mkdirSync(logDir, { recursive: true });
+  const logFile = join(logDir, 'import.log');
+  const log = (msg) => {
+    try {
+      const line = `[${new Date().toISOString()}] ${msg}\n`;
+      appendFileSync(logFile, line);
+    } catch (_) { /* logging should not crash imports */ }
+  };
+
+  log(`Starting import: maxAgeDays=${maxAgeDays}, force=${force}`);
+
   const cutoffDate = maxAgeDays != null
     ? new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000).toISOString()
     : null;
 
+  if (cutoffDate) log(`Cutoff date: ${cutoffDate}`);
+
   const projects     = discoverProjects();
   const importedInfo = getImportedFileInfo(db);
+
+  log(`Discovered ${projects.length} projects, ${importedInfo.size} cached entries`);
 
   let filesSkipped    = 0;
   let totalMessages   = 0;
@@ -393,20 +413,22 @@ export async function importAll(db, options = {}) {
     const sessionIndex = readSessionIndex(project.transcriptDir);
 
     const toImport = [];
-    let skippedCount = 0;
+    let skippedSize = 0;
+    let skippedWindow = 0;
+    let skippedOld = 0;
 
     for (const file of files) {
       const cached = importedInfo.get(file.path);
 
       // Skip 1: size unchanged (existing behavior, fast path)
       if (!force && cached?.fileSize === file.size) {
-        skippedCount++;
+        skippedSize++;
         continue;
       }
 
       // Skip 2: rolling window — cached lastMessageAt is before cutoff
       if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) {
-        skippedCount++;
+        skippedWindow++;
         continue;
       }
 
@@ -416,7 +438,7 @@ export async function importAll(db, options = {}) {
         if (firstTs && firstTs < cutoffDate) {
           // Record as skipped_old so subsequent imports don't re-peek (IMP-02)
           updateImportLog(db, file.path, file.sessionId, file.size, 'skipped_old', null, firstTs, firstTs);
-          filesSkipped++;
+          skippedOld++;
           continue;
         }
       }
@@ -424,16 +446,34 @@ export async function importAll(db, options = {}) {
       toImport.push(file);
     }
 
+    const skippedCount = skippedSize + skippedWindow + skippedOld;
     filesSkipped += skippedCount;
 
     // Discover agent files that need importing
     const agentFiles = findAgentFiles(project.transcriptDir);
     const agentToImport = [];
 
+    let agentsSkipped = 0;
     for (const agentFile of agentFiles) {
-      if (!force && importedInfo.get(agentFile.path)?.fileSize === agentFile.size) continue;
+      const cached = importedInfo.get(agentFile.path);
+      // Skip 1: size unchanged
+      if (!force && cached?.fileSize === agentFile.size) { agentsSkipped++; continue; }
+      // Skip 2: rolling window — cached lastMessageAt before cutoff
+      if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) { agentsSkipped++; continue; }
+      // Skip 3: new file — peek first timestamp
+      if (!force && cutoffDate && !cached) {
+        const firstTs = peekFirstTimestamp(agentFile.path);
+        if (firstTs && firstTs < cutoffDate) {
+          updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'skipped_old', null, firstTs, firstTs);
+          agentsSkipped++;
+          continue;
+        }
+      }
       agentToImport.push(agentFile);
     }
+    filesSkipped += agentsSkipped;
+
+    log(`  ${project.projectPath}: ${files.length} files, ${toImport.length} to import, ${skippedCount} skipped (size=${skippedSize}, window=${skippedWindow}, old=${skippedOld}), agents: ${agentToImport.length} to import / ${agentsSkipped} skipped`);
 
     projectWork.push({ project, projectId, toImport, sessionIndex, agentToImport });
   }
@@ -447,17 +487,23 @@ export async function importAll(db, options = {}) {
   let processedFiles = 0;
   let filesProcessed = 0; // Only counts successfully imported transcript files (not agents)
 
-  onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, currentFile: null });
+  const discoveryMs = Date.now() - importStart;
+  log(`Discovery complete in ${discoveryMs}ms: ${totalFiles} to process, ${filesSkipped} skipped`);
+
+  onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, skipped: filesSkipped, currentFile: null });
 
   // --- Second pass: import ---
   for (const { project, projectId, toImport, sessionIndex, agentToImport } of projectWork) {
     // Import each transcript file
     for (const file of toImport) {
+      const fileStart = Date.now();
       try {
         const isWorktreeProject = WORKTREE_PROJECT_RE.test(project.projectPath);
         const result = await importFile(db, file, projectId, { verbose, isWorktreeProject }, sessionIndex);
         filesProcessed++;
         totalMessages += result.messageCount;
+        const fileMs = Date.now() - fileStart;
+        if (fileMs > 500) log(`  Slow file (${fileMs}ms, ${result.messageCount} msgs, ${(file.size / 1024).toFixed(0)}KB): ${file.name}`);
       } catch (err) {
         const errMsg = `${file.name}: ${err.message}`;
         errors.push(errMsg);
@@ -472,7 +518,7 @@ export async function importAll(db, options = {}) {
       }
 
       processedFiles++;
-      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: file.sessionId });
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: file.sessionId });
     }
 
     // Import Pattern A subagent files (tool-invoked agents)
@@ -498,7 +544,9 @@ export async function importAll(db, options = {}) {
           insertMessages(db, agentFile.parentSessionId, agentMessages);
         }
 
-        updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'ok', null);
+        const firstAt = agentMessages[0]?.timestamp ?? null;
+        const lastAt = agentMessages.at(-1)?.timestamp ?? null;
+        updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'ok', null, firstAt, lastAt);
 
         if (verbose) {
           process.stderr.write(
@@ -517,7 +565,7 @@ export async function importAll(db, options = {}) {
       }
 
       processedFiles++;
-      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, currentFile: agentFile.parentSessionId });
+      onProgress?.({ phase: 'importing', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: agentFile.parentSessionId });
     }
 
     // Update project last_import_at after all files processed
@@ -526,7 +574,10 @@ export async function importAll(db, options = {}) {
     ).run(projectId);
   }
 
-  onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, currentFile: null });
+  onProgress?.({ phase: 'complete', processed: processedFiles, total: totalFiles, skipped: filesSkipped, currentFile: null });
+
+  const totalMs = Date.now() - importStart;
+  log(`Import complete in ${(totalMs / 1000).toFixed(1)}s: ${filesProcessed} files, ${totalMessages} messages, ${filesSkipped} skipped, ${errors.length} errors`);
 
   if (verbose) {
     process.stderr.write(

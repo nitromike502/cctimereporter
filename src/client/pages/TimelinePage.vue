@@ -19,6 +19,7 @@
       />
       <span v-if="importProgress.total > 0" class="import-progress-text">
         {{ importProgress.processed }} / {{ importProgress.total }}
+        <span v-if="importProgress.skipped" class="import-skipped-text">({{ importProgress.skipped }} skipped)</span>
       </span>
     </div>
 
@@ -38,7 +39,7 @@
       <h2>Welcome to CC Time Reporter</h2>
       <p>This tool scans your Claude Code session transcripts and shows them as a visual timeline grouped by project.</p>
       <p class="timeline-welcome-hint">Your first import covers the last 30 days of sessions. It may take a moment.</p>
-      <AppButton variant="primary" size="lg" :loading="importRunning" @click="triggerImport">
+      <AppButton variant="primary" size="lg" :loading="importRunning" @click="triggerImport({ full: true })">
         Import Sessions
       </AppButton>
     </div>
@@ -358,12 +359,13 @@ const legendItems = computed(() =>
 
 // --- Import ---
 
-function triggerImport() {
+function triggerImport({ full = false } = {}) {
   if (importRunning.value) return
   importRunning.value = true
-  importProgress.value = { processed: 0, total: 0 }
+  importProgress.value = { processed: 0, total: 0, skipped: 0 }
 
-  const source = new EventSource('/api/import/progress')
+  const maxAgeDays = full ? 30 : 2
+  const source = new EventSource(`/api/import/progress?maxAgeDays=${maxAgeDays}`)
   importEventSource.value = source
 
   source.addEventListener('progress', (e) => {
@@ -427,6 +429,10 @@ watch(() => route.query.date, () => {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
   white-space: nowrap;
+}
+
+.import-skipped-text {
+  opacity: 0.7;
 }
 
 .timeline-content {
