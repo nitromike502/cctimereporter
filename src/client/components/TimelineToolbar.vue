@@ -335,7 +335,7 @@ function yesterdayStr() {
   align-items: stretch;
 }
 
-.import-group :deep(.btn) {
+.import-group :deep(.app-button) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
