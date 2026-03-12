@@ -380,8 +380,10 @@ export async function importAll(db, options = {}) {
   mkdirSync(logDir, { recursive: true });
   const logFile = join(logDir, 'import.log');
   const log = (msg) => {
-    const line = `[${new Date().toISOString()}] ${msg}\n`;
-    appendFileSync(logFile, line);
+    try {
+      const line = `[${new Date().toISOString()}] ${msg}\n`;
+      appendFileSync(logFile, line);
+    } catch (_) { /* logging should not crash imports */ }
   };
 
   log(`Starting import: maxAgeDays=${maxAgeDays}, force=${force}`);
@@ -542,7 +544,9 @@ export async function importAll(db, options = {}) {
           insertMessages(db, agentFile.parentSessionId, agentMessages);
         }
 
-        updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'ok', null);
+        const firstAt = agentMessages[0]?.timestamp ?? null;
+        const lastAt = agentMessages.at(-1)?.timestamp ?? null;
+        updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'ok', null, firstAt, lastAt);
 
         if (verbose) {
           process.stderr.write(
