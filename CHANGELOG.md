@@ -4,13 +4,23 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.0] - 2026-03-07
+## [0.4.0] - 2026-03-12
 
 ### Added
 
+- **Incremental import with 2-day default window:** Import button now defaults to a 2-day rolling window (`maxAgeDays=2`), dramatically reducing import time for daily use. Split-button dropdown offers "Import Recent" (2 days) and "Full Import" (30 days).
+- **Agent file rolling window skip:** Agent files now use the same 3-tier skip logic (size, window, old-peek) as session files. Previously only had size-based skip, causing hundreds of agent files to be re-processed on every import.
+- **Import debug logging:** Configurable logging to `~/.cctimereporter/import.log` with timing, per-project skip breakdowns, and slow file warnings. Off by default, toggled via `npx cctimereporter --debug-import on|off`.
+- **Config system:** New `~/.cctimereporter/config.json` for application settings. Currently supports `importLog.enabled` and `importLog.clearOnStart`.
 - **Session editing (Phase 17):** Schema v6 migration adding `user_label` and `user_ticket` columns to sessions. New `PATCH /api/sessions/:id` endpoint for updating user-editable fields. Edit modal UI accessible from the detail panel. User edits persist across re-imports. Includes a copiable CLI command to resume the session in Claude Code.
 - **Expanded ticket detection pipeline (Phase 18):** Three new ticket detection sources: git commit messages (100pt base + 10/additional commit), MCP tool call inputs (100pt base + 10/additional call), and session summary/title text (25pt flat). Total detection sources now at 6.
 - **Messages modal improvements:** XML cleaning for user messages (task notifications, bash input/output, local command output, skill expansion tags stripped). Expandable message cards with fade gradient and Show more/less toggle replace scroll-within-scroll. Message count increased from 5+5 to 10+10.
+
+### Changed
+
+- **Progress overlay shows skip count:** Import progress now displays "(X skipped)" alongside the file counter.
+- **Agent import logs timestamps:** Successfully imported agent files now record `first_message_at` and `last_message_at` in the import log, enabling rolling window skip on subsequent imports.
+- **NaN guard on maxAgeDays:** Both GET and POST import routes validate the `maxAgeDays` parameter to prevent crashes from invalid input.
 
 ## [0.3.1] - 2026-03-05
 
