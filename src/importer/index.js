@@ -447,16 +447,31 @@ export async function importAll(db, options = {}) {
     const skippedCount = skippedSize + skippedWindow + skippedOld;
     filesSkipped += skippedCount;
 
-    log(`  ${project.projectPath}: ${files.length} files, ${toImport.length} to import, ${skippedCount} skipped (size=${skippedSize}, window=${skippedWindow}, old=${skippedOld}), ${agentToImport.length} agents`);
-
     // Discover agent files that need importing
     const agentFiles = findAgentFiles(project.transcriptDir);
     const agentToImport = [];
 
+    let agentsSkipped = 0;
     for (const agentFile of agentFiles) {
-      if (!force && importedInfo.get(agentFile.path)?.fileSize === agentFile.size) continue;
+      const cached = importedInfo.get(agentFile.path);
+      // Skip 1: size unchanged
+      if (!force && cached?.fileSize === agentFile.size) { agentsSkipped++; continue; }
+      // Skip 2: rolling window — cached lastMessageAt before cutoff
+      if (!force && cutoffDate && cached?.lastMessageAt && cached.lastMessageAt < cutoffDate) { agentsSkipped++; continue; }
+      // Skip 3: new file — peek first timestamp
+      if (!force && cutoffDate && !cached) {
+        const firstTs = peekFirstTimestamp(agentFile.path);
+        if (firstTs && firstTs < cutoffDate) {
+          updateImportLog(db, agentFile.path, agentFile.parentSessionId, agentFile.size, 'skipped_old', null, firstTs, firstTs);
+          agentsSkipped++;
+          continue;
+        }
+      }
       agentToImport.push(agentFile);
     }
+    filesSkipped += agentsSkipped;
+
+    log(`  ${project.projectPath}: ${files.length} files, ${toImport.length} to import, ${skippedCount} skipped (size=${skippedSize}, window=${skippedWindow}, old=${skippedOld}), agents: ${agentToImport.length} to import / ${agentsSkipped} skipped`);
 
     projectWork.push({ project, projectId, toImport, sessionIndex, agentToImport });
   }
