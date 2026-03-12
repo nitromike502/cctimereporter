@@ -28,6 +28,7 @@ export function readConfig() {
     const raw = readFileSync(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     return {
+      ...parsed,
       importLog: {
         ...DEFAULTS.importLog,
         ...parsed.importLog,

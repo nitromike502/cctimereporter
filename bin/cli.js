@@ -21,15 +21,28 @@ const { createServer } = await import('../src/server/index.js');
 const { spawn } = await import('node:child_process');
 const { readConfig, writeConfig } = await import('../src/utils/config.js');
 
-// Handle --debug-import flag: enable import logging and exit
-if (process.argv.includes('--debug-import')) {
+// Handle --debug-import flag: on/off or show current status
+const debugImportIdx = process.argv.indexOf('--debug-import');
+if (debugImportIdx !== -1) {
   const config = readConfig();
-  config.importLog.enabled = !config.importLog.enabled;
-  writeConfig(config);
-  process.stdout.write(`Import debug logging ${config.importLog.enabled ? 'enabled' : 'disabled'}.\n`);
-  process.stdout.write(`Config: ~/.cctimereporter/config.json\n`);
-  if (config.importLog.enabled) {
+  const arg = process.argv[debugImportIdx + 1];
+  if (arg === 'on') {
+    config.importLog.enabled = true;
+    writeConfig(config);
+    process.stdout.write(`Import debug logging enabled.\n`);
+    process.stdout.write(`Config: ~/.cctimereporter/config.json\n`);
     process.stdout.write(`Log file: ~/.cctimereporter/import.log\n`);
+  } else if (arg === 'off') {
+    config.importLog.enabled = false;
+    writeConfig(config);
+    process.stdout.write(`Import debug logging disabled.\n`);
+    process.stdout.write(`Config: ~/.cctimereporter/config.json\n`);
+  } else {
+    process.stdout.write(`Import debug logging is currently ${config.importLog.enabled ? 'enabled' : 'disabled'}.\n`);
+    process.stdout.write(`Config: ~/.cctimereporter/config.json\n`);
+    if (config.importLog.enabled) {
+      process.stdout.write(`Log file: ~/.cctimereporter/import.log\n`);
+    }
   }
   process.exit(0);
 }
