@@ -5,46 +5,7 @@
 - SHIPPED **v1.0 MVP** — Phases 1-6 (shipped 2026-03-01)
 - SHIPPED **v0.2.0 UX and Insights** — Phases 7-11 (shipped 2026-03-04)
 - SHIPPED **v0.3.0 Session Polish** — Phases 12-16 (shipped 2026-03-05)
-- **v0.4.0 Session Intelligence** — Phases 17-18 (in progress)
-
-## Current Milestone: v0.4.0 Session Intelligence
-
-**Goal:** Make sessions more identifiable and actionable — users can name sessions from the UI and get better automatic ticket detection.
-
-### Phase 17: Session Editing
-
-**Goal:** Users can edit session names and ticket IDs from the UI, and edits persist across re-imports
-**Depends on:** Phase 16
-**Requirements:** NAME-01, NAME-02, NAME-03, NAME-04, TICK-03
-**UX Decision:** Editing happens in a modal dialog (not inline) so we can show a notice that custom names are local to this app and do not persist back to Claude Code. The modal includes a copiable CLI command (`claude --session-id <id>`) for users who want to resume the session in Claude Code to rename it there.
-**Success Criteria** (what must be TRUE):
-  1. User can open an edit modal from the detail panel to set a custom session name and/or ticket ID
-  2. The modal displays a notice explaining that changes are local and do not persist to Claude Code
-  3. The modal shows a copiable CLI command to resume the session in Claude Code
-  4. After running a full re-import, all user-set session names and ticket overrides are still present (not overwritten)
-  5. A session with a user-set name shows that name on the Gantt bar and in the detail panel, regardless of ticket or branch data
-  6. User can clear a custom name or ticket to revert to the automatic fallback
-**Plans:** 2 plans
-
-Plans:
-- [x] 17-01-PLAN.md — Backend: schema migration v5->v6, upsert fix, PATCH API, timeline response update
-- [x] 17-02-PLAN.md — Frontend: edit modal, detail panel integration, display logic updates
-
-### Phase 18: Ticket Detection Pipeline
-
-**Goal:** Import automatically discovers tickets from additional sources in transcripts — git commits, session summaries, and MCP tool calls
-**Depends on:** Phase 17 (upsert protection pattern must be in place before adding import complexity)
-**Requirements:** TICK-01, TICK-02, TICK-05
-**Success Criteria** (what must be TRUE):
-  1. After re-import, sessions that only have ticket references in git commit messages (not in branch name or slash commands) show the correct ticket as primary
-  2. After re-import, sessions that only have ticket references in their summary/title text show the correct ticket as primary
-  3. After re-import, sessions containing MCP tool calls to Atlassian/Linear/GitHub that reference tickets show those tickets in scoring
-  4. New detection sources do not produce false positives for common patterns already in the denylist (e.g., UTF-8, OPUS-4)
-**Plans:** 2 plans
-
-Plans:
-- [x] 18-01-PLAN.md — Git commit and MCP tool call detection and scoring (message-level sources)
-- [x] 18-02-PLAN.md — Session summary/title detection and scoring (session-level source)
+- SHIPPED **v0.4.0 Session Intelligence** — Phases 17-18 (shipped 2026-03-08)
 
 ---
 
@@ -88,6 +49,16 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 
 </details>
 
+<details>
+<summary>v0.4.0 Session Intelligence (Phases 17-18) — SHIPPED 2026-03-08</summary>
+
+- [x] Phase 17: Session Editing (2/2 plans) — completed 2026-03-07
+- [x] Phase 18: Ticket Detection Pipeline (2/2 plans) — completed 2026-03-07
+
+See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -110,3 +81,4 @@ See: `.planning/milestones/v0.2.0-ROADMAP.md` for full details.
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
+

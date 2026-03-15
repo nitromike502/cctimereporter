@@ -1,5 +1,56 @@
 # Project Milestones: CC Time Reporter
 
+## v0.4.0 Session Intelligence (Shipped: 2026-03-08)
+
+**Delivered:** Users can name sessions and override tickets from the UI with edits surviving re-imports, plus expanded ticket detection from git commits, MCP tool calls, and session summaries.
+
+**Phases completed:** 17-18 (4 plans total)
+
+**Key accomplishments:**
+
+- Schema v6 migration with user_label/user_ticket columns protected from import clobber via ON CONFLICT DO UPDATE
+- PATCH /api/sessions/:id endpoint for editing session names and tickets
+- Edit modal with persistence notice and copiable CLI resume command
+- Three new ticket detection sources: git commit messages (100pt), MCP tool calls (100pt), session summary/title (25pt flat)
+- Total ticket scoring now covers 6 sources across slash commands, branches, content, commits, MCP, and summaries
+- Messages modal improvements: XML cleaning, expandable cards, 10+10 message display
+
+**Stats:**
+
+- 49 files created/modified
+- 6,637 lines of JS/Vue/CSS (total codebase)
+- 2 phases, 4 plans
+- 3 days (2026-03-06 → 2026-03-08)
+
+**Git range:** `feat(17-01)` → `v0.4.0`
+
+**What's next:** Session splitting at /clear boundaries, storing text messages in DB
+
+---
+
+## v0.3.0 Session Polish (Shipped: 2026-03-05)
+
+**Delivered:** Tour enhancements, slash command XML parsing, session message modal, session naming from Claude Code, and SSE import progress indicator.
+
+**Phases completed:** 12-16 (6 plans total)
+
+**Key accomplishments:**
+
+- Tour steps for project filter checkboxes and day summary panel
+- Slash command XML parser for readable summaries
+- Session messages modal showing first/last messages from transcripts
+- Custom session titles from Claude Code's sessions-index.json
+- Two-pass import with SSE streaming progress bar
+
+**Stats:**
+
+- 5 phases, 6 plans
+- 2 days (2026-03-04 → 2026-03-05)
+
+**Git range:** `feat(12-01)` → `v0.3.1`
+
+---
+
 ## v0.2.0 UX and Insights (Shipped: 2026-03-04)
 
 **Delivered:** Rich session context, day summary breakdowns, onboarding experience, theming, and data quality fixes make the timeline immediately useful for daily time reporting.

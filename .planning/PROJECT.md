@@ -40,15 +40,16 @@ A user can run one command and immediately see a clear visual timeline of their 
 - ✓ Ticket false positive filtering (denylist, score threshold, word boundaries) — v0.2.0
 - ✓ Worktree subagent detection and filtering — v0.2.0
 
+- ✓ Session editing from UI with edit modal (custom names and ticket overrides persist across re-imports) — v0.4.0
+- ✓ Ticket detection from git commit messages (100pt base + 10/additional) — v0.4.0
+- ✓ Ticket detection from MCP tool calls (100pt base + 10/additional) — v0.4.0
+- ✓ Ticket detection from session summary/title (25pt flat) — v0.4.0
+- ✓ Messages modal XML cleaning (task-notification, bash, local-command, skill expansion tags) — v0.4.0
+- ✓ Expandable message cards with DOM overflow detection — v0.4.0
+
 ### Active
 
-**Current Milestone: v0.4.0 — Session Intelligence**
-
-**Goal:** Make sessions more identifiable and actionable — users can name sessions from the UI and get better automatic ticket detection.
-
-**Target features:**
-- Session naming via app UI (set/edit custom session names)
-- Improved ticket auto-discovery (additional detection methods beyond current slash commands, branch patterns, and content mentions)
+No active milestone. Next milestone not yet planned.
 
 ### Out of Scope
 
@@ -61,17 +62,18 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ## Context
 
-**Shipped v0.2.0** with 5,127 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+**Shipped v0.4.0** with 6,637 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
 Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, driver.js, Vite 7.
-Database: SQLite with WAL mode, schema v5, auto-migration.
+Database: SQLite with WAL mode, schema v6, auto-migration (v1→v6).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
 
-**Known tech debt (v0.2.0):**
+**Known tech debt (v0.4.0):**
 - GET /api/projects route registered but unused by frontend
 - AppTooltip and AppBadge components exist in library but are not used in production UI
 - SessionDetailPanel has dead `.detail-placeholder` CSS class
 - Subagent working time not attributed to parent session
+- tool_use_count on sessions: computed at import, never queried or displayed
 
 **Deferred features (candidates for future milestones):**
 - Fork visualization as sub-rows
@@ -81,6 +83,9 @@ Database: SQLite with WAL mode, schema v5, auto-migration.
 - Static HTML export
 - UI for reviewing/correcting ticket assignments via bulk DB updates
 - Subagent working time attribution to parent session
+- **Session splitting at context boundaries** — treat `/clear` and `/rename` as segment boundaries within a session. Each segment gets independent ticket scoring, branch detection, and working time. Solves: long-running sessions that span multiple tickets/branches attribute all time to one ticket. Each segment becomes its own Gantt bar (e.g., session-id, session-id:1, session-id:2). Requires schema change to track parent session + segment index. Note: `/rename` writes a `custom-title` entry in the JSONL — a name change likely signals a context switch just like `/clear`.
+- **Store all text messages in DB** — capture full user/assistant message text (excluding tool_use/tool_result payloads) in the messages table. Enables richer search, per-segment ticket scoring, and message preview without re-reading JSONL files from disk. Size impact should be manageable if internal/tool messages are excluded.
+- **Claude Code /rename tracking** — investigate how repeated /rename commands affect sessions-index.json and whether re-import overwrites user_label set via the edit modal. Ensure rename history or latest-wins behavior is well-defined.
 
 ## Constraints
 
@@ -114,6 +119,10 @@ Database: SQLite with WAL mode, schema v5, auto-migration.
 | Worktree path pattern detection | Filters -tmp- and .claude/worktrees/ subagents | ✓ Good |
 | Query-time worktree grouping | Group worktree sessions under parent project at display time, not import time | ✓ Good — keeps raw data clean |
 | Import raw, derive at query time | User preference: minimize import-time transformations | ✓ Good — philosophy for future changes |
+| user_label separate from custom_title | Import-managed vs user-managed columns prevents clobber | ✓ Good — clean separation |
+| ON CONFLICT DO UPDATE omits user fields | Simpler than COALESCE, same effect for protecting edits | ✓ Good |
+| 6-source ticket scoring system | Comprehensive detection across slash commands, branches, content, commits, MCP, summaries | ✓ Good — covers all sources |
+| Summary/title scoring at 25pt flat | Low weight since generated text, not user-authored | ✓ Good |
 
 ---
-*Last updated: 2026-03-07 after v0.4.0 milestone start*
+*Last updated: 2026-03-08 after v0.4.0 milestone completion*
