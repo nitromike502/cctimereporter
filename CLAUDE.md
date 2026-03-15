@@ -55,7 +55,8 @@ src/server/routes/projects.js  GET /api/projects — project list
 src/server/routes/import.js    POST /api/import + GET /api/import/progress (SSE streaming)
 src/server/routes/messages.js  GET /api/sessions/:id/messages — session message preview
 src/server/routes/sessions.js  PATCH /api/sessions/:id — user-editable session fields
-src/utils/parse-command-xml.js Slash command XML tag parser
+src/utils/parse-command-xml.js Slash command and XML tag parser (commands, task notifications, bash, skill tags)
+src/utils/config.js            Application config (~/.cctimereporter/config.json)
 src/client/                    Vue 3 frontend
   main.js                      App entry: tokens.css, router, createApp
   router/index.js              Routes: /timeline (main), /components (preview), / (redirect)
@@ -71,8 +72,8 @@ src/client/                    Vue 3 frontend
 |--------|------|-------------|
 | GET | `/api/timeline?date=YYYY-MM-DD` | Sessions grouped by project, with idle gaps and working time |
 | GET | `/api/projects` | List of all known projects |
-| POST | `/api/import` | Trigger full import, return JSON result (409 if already running) |
-| GET | `/api/import/progress` | Trigger import with SSE progress streaming (409 if already running) |
+| POST | `/api/import?maxAgeDays=N` | Trigger import (default 2-day window, 409 if already running) |
+| GET | `/api/import/progress?maxAgeDays=N` | Trigger import with SSE progress streaming (409 if already running) |
 | GET | `/api/sessions/:id/messages` | First messages of a session (up to 10, stops at first tool_use) |
 | PATCH | `/api/sessions/:id` | Update user-editable fields (user_label, user_ticket) |
 
@@ -127,6 +128,8 @@ Custom component library with design tokens in `tokens.css`. All components live
 - `DEFAULT_PORT`: 3847 (in `bin/cli.js`)
 - `CLAUDE_PROJECTS_DIR`: `~/.claude/projects` (in `src/importer/discovery.js`)
 - Database path: `~/.cctimereporter/data.db` (in `src/db/index.js`)
+- Config path: `~/.cctimereporter/config.json` (in `src/utils/config.js`)
+- Import log path: `~/.cctimereporter/import.log` (when debug logging enabled)
 
 ## Dependencies
 

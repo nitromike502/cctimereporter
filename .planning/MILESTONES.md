@@ -1,5 +1,23 @@
 # Project Milestones: CC Time Reporter
 
+## v0.5.0 Import Performance (Shipped: 2026-03-12)
+
+**Delivered:** Incremental import with 2-day default window and configurable debug logging — dramatically faster daily imports.
+
+**Phases completed:** Ad-hoc (no GSD phases — done outside planning system)
+
+**Key accomplishments:**
+
+- Incremental import with 2-day rolling window default (split-button: "Import Recent" vs "Full Import")
+- Agent files now use same 3-tier skip logic as session files
+- Config-driven import debug logging to `~/.cctimereporter/import.log`
+- New `~/.cctimereporter/config.json` for application settings
+- `npx cctimereporter --debug-import on|off` CLI flag
+
+**Git range:** `v0.4.0` → `v0.5.0` (4 commits)
+
+---
+
 ## v0.4.0 Session Intelligence (Shipped: 2026-03-08)
 
 **Delivered:** Users can name sessions and override tickets from the UI with edits surviving re-imports, plus expanded ticket detection from git commits, MCP tool calls, and session summaries.

@@ -62,9 +62,10 @@ No active milestone. Next milestone not yet planned.
 
 ## Context
 
-**Shipped v0.4.0** with 6,637 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+**Shipped v0.5.0** with ~6,900 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
 Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, driver.js, Vite 7.
 Database: SQLite with WAL mode, schema v6, auto-migration (v1→v6).
+Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
 
@@ -125,4 +126,4 @@ Database: SQLite with WAL mode, schema v6, auto-migration (v1→v6).
 | Summary/title scoring at 25pt flat | Low weight since generated text, not user-authored | ✓ Good |
 
 ---
-*Last updated: 2026-03-08 after v0.4.0 milestone completion*
+*Last updated: 2026-03-14 after v0.5.0 (includes v0.4.0 milestone + ad-hoc incremental import/debug logging)*

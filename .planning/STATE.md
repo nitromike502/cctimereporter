@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Phase: 18 of 18 (all complete)
 Plan: N/A
-Status: Between milestones — v0.4.0 shipped
-Last activity: 2026-03-08 — v0.4.0 milestone archived
+Status: Between milestones — v0.5.0 shipped (v0.4.0 + incremental import + debug logging)
+Last activity: 2026-03-12 — v0.5.0 released from other machine
 
 Progress: [████████████████████] 100% All milestones complete
 Overall:  Ready for next milestone
@@ -36,6 +36,7 @@ All decisions logged in PROJECT.md Key Decisions table.
 - v0.2.0 shipped 2026-03-04 (Phases 7-11)
 - v0.3.0 shipped 2026-03-05 (Phases 12-16)
 - v0.4.0 shipped 2026-03-08 (Phases 17-18)
+- v0.5.0 shipped 2026-03-12 (incremental import, debug logging — no GSD phases, done ad-hoc from other machine)
 
 ### Pending Todos
 

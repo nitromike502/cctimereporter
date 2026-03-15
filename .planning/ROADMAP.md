@@ -6,6 +6,7 @@
 - SHIPPED **v0.2.0 UX and Insights** — Phases 7-11 (shipped 2026-03-04)
 - SHIPPED **v0.3.0 Session Polish** — Phases 12-16 (shipped 2026-03-05)
 - SHIPPED **v0.4.0 Session Intelligence** — Phases 17-18 (shipped 2026-03-08)
+- SHIPPED **v0.5.0 Import Performance** — Ad-hoc (shipped 2026-03-12, no GSD phases)
 
 ---
 
