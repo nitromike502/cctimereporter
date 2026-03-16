@@ -2,20 +2,20 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-08)
+See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** Planning next milestone
+**Current focus:** v0.6.0 Session Splitting — defining requirements
 
 ## Current Position
 
-Phase: 18 of 18 (all complete)
-Plan: N/A
-Status: Between milestones — v0.5.0 shipped (v0.4.0 + incremental import + debug logging)
-Last activity: 2026-03-12 — v0.5.0 released from other machine
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-15 — Milestone v0.6.0 started
 
-Progress: [████████████████████] 100% All milestones complete
-Overall:  Ready for next milestone
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% Defining requirements
+Overall:  Requirements → Roadmap → Execute
 
 ## Performance Metrics
 
@@ -48,6 +48,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: v0.4.0 milestone completed and archived
+Last session: 2026-03-15
+Stopped at: Milestone v0.6.0 questioning complete, proceeding to research/requirements
 Resume file: None

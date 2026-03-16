@@ -49,7 +49,20 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-No active milestone. Next milestone not yet planned.
+**Current Milestone: v0.6.0 Session Splitting**
+
+**Goal:** Split long-running sessions at `/clear` and `/rename` context boundaries so each segment gets independent ticket scoring, working time, and its own Gantt bar.
+
+- [ ] `command` column on messages table to tag slash commands at import time
+- [ ] Segment boundary detection at query time from command markers + configurable threshold
+- [ ] `/clear` always creates a split boundary
+- [ ] `/rename` creates a split only when mid-segment (not near start or upcoming `/clear`)
+- [ ] Configurable coalescing threshold (default 3 user messages) via CLI arg `--segment-threshold`
+- [ ] Segments displayed as separate Gantt bars in the same project row (session-id:N suffix)
+- [ ] Each segment gets independent ticket scoring, branch detection, and working time
+- [ ] Segment detail panel shows segment-specific messages, ticket, branch, and time
+- [ ] Day summary breakdowns use per-segment working time (not parent session totals)
+- [ ] Sessions without boundaries remain unchanged (no segment concept)
 
 ### Out of Scope
 
@@ -84,9 +97,9 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 - Static HTML export
 - UI for reviewing/correcting ticket assignments via bulk DB updates
 - Subagent working time attribution to parent session
-- **Session splitting at context boundaries** — treat `/clear` and `/rename` as segment boundaries within a session. Each segment gets independent ticket scoring, branch detection, and working time. Solves: long-running sessions that span multiple tickets/branches attribute all time to one ticket. Each segment becomes its own Gantt bar (e.g., session-id, session-id:1, session-id:2). Requires schema change to track parent session + segment index. Note: `/rename` writes a `custom-title` entry in the JSONL — a name change likely signals a context switch just like `/clear`.
 - **Store all text messages in DB** — capture full user/assistant message text (excluding tool_use/tool_result payloads) in the messages table. Enables richer search, per-segment ticket scoring, and message preview without re-reading JSONL files from disk. Size impact should be manageable if internal/tool messages are excluded.
 - **Claude Code /rename tracking** — investigate how repeated /rename commands affect sessions-index.json and whether re-import overwrites user_label set via the edit modal. Ensure rename history or latest-wins behavior is well-defined.
+- **Segment threshold UI config** — add UI control for the segment coalescing threshold (currently CLI-only `--segment-threshold`)
 
 ## Constraints
 
@@ -124,6 +137,10 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | ON CONFLICT DO UPDATE omits user fields | Simpler than COALESCE, same effect for protecting edits | ✓ Good |
 | 6-source ticket scoring system | Comprehensive detection across slash commands, branches, content, commits, MCP, summaries | ✓ Good — covers all sources |
 | Summary/title scoring at 25pt flat | Low weight since generated text, not user-authored | ✓ Good |
+| Command column on messages (not boolean flags) | General-purpose slash command tracking, extensible for future features | — Pending |
+| Query-time segment derivation (not import-time) | Markers stored at import, segments computed at query time. Change threshold without re-import | — Pending |
+| Segments replace parent session (not coexist) | Split sessions become N independent sessions. Parent is just a DB grouping concept | — Pending |
+| /rename splits only mid-segment | Near start = labeling, near /clear = labeling. Configurable threshold (3 user messages) | — Pending |
 
 ---
-*Last updated: 2026-03-14 after v0.5.0 (includes v0.4.0 milestone + ad-hoc incremental import/debug logging)*
+*Last updated: 2026-03-15 after v0.6.0 milestone start*
