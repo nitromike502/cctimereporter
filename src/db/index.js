@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3, MIGRATION_V3_TO_V4, MIGRATION_V4_TO_V5, MIGRATION_V5_TO_V6 } from './schema.js';
+import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3, MIGRATION_V3_TO_V4, MIGRATION_V4_TO_V5, MIGRATION_V5_TO_V6, MIGRATION_V6_TO_V7 } from './schema.js';
 
 export const DB_DIR = join(homedir(), '.cctimereporter');
 export const DB_PATH = join(DB_DIR, 'data.db');
@@ -67,6 +67,10 @@ function migrateV5toV6(db) {
   runMigration(db, MIGRATION_V5_TO_V6);
 }
 
+function migrateV6toV7(db) {
+  runMigration(db, MIGRATION_V6_TO_V7);
+}
+
 /**
  * Opens the database, creating it if it doesn't exist.
  * Handles schema version mismatches:
@@ -90,34 +94,43 @@ export function openDatabase() {
     const existingVersion = row.user_version;
 
     if (existingVersion === 1) {
-      // Auto-migrate v1 → v2 → v3 → v4 → v5 → v6.
+      // Auto-migrate v1 → v2 → v3 → v4 → v5 → v6 → v7.
       migrateV1toV2(db);
       migrateV2toV3(db);
       migrateV3toV4(db);
       migrateV4toV5(db);
       migrateV5toV6(db);
+      migrateV6toV7(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion === 2) {
-      // Auto-migrate v2 → v3 → v4 → v5 → v6.
+      // Auto-migrate v2 → v3 → v4 → v5 → v6 → v7.
       migrateV2toV3(db);
       migrateV3toV4(db);
       migrateV4toV5(db);
       migrateV5toV6(db);
+      migrateV6toV7(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion === 3) {
-      // Auto-migrate v3 → v4 → v5 → v6.
+      // Auto-migrate v3 → v4 → v5 → v6 → v7.
       migrateV3toV4(db);
       migrateV4toV5(db);
       migrateV5toV6(db);
+      migrateV6toV7(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion === 4) {
-      // Auto-migrate v4 → v5 → v6.
+      // Auto-migrate v4 → v5 → v6 → v7.
       migrateV4toV5(db);
       migrateV5toV6(db);
+      migrateV6toV7(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion === 5) {
-      // Auto-migrate v5 → v6.
+      // Auto-migrate v5 → v6 → v7.
       migrateV5toV6(db);
+      migrateV6toV7(db);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+    } else if (existingVersion === 6) {
+      // Auto-migrate v6 → v7.
+      migrateV6toV7(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     } else if (existingVersion !== 0 && existingVersion !== SCHEMA_VERSION) {
       // Unknown version — drop and recreate.
