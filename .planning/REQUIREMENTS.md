@@ -75,28 +75,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHM-01 | TBD | Pending |
-| SCHM-02 | TBD | Pending |
-| SCHM-03 | TBD | Pending |
-| SEGM-01 | TBD | Pending |
-| SEGM-02 | TBD | Pending |
-| SEGM-03 | TBD | Pending |
-| SEGM-04 | TBD | Pending |
-| SEGM-05 | TBD | Pending |
-| GANT-01 | TBD | Pending |
-| GANT-02 | TBD | Pending |
-| GANT-03 | TBD | Pending |
-| DETL-01 | TBD | Pending |
-| DETL-02 | TBD | Pending |
-| SUMM-01 | TBD | Pending |
-| MSGS-01 | TBD | Pending |
-| NOTF-01 | TBD | Pending |
+| SCHM-01 | Phase 19 | Pending |
+| SCHM-02 | Phase 19 | Pending |
+| SCHM-03 | Phase 19 | Pending |
+| SEGM-01 | Phase 20 | Pending |
+| SEGM-02 | Phase 20 | Pending |
+| SEGM-03 | Phase 20 | Pending |
+| SEGM-04 | Phase 20 | Pending |
+| SEGM-05 | Phase 20 | Pending |
+| GANT-01 | Phase 21 | Pending |
+| GANT-02 | Phase 21 | Pending |
+| GANT-03 | Phase 21 | Pending |
+| DETL-01 | Phase 22 | Pending |
+| DETL-02 | Phase 22 | Pending |
+| SUMM-01 | Phase 22 | Pending |
+| MSGS-01 | Phase 22 | Pending |
+| NOTF-01 | Phase 22 | Pending |
 
 **Coverage:**
 - v0.6.0 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 (pending roadmap creation)
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-17 after roadmap creation*
