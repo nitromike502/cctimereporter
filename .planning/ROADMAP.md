@@ -78,7 +78,7 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
   5. API contract for segment-aware timeline response is defined and documented (response shape, segment fields, ID format)
 
 Plans:
-- [ ] 19-01: Schema migration v6→v7, JSONL parser command detection, and API contract definition
+- [x] 19-01: Schema migration v6→v7, JSONL parser command detection, and API contract definition
 
 #### Phase 20: Segment Derivation (backend)
 
@@ -151,7 +151,7 @@ Plans:
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
-| 19. Schema and Import | v0.6.0 | 0/1 | Not started | - |
+| 19. Schema and Import | v0.6.0 | 1/1 | Complete | 2026-03-17 |
 | 20. Segment Derivation | v0.6.0 | 0/TBD | Not started | - |
 | 21. Gantt Segments | v0.6.0 | 0/TBD | Not started | - |
 | 22. Detail, Summary, and Notifications | v0.6.0 | 0/TBD | Not started | - |

@@ -75,9 +75,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHM-01 | Phase 19 | Pending |
-| SCHM-02 | Phase 19 | Pending |
-| SCHM-03 | Phase 19 | Pending |
+| SCHM-01 | Phase 19 | Complete |
+| SCHM-02 | Phase 19 | Complete |
+| SCHM-03 | Phase 19 | Complete |
 | SEGM-01 | Phase 20 | Pending |
 | SEGM-02 | Phase 20 | Pending |
 | SEGM-03 | Phase 20 | Pending |
