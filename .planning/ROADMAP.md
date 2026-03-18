@@ -65,9 +65,9 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
 
 **Milestone Goal:** Sessions containing `/clear` commands are split into segments, each displayed as a separate Gantt bar with independent ticket, branch, and working time. Users see a clear picture of context switches within a working day.
 
-#### Phase 19: Schema and Import
+#### Phase 19: Schema, Import, and API Contract
 
-**Goal**: The database records slash commands found in session messages, and existing data migrates automatically.
+**Goal**: The database records slash commands found in session messages, existing data migrates automatically, and the segment-aware API response shape is defined so backend and frontend work can proceed in parallel.
 **Depends on**: Phase 18 (v0.6.0 starting point)
 **Requirements**: SCHM-01, SCHM-02, SCHM-03
 **Success Criteria** (what must be TRUE):
@@ -75,15 +75,16 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
   2. The importer populates `command = 'clear'` for messages that contain a `/clear` user turn
   3. Other slash commands (e.g. `/rename`) are also stored in `command` when present in a user message
   4. Sessions imported before the upgrade have `command = NULL` on all messages until re-imported
-**Plans**: TBD
+  5. API contract for segment-aware timeline response is defined and documented (response shape, segment fields, ID format)
 
 Plans:
-- [ ] 19-01: Schema migration v6→v7 and JSONL parser command detection
+- [ ] 19-01: Schema migration v6→v7, JSONL parser command detection, and API contract definition
 
-#### Phase 20: Segment Derivation
+#### Phase 20: Segment Derivation (backend)
 
 **Goal**: The timeline API returns segment-aware session data — sessions with `/clear` boundaries produce multiple independent segments, each with their own ticket, branch, and working time.
 **Depends on**: Phase 19
+**Parallel with**: Phases 21, 22 (frontend phases code against API contract)
 **Requirements**: SEGM-01, SEGM-02, SEGM-03, SEGM-04, SEGM-05
 **Success Criteria** (what must be TRUE):
   1. A session with two `/clear` commands returns three segments from the timeline API
@@ -91,31 +92,31 @@ Plans:
   3. Each segment's working time excludes the `/clear` message itself and idle gaps spanning /clear boundaries
   4. A session with no `/clear` messages returns as a single entry, identical to pre-v0.6.0 behavior
   5. Segment IDs use `session-id:N` format and existing PATCH/messages endpoints resolve them correctly
-**Plans**: TBD
 
 Plans:
 - [ ] 20-01: Timeline route segment derivation with independent scoring and working time
 - [ ] 20-02: Endpoint ID resolution for segment IDs (PATCH, messages routes)
 
-#### Phase 21: Gantt Segments
+#### Phase 21: Gantt Segments (frontend)
 
 **Goal**: Segments from the same session appear as distinct Gantt bars in the correct project row, with a visual indicator that they belong to the same parent session.
-**Depends on**: Phase 20
+**Depends on**: Phase 19 (API contract)
+**Parallel with**: Phases 20, 22
 **Requirements**: GANT-01, GANT-02, GANT-03
 **Success Criteria** (what must be TRUE):
   1. A session with three segments renders three separate Gantt bars rather than one
   2. Each bar is labeled with the `session-id:N` suffix so segments are individually identifiable
   3. Bars from the same parent session have a shared visual grouping cue (e.g. connecting line, shared color band, or bracket)
   4. Segments from different sessions do not share grouping cues
-**Plans**: TBD
 
 Plans:
 - [ ] 21-01: GanttBar and GanttRow segment rendering with grouping cue
 
-#### Phase 22: Detail, Summary, and Notifications
+#### Phase 22: Detail, Summary, and Notifications (frontend)
 
 **Goal**: Clicking a segment bar shows that segment's specific data in the detail panel; day summary totals reflect per-segment working time; the messages modal labels context switches; and a one-time notification tells the user to re-import after upgrade.
-**Depends on**: Phase 21
+**Depends on**: Phase 19 (API contract)
+**Parallel with**: Phases 20, 21
 **Requirements**: DETL-01, DETL-02, SUMM-01, MSGS-01, NOTF-01
 **Success Criteria** (what must be TRUE):
   1. Clicking segment 2 of 3 shows that segment's ticket, branch, working time, and messages — not the full session's data
@@ -123,7 +124,6 @@ Plans:
   3. The day summary working time matches the sum of all segment working times for that day
   4. The messages modal shows `/clear` entries labeled "context switch" at the point they occurred
   5. On first load after schema migration, a notification informs the user that re-import is needed to see segments
-**Plans**: TBD
 
 Plans:
 - [ ] 22-01: Detail panel segment view and day summary totals
