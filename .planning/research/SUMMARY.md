@@ -1,160 +1,183 @@
 # Project Research Summary
 
-**Project:** CC Time Reporter v0.4.0 — Session Intelligence
-**Domain:** Developer tool enhancement (CLI + Web UI, existing codebase)
-**Researched:** 2026-03-07
+**Project:** cctimereporter v0.6.0 — Session Splitting at /clear Boundaries
+**Domain:** Developer time-tracking CLI — segmented Gantt timeline
+**Researched:** 2026-03-15
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The v0.4.0 "Session Intelligence" release adds two features to CC Time Reporter: user-editable session names and improved ticket auto-discovery. The critical finding across all research is that zero new dependencies are needed. Reka UI Editable (already installed) handles inline editing, Fastify natively supports PATCH routes, and ticket detection improvements are purely algorithmic regex work on structured data. The `custom_title` column already exists on the sessions table. This is a wiring and refinement release, not a greenfield build.
+Session splitting adds virtual sub-units called segments derived from `/clear` command markers stored in the messages table. Each segment becomes its own Gantt bar with independent working time, ticket scoring, and branch detection — while unsplit sessions behave exactly as they do today. The scope is deliberately narrow: `/clear` is the only split signal. The `/rename` command is NOT a split boundary. Claude Code resets the session name on `/clear` as of 2026-03-15, making rename-based splitting and coalescing logic unnecessary. Any FEATURES.md or PITFALLS.md references to /rename splitting rules, configurable coalescing thresholds, or rename-proximity logic are superseded by this scope decision.
 
-The recommended approach is backend-first: fix the database upsert layer before touching UI. The current `INSERT OR REPLACE` pattern in `upsertSession()` will silently destroy any user-editable data on re-import, making it the single most important issue to solve first. A new `user_label` column (separate from the import-managed `custom_title`) with `INSERT ... ON CONFLICT DO UPDATE` preserving user fields is the correct pattern. This same pattern extends to user ticket overrides later. The FEATURES research independently arrived at the same conclusion as PITFALLS: do not reuse `custom_title` for user edits.
+The implementation strategy is strictly query-time derivation. No new tables are added to the database; no segment data is persisted. A `command` column added to the messages table at schema v7 captures slash command names during import, and the timeline route uses those markers to slice each session's ordered messages into segments at request time. This is consistent with the existing "import raw data, derive at query time" philosophy already used for worktree grouping and working time computation. Zero new dependencies are required.
 
-The primary risk is data loss through import clobbering user edits. Secondary risk is false positives from new ticket detection sources overwhelming the scoring system. Both are well-understood with clear prevention strategies. Ticket detection scoring weights need empirical tuning against real transcripts, which introduces some uncertainty but is bounded work.
+The critical risks are all known and manageable. The biggest is that synthetic segment IDs (`session_id:N`) break any code path that passes an ID directly to the database without stripping the `:N` suffix. Every API endpoint consumer that deals in segment IDs must resolve the real session UUID before any DB lookup. The second risk is ticket scoring: the session-level ticket stored at import time reflects the whole session, not each post-/clear context. Ticket scoring must be re-run per segment at query time over each segment's message slice. Both risks have clear, validated prevention strategies.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies. Everything builds on the existing installed stack.
+Zero new dependencies. The stack is unchanged from v0.5.0.
 
-**Core technologies (all already present):**
-- **Reka UI Editable**: inline text editing -- headless component with blur-save, keyboard handling, and v-model binding; verified in `node_modules/reka-ui/dist/Editable/EditableRoot.js`
-- **Fastify PATCH route**: first write endpoint -- native support via `fastify.patch()`, no plugins needed
-- **node:sqlite ON CONFLICT**: upsert with field preservation -- replaces destructive INSERT OR REPLACE pattern
+**Core technologies (unchanged, all already present):**
+- **node:sqlite schema migration** (v6 to v7): adds `command TEXT` column with composite index on `(session_id, command)` — routine ALTER TABLE pattern used five times in this codebase already
+- **Standard JavaScript iteration**: segment derivation is a simple ordered-list scan in the timeline route — no SQL window functions, CTEs, or additional libraries needed
+- **Existing utility functions**: `scoreTickets()`, `determineWorkingBranch()`, and `computeWorkingTime()` are reused over message slices per segment without modification
 
-See `.planning/research/STACK.md` for full rationale.
+See `.planning/research/ARCHITECTURE.md` for the exact SQL and JavaScript patterns.
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Inline edit session name in detail panel (click to edit, blur/Enter saves, Escape cancels)
-- User-set names persist across re-imports (separate `user_label` column, never touched by import)
-- PATCH endpoint for session updates (first write endpoint in the app)
-- Git commit message scanning for ticket detection (highest-impact new source, ~50pts)
-- Summary text scanning for tickets (data already in DB, easy win, ~25pts)
+- `command` column on messages table (schema v7) — foundation for all query-time splitting
+- Segment boundary detection (`deriveSegments()`) — JavaScript function over ordered message rows; `/clear` is the only boundary signal
+- Per-segment ticket scoring — `scoreTickets()` re-run over each segment's message slice at query time
+- Per-segment branch detection — `determineWorkingBranch()` over segment messages
+- Per-segment working time — `computeWorkingTime()` over segment timestamps; DaySummary aggregation unchanged
+- Segment Gantt bars — segments returned as session-shaped objects with `sessionId: "uuid:N"`; GanttSwimlane and DaySummary need no changes if shape is correct
+- Per-segment first prompt — `segmentFirstPrompt` computed from first user message in the segment's slice (prevents all segments showing the session's global `first_prompt` as their title)
+- Sessions without /clear unchanged — gated by boundary detection returning a single segment; zero regressions
 
-**Should have (competitive):**
-- User ticket override (manually set/correct primary ticket)
-- Multi-ticket display (show all detected tickets, not just primary)
-- Ticket link URL template (configurable Jira/Linear/GitHub URL pattern)
-- Label source indicator (show "user-set" vs "from Claude" vs "auto-detected")
+**Should have (differentiators):**
+- Segment indicator in detail panel — "segment N of M" shown in SessionDetailPanel when `segmentTotal > 1`; high orientation value, low effort
+- `/clear` shown in messages modal — `command` column makes this low-effort context for users
 
-**Defer (v2+):**
-- Inline edit on Gantt bar (narrow bars make this impractical)
-- Bulk rename sessions
-- Auto-suggest names from AI summary
-- External API integration with ticket systems
+**Defer to post-v0.6.0:**
+- Per-segment user_label / user_ticket editing — requires a new `session_segments` table or a clear storage strategy; full complexity, separate milestone
+- Visual split indicator on Gantt bar — adds GanttBar rendering complexity; do after core splitting works
+- Segment threshold UI control — query param is sufficient for v0.6.0; UI config can follow
 
-See `.planning/research/FEATURES.md` for full feature matrix.
+**Deliberate anti-features (do not build):**
+- `/rename` as a split signal — explicitly out of scope as of 2026-03-15
+- Persisting segments to the database — defeats the purpose of query-time derivation
+- Splitting in the import pipeline — couples boundary rules to import; rule changes would require re-import
+- Retroactive in-place migration of command column — let incremental import handle it naturally
+
+See `.planning/research/FEATURES.md` for the full feature matrix and dependency tree.
 
 ### Architecture Approach
 
-Two independent feature tracks that share a common foundation: the database migration and upsert protection layer. Session naming introduces the app's first write-back capability (UI to API to SQLite), establishing patterns for all future user edits. Ticket detection improvements extend the existing import pipeline with new scoring sources. Both tracks modify 5-6 existing files and add 1 new route file (`src/server/routes/sessions.js`).
+The data flow is a clean three-layer pipeline: import layer detects `/clear` and writes `command = 'clear'` to the messages table; the timeline route fetches ordered messages including the `command` column and runs `deriveSegments()` in JavaScript; each segment is expanded into a session-shaped response object. The frontend receives session-shaped objects regardless of whether they are real sessions or segments — only four components need modification, all to handle the `:N` suffix in the synthetic segment ID.
 
-**Major components:**
-1. **DB migration** -- adds `user_label` column, changes upsert to ON CONFLICT with COALESCE preservation of user fields
-2. **Sessions PATCH route** -- new `src/server/routes/sessions.js` with input validation, 404 handling, and return-updated-state pattern
-3. **Reka UI Editable integration** -- replaces static name display in SessionDetailPanel with inline editing
-4. **Ticket scoring pipeline extensions** -- new sources (commit messages at ~50pts, summary at ~25pts) fed into existing scoring system
+**Components and change type:**
 
-See `.planning/research/ARCHITECTURE.md` for data flow diagrams and file-level change map.
+| Component | Status | Change |
+|-----------|--------|--------|
+| `src/db/schema.js` | MODIFIED | `command TEXT` column, `MIGRATION_V6_TO_V7`, bump SCHEMA_VERSION to 7 |
+| `src/db/index.js` | MODIFIED | Add v6→v7 migration path in openDatabase() |
+| `src/importer/parser.js` | MODIFIED | Detect `/clear` in user messages; populate `command` field |
+| `src/importer/db-writer.js` | MODIFIED | Add `command` to insertMessages INSERT |
+| `src/importer/index.js` | MODIFIED | Add `command: msg.command ?? null` to messagesForDb mapping |
+| `src/server/routes/timeline.js` | MODIFIED | Fetch `command` column; `deriveSegments()`; expand into segment objects |
+| `src/client/pages/TimelinePage.vue` | MODIFIED | `onSessionEdited` must patch all segments sharing same `parentSessionId` |
+| `src/client/components/SessionDetailPanel.vue` | MODIFIED | Strip `:N` from displayed ID; show segment badge when `isSegment` |
+| `src/client/components/SessionMessagesModal.vue` | MODIFIED | Strip `:N` suffix before API call |
+| `src/client/components/SessionEditModal.vue` | MODIFIED | Strip `:N` suffix before PATCH call |
+| GanttBar, GanttSwimlane, DaySummary, GanttChart, bin/cli.js | UNCHANGED | No changes needed |
+
+See `.planning/research/ARCHITECTURE.md` for exact code patterns, SQL queries, and the `deriveSegments()` algorithm.
 
 ### Critical Pitfalls
 
-1. **INSERT OR REPLACE destroys user edits** -- switch to INSERT ON CONFLICT DO UPDATE with COALESCE for user columns. Must be solved before any UI work ships.
-2. **First write endpoint has no precedent** -- establish validation, 404 handling, and response patterns carefully since all future write endpoints will copy this pattern.
-3. **Ticket denylist does not scale** -- lean into scoring weights (MIN_TICKET_SCORE = 15) rather than growing the 35-entry denylist. Keep new sources in 25-75pt range, well below slash commands at 500-700pts.
-4. **upsertTickets DELETE destroys user overrides** -- store user ticket override on sessions table (like user_label), not in tickets table which gets wiped on re-import.
-5. **Regex statefulness bugs** -- use `matchAll()` for all new patterns to avoid `lastIndex` issues from `/gi` flag patterns in the codebase.
+1. **Segment IDs break all existing API endpoints** — `PATCH /api/sessions/:id` and `GET /api/sessions/:id/messages` perform direct DB lookups. A segment ID `abc123:2` returns nothing (404). All three modal/edit components must strip the `:N` suffix before API calls. Add `isSegment: true` and `parentSessionId` fields to segment response objects so the UI knows when to strip. Must be addressed before any UI work on editing.
 
-See `.planning/research/PITFALLS.md` for full catalog with prevention strategies.
+2. **Ticket scoring is wrong at session granularity** — Import-time scoring over all session messages means segment 2 (post-/clear work on a different ticket) inherits the session's dominant ticket from segment 1. Re-run `scoreTickets()` per segment at query time over each segment's message slice. Session-level `primary_ticket` from DB is only a fallback for unsplit sessions.
+
+3. **Working time double-counting at segment boundaries** — If the `/clear` message timestamp is included in both adjacent segments, the boundary gap inflates both totals. The `/clear` message is the exclusive boundary: segment N ends at the message before `/clear`; segment N+1 starts at the message after `/clear`. The `/clear` message itself is excluded from both segments' timestamp lists.
+
+4. **Overnight clipping and segment splitting order matters** — Clip timestamps to the day boundary first, then split into segments. Segments with zero clamped messages after clipping are excluded. `continuesFromPrevDay`/`continuesIntoNextDay` flags must be recalculated per segment, not inherited from the parent session.
+
+5. **user_label and user_ticket have no per-segment storage** — Both columns live on the sessions row. For v0.6.0, edits apply session-wide: all segments of a session share the same `userLabel`/`userTicket`. The `onSessionEdited` handler in TimelinePage must patch all segments with matching `parentSessionId`. Decide this before building the UI — do not allow the edit UI to imply per-segment storage that does not exist.
+
+See `.planning/research/PITFALLS.md` for the full catalog including moderate and minor pitfalls.
 
 ## Implications for Roadmap
 
-Based on combined research, suggested three-phase structure. Phases 1 and 2 are technically independent but should be sequenced because Phase 1 establishes the user-data protection pattern that Phase 3 extends.
+The feature has a hard dependency chain: schema before import changes, import before query-time logic, query-time logic before frontend. This maps to three phases with clear validation gates between them.
 
-### Phase 1: Session Naming
+### Phase 1: Schema + Import Pipeline
 
-**Rationale:** Establishes the write-back foundation that all user-edit features depend on. DB migration must come first since both session naming and ticket overrides need import-safe user columns. This is the app's first write endpoint -- getting the pattern right here matters for everything that follows.
-**Delivers:** Users can rename sessions in the detail panel; names survive re-imports; first PATCH endpoint established as a reusable pattern.
-**Addresses features:** Inline edit, PATCH endpoint, user_label column, label fallback chain update (user_label at top), import protection via ON CONFLICT.
-**Avoids pitfalls:** #1 (INSERT OR REPLACE clobber), #3 (first write endpoint patterns), #4 (inline edit UX discoverability).
+**Rationale:** The `command` column must exist in the database before any other work can be tested. This phase has zero visible UI impact and can be shipped and re-imported independently. It is the foundation that unblocks all downstream phases.
 
-Build order within phase:
-1. DB migration (user_label column, schema version bump)
-2. Modify upsertSession() from INSERT OR REPLACE to INSERT ON CONFLICT DO UPDATE with COALESCE
-3. New PATCH route (`src/server/routes/sessions.js`) with validation
-4. Frontend Reka UI Editable integration in SessionDetailPanel
-5. Label chain update in GanttBar (user_label at top of fallback)
+**Delivers:** `command` column populated in the messages table for all re-imported sessions. Existing functionality completely unchanged. Degraded behavior (NULL = no segment) is acceptable for sessions not yet re-imported.
 
-### Phase 2: Ticket Detection Improvements
+**Addresses:** Pitfalls 8 (command column missing blocks all query-time logic), 9 (keep per-session query count at 2, not 3, by folding command into existing messageStmt).
 
-**Rationale:** Independent from Phase 1. Extends the existing import pipeline with new scoring sources. Best sequenced after Phase 1 so the upsert protection pattern is established and tested before adding more import-time complexity.
-**Delivers:** Better automatic ticket detection from git commits and summaries; more accurate primary ticket assignment; fewer false positives through scoring rather than denylist expansion.
-**Addresses features:** Git commit message scanning, summary scanning, scoring weight calibration.
-**Avoids pitfalls:** #2 (denylist scaling), #5 (regex statefulness), #6 (git availability assumptions), #7 (scoring weight tuning).
+**Files:** `schema.js`, `db/index.js`, `parser.js`, `db-writer.js`, `importer/index.js`
 
-Build order within phase:
-1. Summary scanning (lowest risk -- data already in DB, add to scoring pipeline)
-2. Git commit message scanning (medium complexity -- needs graceful fallback when repo unavailable)
-3. Score weight tuning against real transcripts
-4. Integration testing with full re-import
+**Validation gate:** Re-import transcripts; run `SELECT command, COUNT(*) FROM messages WHERE command IS NOT NULL GROUP BY command;` — expect rows for `clear`.
 
-### Phase 3: User Overrides and Polish
+### Phase 2: Timeline Route Segment Derivation
 
-**Rationale:** Builds on the PATCH endpoint pattern from Phase 1 and the improved ticket detection from Phase 2. Lets users correct what the algorithm still gets wrong after Phase 2 improvements.
-**Delivers:** User ticket override, multi-ticket display, ticket link template, label source indicator.
-**Addresses features:** User ticket override, multi-ticket display, ticket link URL template, label source indicator.
-**Avoids pitfalls:** #8 (upsertTickets DELETE destroying user overrides -- store on sessions table, not tickets table).
+**Rationale:** The API changes must be correct and backward-compatible before any frontend component depends on segment IDs. Getting the response shape right here makes Phase 3 low-risk mechanical work.
+
+**Delivers:** `/api/timeline` returns segment objects (`sessionId: "uuid:N"`, `isSegment: true`, `parentSessionId`) for split sessions; unsplit sessions return unchanged. Per-segment working time, ticket scoring, and branch detection all computed correctly.
+
+**Addresses:** Core feature (segment boundary detection, per-segment data), Pitfalls 1 (segment IDs in response design), 3 (ticket scoring per segment), 4 (overnight clipping order), 5 (working time boundary).
+
+**Key constraints:** `deriveSegments()` is a pure JavaScript function — no complex SQL. The `/clear` message is the exclusive boundary (not counted in either segment). Clip to day boundary first, then split. Skip emitting segments with zero timestamps after clipping.
+
+**Files:** `src/server/routes/timeline.js`
+
+**Validation gate:** API returns `"uuid:0"`, `"uuid:1"` for sessions with `/clear` markers. Total working time across all segments of a session equals what the unsplit session would have reported for the same period.
+
+### Phase 3: Frontend Adaptations
+
+**Rationale:** With Phase 2 delivering a correctly shaped API response, frontend changes are a bounded, known set. Each component change is independent and can be done sequentially.
+
+**Delivers:** Segments render as distinct Gantt bars. Detail panel shows segment indicator ("segment N of M"). Messages modal and edit modal work correctly. Session edits propagate to all segments of the same parent.
+
+**Addresses:** Pitfalls 1 (`:N` stripping in modals), 2 (session-wide edit applies to all segments via `onSessionEdited`), 6 (messages modal shows full-session messages — acceptable degraded behavior for v0.6.0).
+
+**Files:** `SessionMessagesModal.vue`, `SessionEditModal.vue`, `SessionDetailPanel.vue`, `TimelinePage.vue`
+
+**Validation gate:** Click a split session bar — detail panel shows "segment N of M". Open messages modal — shows first messages of full session (correct for v0.6.0). Edit label on a segment — all other segments of the same parent session update in the UI without a page refresh.
 
 ### Phase Ordering Rationale
 
-- **Phase 1 before 2:** The ON CONFLICT upsert pattern established in Phase 1 is the safety net that makes all user-editable data possible. Without it, any user edit feature is broken by the next import.
-- **Phase 2 before 3:** User overrides are a fallback for when auto-detection fails. Better auto-detection (Phase 2) reduces how often users need overrides (Phase 3).
-- **All phases are small:** Each is 5-8 files modified, 0-1 new files. This is a refinement release, not a large feature build.
+- Schema migration is the strict prerequisite; nothing else is testable without it
+- Timeline route changes must stabilize before frontend components commit to the ID scheme
+- Frontend changes are all reactive to the API shape — batching them in Phase 3 keeps each phase independently verifiable
+- The three-phase structure matches the build order suggested in ARCHITECTURE.md exactly
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 2 (Ticket Detection):** Scoring weight calibration requires empirical testing against real transcripts. The specific format of git commit output in tool_result blocks needs investigation during implementation. Consider `/gsd:research-phase` for this one.
+Phases with well-documented, low-risk patterns (no additional research needed):
+- **Phase 1 (Schema + Import):** ALTER TABLE ADD COLUMN is a routine pattern in this codebase (done five times). Parser regex for `/clear` detection is straightforward. No unknowns.
+- **Phase 3 (Frontend):** Changes are mechanical ID-stripping in known, already-read component files. No unknowns.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Session Naming):** All patterns are well-documented. Reka UI Editable API verified in node_modules. Fastify PATCH is native. SQLite ON CONFLICT is standard SQL. No unknowns.
-- **Phase 3 (User Overrides):** Extends patterns established in Phase 1. No new technical unknowns.
+Phases requiring implementation-time rigor (not additional research, but careful execution):
+- **Phase 2 (Route logic):** Working time boundary handling (Pitfall 5) and overnight clipping order (Pitfall 4) need unit tests against known session fixtures. The logic is fully understood; execution needs rigor, not more research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Zero new deps. All components verified in installed node_modules. |
-| Features | MEDIUM-HIGH | Table stakes are clear. Differentiators need UX validation (Gantt bar edit correctly deferred). |
-| Architecture | HIGH | Existing codebase is well-structured. Changes are surgical (5-6 files), not structural. |
-| Pitfalls | HIGH | INSERT OR REPLACE issue confirmed by reading db-writer.js source. All pitfalls grounded in actual code. |
+| Stack | HIGH | Zero new dependencies; established migration pattern used five times already |
+| Features | HIGH | Based on direct codebase analysis; splitting rules already decided and simplified to /clear only |
+| Architecture | HIGH | Pure JavaScript segment derivation; data flow completely mapped with exact file and function names |
+| Pitfalls | HIGH | Based on direct code inspection of v0.5.0; all failure modes verified against actual code paths |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Scoring weight calibration:** Optimal point values for git commit (50pts?) and summary (25pts?) sources need validation against real transcript data. Plan for a tuning step in Phase 2.
-- **Git commit output format:** Need to verify what git commit output looks like inside tool_result blocks during Phase 2 implementation. May need to parse multiple git output formats (short log, full log, merge commits).
-- **Schema version number:** Research references v6, but current schema is v3. Need to verify whether intermediate versions (v4, v5) exist from other branches or planned work. The migration should use the next available version.
-- **Inline edit discoverability:** No research on how users will discover the edit capability. Add a visual hover affordance (pencil icon or underline) during Phase 1 UI work.
-- **Concurrent import + edit:** What happens if a user edits a session name while an import is running? The ON CONFLICT COALESCE pattern should handle this correctly (import preserves user_label), but needs explicit testing.
+- **Messages modal segment filtering (v0.7.0 backlog):** For v0.6.0, the messages modal shows the first messages of the full session regardless of which segment was clicked (Pitfall 6 in PITFALLS.md). This is documented acceptable degraded behavior. A future improvement passes segment timestamps as query params to filter the message stream.
+
+- **Per-segment user editing (post-v0.6.0):** The v0.6.0 decision is edits apply session-wide. If per-segment labels become a user need, the storage key should be the UUID of the `/clear` message that triggered the split (not the segment index N, which can shift if earlier messages are inserted).
+
+- **Re-import requirement for existing data:** Sessions imported before schema v7 will have NULL `command` values and will appear as single unsplit segments until re-imported. The incremental import system handles this naturally; no forced full re-import is required. This is acceptable degraded behavior, not data corruption.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Reka UI Editable source code -- verified in `node_modules/reka-ui/dist/Editable/EditableRoot.js`
-- `src/importer/db-writer.js` -- confirmed INSERT OR REPLACE pattern that must change
-- `src/db/schema.js` -- confirmed current schema version (v3) and migration pattern
-- `src/importer/ticket-scorer.js` -- confirmed scoring weights, denylist, and MIN_TICKET_SCORE threshold
+- Direct code analysis of `/home/claude/cctimereporter/src/` (v0.5.0) — all architecture findings, schema state, component boundaries
+- `references/claude-transcript-schema.md` — JSONL message type definitions for /clear command detection
 
-### Secondary (MEDIUM confidence)
-- Fastify 5 documentation -- PATCH route support
-- SQLite ON CONFLICT documentation -- upsert with selective column preservation
+### Secondary
+- Project orchestrator scope decision (2026-03-15) — /rename removed from scope; /clear is the only split signal; no coalescing thresholds
 
 ---
-*Research completed: 2026-03-07*
+*Research completed: 2026-03-15*
+*Scope note: /rename is NOT a split signal for v0.6.0. Only /clear creates segments. Disregard any FEATURES.md or PITFALLS.md references to /rename splitting, configurable coalescing thresholds, or rename-proximity logic — those reflect the original scope before simplification.*
 *Ready for roadmap: yes*
