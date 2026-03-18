@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 19 of 22 (Schema and Import)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-17 — Roadmap created for v0.6.0
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-03-18 — Completed 19-01-PLAN.md (schema v7 + command detection + API contract)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v0.6.0: 0/4 phases complete)
-Overall:  Phases 1-18 complete (v1.0 through v0.5.0 shipped)
+Progress: [█████░░░░░░░░░░░░░░░] 25% (v0.6.0: 1/4 phases complete)
+Overall:  Phases 1-19 complete (v1.0 through v0.5.0 shipped + v0.6.0 Phase 19)
 
 ## Performance Metrics
 
@@ -38,6 +38,11 @@ Key decisions affecting v0.6.0:
 - Overnight clipping happens before segment splitting (clip first, then split)
 - /clear message itself excluded from both adjacent segments (no double-counting)
 
+Phase 19 decisions:
+- No backfill UPDATE in v7 migration: existing rows get NULL until re-imported (intentional — DB is a cache)
+- detectCommand() takes raw JSONL object (not normalized message) — needs msg.type + extractContentText()
+- command = 'clear' query in Phase 20 will find split points at query time in timeline route
+
 ### Pending Todos
 
 None.
@@ -48,6 +53,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-17
-Stopped at: Roadmap created for v0.6.0 (Phases 19-22), ready to plan Phase 19
+Last session: 2026-03-18
+Stopped at: Completed 19-01-PLAN.md — schema v7, command detection, API contract
 Resume file: None
