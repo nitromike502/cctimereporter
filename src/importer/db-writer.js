@@ -182,7 +182,8 @@ export function insertMessages(db, sessionId, messages) {
       git_branch,
       is_meta,
       is_sidechain,
-      is_fork_branch
+      is_fork_branch,
+      command
     ) VALUES (
       $session_id,
       $uuid,
@@ -193,7 +194,8 @@ export function insertMessages(db, sessionId, messages) {
       $git_branch,
       $is_meta,
       $is_sidechain,
-      $is_fork_branch
+      $is_fork_branch,
+      $command
     )
   `);
 
@@ -211,6 +213,7 @@ export function insertMessages(db, sessionId, messages) {
         $is_meta:       msg.is_meta        ?? 0,
         $is_sidechain:  msg.is_sidechain   ?? 0,
         $is_fork_branch: msg.is_fork_branch ?? 0,
+        $command:        msg.command        ?? null,
       });
     }
     db.exec('COMMIT');

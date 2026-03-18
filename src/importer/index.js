@@ -337,6 +337,7 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
     is_meta:       msg.isMeta ? 1 : 0,
     is_sidechain:  msg.isSidechain ? 1 : 0,
     is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
+    command:       msg.command ?? null,
   }));
   // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
   const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
@@ -547,6 +548,7 @@ export async function importAll(db, options = {}) {
             is_meta:       msg.isMeta ? 1 : 0,
             is_sidechain:  1, // Agent messages are always sidechains
             is_fork_branch: 0,
+            command:       msg.command ?? null,
           }));
 
         if (agentMessages.length > 0) {

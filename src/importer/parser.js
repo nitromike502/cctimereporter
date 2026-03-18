@@ -14,6 +14,32 @@ import { parseCommandXml } from '../utils/parse-command-xml.js';
 const SYNTHETIC_MSG_RE = /^\s*(<teammate-message|<local-command)/;
 
 /**
+ * Detect a slash command in a user message.
+ * Returns the command name without leading slash (e.g. 'clear', 'rename'), or null.
+ *
+ * @param {object} rawMsg - The full JSONL line object
+ * @returns {string|null}
+ */
+function detectCommand(rawMsg) {
+  if (rawMsg?.type !== 'user' || rawMsg?.isMeta) return null;
+  const text = extractContentText(rawMsg)?.trim();
+  if (!text) return null;
+
+  // XML format: <command-name>/clear</command-name>...
+  const parsed = parseCommandXml(text);
+  if (parsed) {
+    const nameWithSlash = parsed.split(' ')[0]; // "/clear" or "/gsd:execute-phase"
+    return nameWithSlash.startsWith('/') ? nameWithSlash.slice(1) : nameWithSlash;
+  }
+
+  // Plain text format: "/command" or "/command args"
+  const plainMatch = text.match(/^\/([a-zA-Z][a-zA-Z0-9:_-]*)/);
+  if (plainMatch) return plainMatch[1];
+
+  return null;
+}
+
+/**
  * Parse a JSONL transcript file into structured session data.
  *
  * @param {string} filePath - Absolute path to the .jsonl file
@@ -125,6 +151,7 @@ export async function parseTranscript(filePath) {
       isCompactSummary: msg.isCompactSummary || false,
       agentId: msg.agentId || null,
       sourceToolAssistantUuid: msg.sourceToolAssistantUUID || null, // Note: uppercase UUID in source
+      command: detectCommand(msg),
       rawMessage: msg,
     });
   }
