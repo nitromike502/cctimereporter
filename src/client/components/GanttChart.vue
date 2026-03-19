@@ -184,6 +184,8 @@ const timeAxisTicks = computed(() => {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  margin-left: -14px;
+  padding-left: 14px;
   padding-right: 10px;
 }
 
