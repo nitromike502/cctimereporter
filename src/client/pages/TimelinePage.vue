@@ -425,6 +425,7 @@ onMounted(fetchTimeline)
 onUnmounted(() => { importEventSource.value?.close() })
 watch(() => route.query.date, () => {
   selectedSession.value = null
+  zoomLevel.value = 1
   fetchTimeline()
 })
 </script>
