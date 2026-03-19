@@ -5,9 +5,11 @@
       :date="selectedDate"
       :import-running="importRunning"
       :threshold="idleThreshold"
+      :zoom-level="zoomLevel"
       @navigate="navigateToDate"
       @import="triggerImport"
       @update:threshold="setIdleThreshold"
+      @update:zoom-level="val => zoomLevel = val"
     />
 
     <!-- Import progress overlay -->
@@ -105,7 +107,9 @@
         :projects="visibleProjects"
         :date="selectedDate"
         :selected-session-id="selectedSession?.sessionId"
+        :zoom-level="zoomLevel"
         @select="onSelectSession"
+        @update:zoom-level="val => zoomLevel = val"
       />
 
       <!-- Day summary: total time + per-project/ticket/branch breakdowns -->
@@ -166,6 +170,8 @@ const editModalOpen = ref(false)
 // Idle threshold in minutes, persisted to localStorage
 const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
 const idleThreshold = ref(parseInt(localStorage.getItem(THRESHOLD_KEY), 10) || 10)
+// Zoom level for the Gantt chart (1x = full day, 4x = max zoom)
+const zoomLevel = ref(1)
 
 function setIdleThreshold(val) {
   idleThreshold.value = val
