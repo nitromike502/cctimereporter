@@ -77,7 +77,7 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
   4. The horizontal scrollbar appears inside the chart area and does not affect the pinned label column
 
 Plans:
-- [ ] 19-01: GanttChart layout restructure — pinned labels column, scrollable canvas, remove overflow:hidden
+- [x] 19-01: GanttChart layout restructure — pinned labels column, scrollable canvas, remove overflow:hidden
 
 #### Phase 20: Core Zoom Mechanic
 
@@ -130,6 +130,6 @@ Plans:
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
-| 19. Layout Restructure | v0.6.0 | 0/1 | Not started | - |
+| 19. Layout Restructure | v0.6.0 | 1/1 | Complete | 2026-03-19 |
 | 20. Core Zoom Mechanic | v0.6.0 | 0/2 | Not started | - |
 | 21. Zoom Polish | v0.6.0 | 0/1 | Not started | - |

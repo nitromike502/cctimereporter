@@ -66,9 +66,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LYOT-01 | Phase 19 | Pending |
-| LYOT-02 | Phase 19 | Pending |
-| LYOT-03 | Phase 19 | Pending |
+| LYOT-01 | Phase 19 | Complete |
+| LYOT-02 | Phase 19 | Complete |
+| LYOT-03 | Phase 19 | Complete |
 | ZOOM-01 | Phase 20 | Pending |
 | ZOOM-02 | Phase 20 | Pending |
 | ZOOM-03 | Phase 20 | Pending |
