@@ -22,12 +22,14 @@ const distPath = join(__dirname, '../../dist');
  * Create and configure a Fastify server instance.
  *
  * @param {import('node:sqlite').DatabaseSync} db - Open DatabaseSync instance
+ * @param {{ migrated?: boolean }} [options] - Server options
  * @returns {import('fastify').FastifyInstance}
  */
-export function createServer(db) {
+export function createServer(db, options = {}) {
+  const { migrated = false } = options;
   const app = Fastify({ logger: false });
 
-  app.register(timelineRoute, { db });
+  app.register(timelineRoute, { db, migrated });
   app.register(projectsRoute, { db });
   app.register(importRoute, { db });
   app.register(messagesRoute, { db });

@@ -48,11 +48,11 @@ if (debugImportIdx !== -1) {
 }
 
 // Open the database (creates and migrates if needed).
-const db = openDatabase();
+const { db, migrated } = openDatabase();
 
 // Create and start the Fastify server with port fallback.
 const DEFAULT_PORT = 3847;
-const fastify = createServer(db);
+const fastify = createServer(db, { migrated });
 
 let port = DEFAULT_PORT;
 for (let attempt = 0; attempt < 10; attempt++) {

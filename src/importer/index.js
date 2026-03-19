@@ -416,7 +416,10 @@ export async function importAll(db, options = {}) {
   // Collect all work items so we know total file count upfront.
   const projectWork = [];
 
-  for (const project of projects) {
+  onProgress?.({ phase: 'discovering', discovered: 0, total: projects.length, currentProject: null });
+
+  for (let projectIndex = 0; projectIndex < projects.length; projectIndex++) {
+    const project = projects[projectIndex];
     const projectId = getOrCreateProject(db, project.projectPath, project.transcriptDir);
     const files = findTranscriptFiles(project.transcriptDir);
     const sessionIndex = readSessionIndex(project.transcriptDir);
@@ -485,6 +488,8 @@ export async function importAll(db, options = {}) {
     log(`  ${project.projectPath}: ${files.length} files, ${toImport.length} to import, ${skippedCount} skipped (size=${skippedSize}, window=${skippedWindow}, old=${skippedOld}), agents: ${agentToImport.length} to import / ${agentsSkipped} skipped`);
 
     projectWork.push({ project, projectId, toImport, sessionIndex, agentToImport });
+
+    onProgress?.({ phase: 'discovering', discovered: projectIndex + 1, total: projects.length, currentProject: project.projectPath });
   }
 
   // Calculate total files across all projects
@@ -499,6 +504,7 @@ export async function importAll(db, options = {}) {
   const discoveryMs = Date.now() - importStart;
   log(`Discovery complete in ${discoveryMs}ms: ${totalFiles} to process, ${filesSkipped} skipped`);
 
+  onProgress?.({ phase: 'discovered', totalFiles, totalProjects: projects.length, skipped: filesSkipped });
   onProgress?.({ phase: 'importing', processed: 0, total: totalFiles, skipped: filesSkipped, currentFile: null });
 
   // --- Second pass: import ---

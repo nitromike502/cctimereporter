@@ -100,10 +100,10 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
- * @param {{ db: import('node:sqlite').DatabaseSync }} opts
+ * @param {{ db: import('node:sqlite').DatabaseSync, migrated?: boolean }} opts
  */
 export async function timelineRoute(fastify, opts) {
-  const { db } = opts;
+  const { db, migrated = false } = opts;
 
   // Sessions overlapping a UTC time range (local day converted to UTC).
   // Excludes team-member subagents (is_subagent=1 with team_name) but
@@ -248,6 +248,7 @@ export async function timelineRoute(fastify, opts) {
     return {
       date,
       totalSessions,
+      schemaMigrated: migrated,
       projects: [...projectMap.values()],
     };
   });

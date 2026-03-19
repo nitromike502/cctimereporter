@@ -75,12 +75,13 @@ function migrateV5toV6(db) {
  *   - version 2 (current): apply DDL normally (CREATE IF NOT EXISTS is idempotent)
  *   - unknown version: drop and recreate (database is a cache, always re-importable)
  *
- * @returns {DatabaseSync} An open DatabaseSync instance.
+ * @returns {{ db: DatabaseSync, migrated: boolean }} Open DB instance and migration flag.
  */
 export function openDatabase() {
   mkdirSync(DB_DIR, { recursive: true });
 
   let db;
+  let migrated = false;
 
   try {
     db = new DatabaseSync(DB_PATH);
@@ -97,6 +98,7 @@ export function openDatabase() {
       migrateV4toV5(db);
       migrateV5toV6(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
     } else if (existingVersion === 2) {
       // Auto-migrate v2 → v3 → v4 → v5 → v6.
       migrateV2toV3(db);
@@ -104,26 +106,31 @@ export function openDatabase() {
       migrateV4toV5(db);
       migrateV5toV6(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
     } else if (existingVersion === 3) {
       // Auto-migrate v3 → v4 → v5 → v6.
       migrateV3toV4(db);
       migrateV4toV5(db);
       migrateV5toV6(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
     } else if (existingVersion === 4) {
       // Auto-migrate v4 → v5 → v6.
       migrateV4toV5(db);
       migrateV5toV6(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
     } else if (existingVersion === 5) {
       // Auto-migrate v5 → v6.
       migrateV5toV6(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
     } else if (existingVersion !== 0 && existingVersion !== SCHEMA_VERSION) {
       // Unknown version — drop and recreate.
       db.close();
       unlinkSync(DB_PATH);
       db = new DatabaseSync(DB_PATH);
+      migrated = true;
     }
   } catch (_err) {
     // Corruption or open failure — delete and recreate.
@@ -134,6 +141,7 @@ export function openDatabase() {
       unlinkSync(DB_PATH);
     }
     db = new DatabaseSync(DB_PATH);
+    migrated = true;
   }
 
   db.exec('PRAGMA journal_mode = WAL');
@@ -142,5 +150,5 @@ export function openDatabase() {
   // PRAGMA user_version cannot use parameter binding — must interpolate directly.
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 
-  return db;
+  return { db, migrated };
 }
