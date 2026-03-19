@@ -12,10 +12,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 19 complete, 20-22 ready (parallel)
 Plan: Phase 19 verified (1/1 plans)
 Status: Phase 19 verified, ready for parallel execution of Phases 20, 21, 22
-Last activity: 2026-03-17 — Phase 19 complete and verified
+Last activity: 2026-03-18 — Quick task 001 verified (import progress + re-import banner + elapsed time)
 
 Progress: [█████░░░░░░░░░░░░░░░] 25% (v0.6.0: 1/4 phases complete)
 Overall:  Phases 1-19 complete (v1.0 through v0.5.0 shipped + v0.6.0 Phase 19)
+Quick:    001 complete (import progress UX improvements)
 
 ## Performance Metrics
 
@@ -54,5 +55,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Completed 19-01-PLAN.md — schema v7, command detection, API contract
+Stopped at: Completed quick-001 — import progress UX, re-import banner, elapsed time display
 Resume file: None
