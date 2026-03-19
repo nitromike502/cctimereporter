@@ -4,6 +4,18 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.1] - 2026-03-18
+
+### Added
+
+- **Import discovery progress:** Import now shows "Discovering sessions... (N of M projects)" during the discovery phase instead of a silent spinner.
+- **Re-import notification:** A dismissible banner appears after schema migration informing users a re-import is recommended. Includes a one-click "Re-import Now" button.
+- **Elapsed time in session detail:** Session detail panel shows total elapsed time alongside working time, so users can see how much wall-clock time a session spanned.
+
+### Fixed
+
+- **Import dropdown text wrapping:** Import options dropdown menu no longer wraps text on narrow viewports.
+
 ## [0.5.0] - 2026-03-12
 
 ### Added
