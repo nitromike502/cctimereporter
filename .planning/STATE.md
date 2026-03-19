@@ -2,21 +2,20 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-15)
+See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.6.0 Session Splitting — Phases 20, 21, 22 (parallel)
+**Current focus:** v0.6.0 Gantt Chart Zoom
 
 ## Current Position
 
-Phase: 19 complete, 20-22 ready (parallel)
-Plan: Phase 19 verified (1/1 plans)
-Status: Phase 19 verified, ready for parallel execution of Phases 20, 21, 22
-Last activity: 2026-03-18 — Quick task 001 verified (import progress + re-import banner + elapsed time)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-18 — Milestone v0.6.0 Gantt Chart Zoom started
 
-Progress: [█████░░░░░░░░░░░░░░░] 25% (v0.6.0: 1/4 phases complete)
-Overall:  Phases 1-19 complete (v1.0 through v0.5.0 shipped + v0.6.0 Phase 19)
-Quick:    001 complete (import progress UX improvements)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v0.6.0: 0 phases)
+Overall:  Phases 1-18 complete (v1.0 through v0.5.1 shipped)
 
 ## Performance Metrics
 
@@ -31,18 +30,7 @@ Quick:    001 complete (import progress UX improvements)
 
 All decisions logged in PROJECT.md Key Decisions table.
 
-Key decisions affecting v0.6.0:
-- /clear is the ONLY split signal (Claude Code resets session name on /clear as of 2026-03-15)
-- "Import raw, derive at query time" — segments derived in timeline route, not at import
-- Segment IDs use `session-id:N` suffix format
-- INSERT OR IGNORE on messages means existing rows need re-import to get command column
-- Overnight clipping happens before segment splitting (clip first, then split)
-- /clear message itself excluded from both adjacent segments (no double-counting)
-
-Phase 19 decisions:
-- No backfill UPDATE in v7 migration: existing rows get NULL until re-imported (intentional — DB is a cache)
-- detectCommand() takes raw JSONL object (not normalized message) — needs msg.type + extractContentText()
-- command = 'clear' query in Phase 20 will find split points at query time in timeline route
+v0.6.0 Session Splitting was invalidated — /clear creates new sessions (separate JSONL files). Phase 19 changes (command column, schema v7) may be reverted or retained as general-purpose infrastructure.
 
 ### Pending Todos
 
@@ -50,10 +38,10 @@ None.
 
 ### Blockers/Concerns
 
-- Segment IDs (session-id:N) break existing PATCH /api/sessions/:id and GET /api/sessions/:id/messages endpoints — Phase 20 must include ID resolution before Phase 21 frontend work begins.
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-18
-Stopped at: Completed quick-001 — import progress UX, re-import banner, elapsed time display
+Stopped at: Starting v0.6.0 Gantt Chart Zoom milestone
 Resume file: None

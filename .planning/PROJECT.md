@@ -49,18 +49,15 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-**Current Milestone: v0.6.0 Session Splitting**
+**Current Milestone: v0.6.0 Gantt Chart Zoom**
 
-**Goal:** Split long-running sessions at `/clear` boundaries so each segment gets independent ticket scoring, working time, and its own Gantt bar.
+**Goal:** Users can zoom into the Gantt timeline to inspect short sessions and focus on specific time ranges, with scroll-wheel and button controls.
 
-- [ ] `command` column on messages table to tag slash commands at import time
-- [ ] Segment boundary detection at query time from command markers (`command = 'clear'`)
-- [ ] `/clear` creates a split boundary (only split signal — Claude Code now resets session name on /clear)
-- [ ] Segments displayed as separate Gantt bars in the same project row (session-id:N suffix)
-- [ ] Each segment gets independent ticket scoring, branch detection, and working time
-- [ ] Segment detail panel shows segment-specific messages, ticket, branch, and time
-- [ ] Day summary breakdowns use per-segment working time (not parent session totals)
-- [ ] Sessions without `/clear` remain unchanged (no segment concept)
+- [ ] Zoom widens the chart container (percentage-based bars scale naturally), overflow-x: auto for horizontal scroll
+- [ ] Scroll wheel over chart zooms in/out, anchored to cursor position
+- [ ] Visible +/- zoom buttons in the UI
+- [ ] Zoom range: 1x to 4x
+- [ ] Zoom resets to 1x on date navigation
 
 ### Out of Scope
 
@@ -134,10 +131,7 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | ON CONFLICT DO UPDATE omits user fields | Simpler than COALESCE, same effect for protecting edits | ✓ Good |
 | 6-source ticket scoring system | Comprehensive detection across slash commands, branches, content, commits, MCP, summaries | ✓ Good — covers all sources |
 | Summary/title scoring at 25pt flat | Low weight since generated text, not user-authored | ✓ Good |
-| Command column on messages (not boolean flags) | General-purpose slash command tracking, extensible for future features | — Pending |
-| Query-time segment derivation (not import-time) | Markers stored at import, segments computed at query time | — Pending |
-| Segments replace parent session (not coexist) | Split sessions become N independent sessions. Parent is just a DB grouping concept | — Pending |
-| /clear as sole split signal | Claude Code resets session name on /clear (as of 2026-03-15). No rename coalescing needed | — Pending |
+| Session splitting abandoned | /clear creates new sessions (separate JSONL files), splitting unnecessary | ✗ Invalidated |
 
 ---
-*Last updated: 2026-03-15 after v0.6.0 milestone start*
+*Last updated: 2026-03-18 after v0.6.0 Gantt Chart Zoom milestone start*
