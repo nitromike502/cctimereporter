@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 20 of 21 (Core Zoom Mechanic)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-03-19 — Phase 19 (Layout Restructure) complete and verified
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-19 — Completed 20-01-PLAN.md (core zoom mechanic)
 
-Progress: [███████░░░░░░░░░░░░░] 33% (v0.6.0: 1/3 phases complete)
-Overall:  Phases 1-19 complete (v1.0 through v0.5.1 shipped + v0.6.0 Phase 19)
+Progress: [████████░░░░░░░░░░░░] 38% (v0.6.0: 1/3 phases + 1 plan in phase 20)
+Overall:  Phases 1-19 complete + Phase 20 Plan 01 done (v1.0 through v0.5.1 shipped + v0.6.0 Phase 19-20)
 
 ## Performance Metrics
 
@@ -34,17 +34,20 @@ v0.6.0 Gantt Chart Zoom: Width-expansion model chosen (not transform:scale). Lay
 
 Phase 19 deviation: 12a tick label clipping fixed with padding-left + negative margin on scroll area.
 
+Phase 20-01: Zoom state in TimelinePage (not GanttChart). Canvas width = zoomLevel * 100% inline style. Wheel listener passive:false via addEventListener. Cursor-anchor: scrollLeft = (oldScrollLeft + cursorX) * ratio - cursorX. ZOOM_MIN=1, ZOOM_MAX=4, ZOOM_STEP=0.25.
+
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-- Phase 20 cursor-anchor math (MEDIUM confidence): validate scroll formula with prototype before marking complete. Test by zooming near right edge — content under cursor must stay anchored.
-- TimelineToolbar internal structure not directly read in research — confirm emit pattern matches idle threshold control before writing zoom button UI.
+- Phase 20 cursor-anchor math implemented (validate manually: zoom near right edge, content should stay anchored).
+- TimelineToolbar already receives :zoom-level prop and @update:zoom-level handler — Plan 02 just needs to consume them in the toolbar UI.
+- NumberStepper parseInt bug fixed (now uses parseFloat for decimal step support).
 
 ## Session Continuity
 
 Last session: 2026-03-19
-Stopped at: Phase 19 verified, ready to plan Phase 20
+Stopped at: Completed 20-01-PLAN.md (core zoom mechanic — wheel zoom with cursor-anchor)
 Resume file: None
