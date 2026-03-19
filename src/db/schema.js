@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -66,7 +66,6 @@ CREATE TABLE IF NOT EXISTS messages (
   is_meta         BOOLEAN DEFAULT 0,
   is_sidechain    BOOLEAN DEFAULT 0,
   is_fork_branch  BOOLEAN DEFAULT 0,
-  command         TEXT,
   UNIQUE(session_id, uuid),
   FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
@@ -144,14 +143,6 @@ ALTER TABLE sessions ADD COLUMN first_prompt TEXT;
 export const MIGRATION_V5_TO_V6 = `
 ALTER TABLE sessions ADD COLUMN user_label TEXT;
 ALTER TABLE sessions ADD COLUMN user_ticket TEXT;
-`;
-
-/**
- * ALTER TABLE statements to migrate v6 → v7.
- * Adds command column to messages for slash command detection and session splitting.
- */
-export const MIGRATION_V6_TO_V7 = `
-ALTER TABLE messages ADD COLUMN command TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `
