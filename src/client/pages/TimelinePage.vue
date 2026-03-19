@@ -15,12 +15,34 @@
       <AppProgressBar
         :value="importProgress.processed"
         :max="importProgress.total || 1"
-        :indeterminate="importProgress.total === 0"
+        :indeterminate="importProgress.phase === 'discovering' || importProgress.phase === 'discovered' || importProgress.total === 0"
       />
-      <span v-if="importProgress.total > 0" class="import-progress-text">
-        {{ importProgress.processed }} / {{ importProgress.total }}
-        <span v-if="importProgress.skipped" class="import-skipped-text">({{ importProgress.skipped }} skipped)</span>
+      <span class="import-progress-text">
+        <template v-if="importProgress.phase === 'discovering'">
+          Discovering sessions...
+          <template v-if="importProgress.total > 0">
+            ({{ importProgress.discovered }} of {{ importProgress.total }} projects)
+          </template>
+        </template>
+        <template v-else-if="importProgress.phase === 'discovered'">
+          Found {{ importProgress.totalFiles }} sessions to import
+        </template>
+        <template v-else-if="importProgress.total > 0">
+          {{ importProgress.processed }} / {{ importProgress.total }}
+          <span v-if="importProgress.skipped" class="import-skipped-text">({{ importProgress.skipped }} skipped)</span>
+        </template>
       </span>
+    </div>
+
+    <!-- Re-import notification banner -->
+    <div v-if="schemaMigrated && !importRunning && !migrationDismissed" class="reimport-banner">
+      <span>CC Time Reporter was updated. A full re-import is recommended to take advantage of new features.</span>
+      <AppButton variant="primary" size="sm" @click="triggerImport({ full: true })">
+        Re-import Now
+      </AppButton>
+      <AppButton variant="ghost" size="sm" @click="migrationDismissed = true">
+        Dismiss
+      </AppButton>
     </div>
 
     <!-- Error banner -->
@@ -131,8 +153,10 @@ const timelineData = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const importRunning = ref(false)
-const importProgress = ref({ processed: 0, total: 0 })
+const importProgress = ref({ phase: null, processed: 0, total: 0, skipped: 0, discovered: 0 })
 const importEventSource = ref(null)
+const schemaMigrated = ref(false)
+const migrationDismissed = ref(false)
 // Set of hidden projectIds. Persists across date changes. All visible by default.
 const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
@@ -242,6 +266,7 @@ async function fetchTimeline() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     timelineData.value = data
+    schemaMigrated.value = data.schemaMigrated || false
     // Re-sync selected session with fresh data (e.g. after threshold change)
     if (selectedSession.value) {
       const id = selectedSession.value.sessionId
@@ -362,7 +387,7 @@ const legendItems = computed(() =>
 function triggerImport({ full = false } = {}) {
   if (importRunning.value) return
   importRunning.value = true
-  importProgress.value = { processed: 0, total: 0, skipped: 0 }
+  importProgress.value = { phase: 'discovering', processed: 0, total: 0, skipped: 0, discovered: 0 }
 
   const maxAgeDays = full ? 30 : 2
   const source = new EventSource(`/api/import/progress?maxAgeDays=${maxAgeDays}`)
@@ -376,6 +401,7 @@ function triggerImport({ full = false } = {}) {
     source.close()
     importEventSource.value = null
     importRunning.value = false
+    schemaMigrated.value = false
     fetchTimeline()
   })
 
@@ -459,6 +485,16 @@ watch(() => route.query.date, () => {
   background: color-mix(in srgb, var(--color-danger, #e05c5c) 12%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--color-danger, #e05c5c) 30%, transparent);
   color: var(--color-danger, #e05c5c);
+  font-size: var(--font-size-sm);
+}
+
+.reimport-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: color-mix(in srgb, var(--color-accent, #4e9af1) 12%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent, #4e9af1) 30%, transparent);
   font-size: var(--font-size-sm);
 }
 
