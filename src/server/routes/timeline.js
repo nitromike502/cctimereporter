@@ -204,6 +204,8 @@ export async function timelineRoute(fastify, opts) {
       // Compute idle gaps from clamped timestamps
       const idleGaps = computeIdleGaps(clampedTimestamps, thresholdMs);
 
+      const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
+
       const sessionObj = {
         sessionId: row.session_id,
         startTime: clampedStart,
@@ -211,6 +213,7 @@ export async function timelineRoute(fastify, opts) {
         continuesFromPrevDay,
         continuesIntoNextDay,
         workingTimeMs,
+        elapsedTimeMs,
         idleGaps,
         ticket: row.primary_ticket,
         branch: row.working_branch,

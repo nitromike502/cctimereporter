@@ -68,7 +68,10 @@
       <!-- Column 3: Timing -->
       <div class="detail-item">
         <span class="detail-label">Working Time:</span>
-        <span class="detail-value">{{ workingTimeLabel || '\u00A0' }}</span>
+        <span class="detail-value">
+          {{ workingTimeLabel || '\u00A0' }}
+          <span v-if="session && elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
+        </span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Start:</span>
@@ -113,11 +116,29 @@ const sessionIdShort = computed(() => {
   return props.session.sessionId.slice(0, 12) + '...'
 })
 
-/** Working time formatted as "XX min" */
+/**
+ * Format a duration in milliseconds as a human-readable string.
+ * Uses "Xh Ym" for >= 1 hour, "X min" otherwise.
+ */
+function formatDuration(ms) {
+  if (!ms || ms <= 0) return '0 min'
+  const totalMinutes = Math.round(ms / 60000)
+  if (totalMinutes < 60) return `${totalMinutes} min`
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+}
+
+/** Working time formatted as "XX min" or "Xh Ym" */
 const workingTimeLabel = computed(() => {
   if (!props.session) return ''
-  const minutes = Math.round(props.session.workingTimeMs / 60000)
-  return `${minutes} min`
+  return formatDuration(props.session.workingTimeMs)
+})
+
+/** Elapsed wall-clock time formatted as "XX min" or "Xh Ym" */
+const elapsedTimeLabel = computed(() => {
+  if (!props.session?.elapsedTimeMs) return ''
+  return formatDuration(props.session.elapsedTimeMs)
 })
 
 /** Format a datetime as "HH:MM AM, Mon DD" */
@@ -237,5 +258,12 @@ const endDateTime = computed(() => {
   background: var(--color-link);
   margin-left: var(--spacing-xs);
   vertical-align: middle;
+}
+
+.elapsed-time {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  font-weight: 400;
+  margin-left: var(--spacing-xs);
 }
 </style>
