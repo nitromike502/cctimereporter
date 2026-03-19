@@ -13,7 +13,9 @@
     </div>
 
     <!-- Scrollable canvas area -->
-    <div class="gantt-scroll-area" ref="scrollAreaEl">
+    <div class="gantt-scroll-area" ref="scrollAreaEl"
+         @mousedown="onScrollAreaMouseDown"
+         @scroll="onScrollAreaScroll">
       <div class="gantt-canvas" :style="{ width: zoomLevel * 100 + '%' }">
         <!-- Time axis -->
         <div class="time-axis">
@@ -46,7 +48,7 @@
               :date="date"
               :color="project.color"
               :selected-session-id="selectedSessionId"
-              @select="emit('select', $event)"
+              @select="onBarSelect($event)"
             />
           </div>
         </div>
@@ -141,6 +143,31 @@ onMounted(() => {
 onUnmounted(() => {
   scrollAreaEl.value?.removeEventListener('wheel', onWheel)
 })
+
+// --- Bar click guard (prevent false selection after scroll-dragging) ---
+
+let scrollStartX = 0
+let didScroll = false
+
+function onScrollAreaMouseDown() {
+  scrollStartX = scrollAreaEl.value?.scrollLeft ?? 0
+  didScroll = false
+}
+
+function onScrollAreaScroll() {
+  const currentX = scrollAreaEl.value?.scrollLeft ?? 0
+  if (Math.abs(currentX - scrollStartX) > 5) {
+    didScroll = true
+  }
+}
+
+function onBarSelect(session) {
+  if (didScroll) {
+    didScroll = false
+    return
+  }
+  emit('select', session)
+}
 
 // Reset scrollLeft when date changes (zoom reset is handled in Plan 02)
 watch(() => props.date, () => {
