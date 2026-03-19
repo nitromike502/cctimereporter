@@ -1,183 +1,194 @@
 # Project Research Summary
 
-**Project:** cctimereporter v0.6.0 — Session Splitting at /clear Boundaries
-**Domain:** Developer time-tracking CLI — segmented Gantt timeline
-**Researched:** 2026-03-15
+**Project:** CC Time Reporter v0.6.0 — Gantt Chart Zoom/Pan
+**Domain:** Zoomable timeline UI — horizontal scroll zoom on a CSS percentage-based Gantt chart
+**Researched:** 2026-03-18
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Session splitting adds virtual sub-units called segments derived from `/clear` command markers stored in the messages table. Each segment becomes its own Gantt bar with independent working time, ticket scoring, and branch detection — while unsplit sessions behave exactly as they do today. The scope is deliberately narrow: `/clear` is the only split signal. The `/rename` command is NOT a split boundary. Claude Code resets the session name on `/clear` as of 2026-03-15, making rename-based splitting and coalescing logic unnecessary. Any FEATURES.md or PITFALLS.md references to /rename splitting rules, configurable coalescing thresholds, or rename-proximity logic are superseded by this scope decision.
+This milestone adds horizontal zoom and pan to the existing Gantt chart in CC Time Reporter. The chart currently renders session bars using CSS percentage positions (`left: X%`, `width: Y%`) relative to a flex container. Research confirms the correct zoom approach is a layout-reflow model: widen the inner canvas element proportionally to the zoom level (e.g., `width: 200%` at 2x), wrap it in a scrollable container with `overflow-x: auto`, and let the browser handle pan via the native scrollbar. All panzoom libraries evaluated use `transform: scale()`, which is a visual-only zoom that does not affect child percentage widths — this model is fundamentally incompatible with this chart and must be avoided. Zero new npm dependencies are required.
 
-The implementation strategy is strictly query-time derivation. No new tables are added to the database; no segment data is persisted. A `command` column added to the messages table at schema v7 captures slash command names during import, and the timeline route uses those markers to slice each session's ordered messages into segments at request time. This is consistent with the existing "import raw data, derive at query time" philosophy already used for worktree grouping and working time computation. Zero new dependencies are required.
+The implementation requires one non-trivial structural refactor before any zoom logic can be written: separating the fixed 140px label column from the scrollable canvas area. Currently the time axis and lane bars share the same parent element, aligned by a `margin-left: 140px` hack. A scroll container cannot cover only the bar area while leaving the label pinned unless the two are explicitly separated into parallel layout regions. This structural change is the critical-path prerequisite — everything else is additive. The refactor must preserve the `.gantt-chart` CSS class on the outermost element (targeted by the driver.js tour) and remove `overflow: hidden` from `.gantt-chart` (which currently blocks all child scrolling).
 
-The critical risks are all known and manageable. The biggest is that synthetic segment IDs (`session_id:N`) break any code path that passes an ID directly to the database without stripping the `:N` suffix. Every API endpoint consumer that deals in segment IDs must resolve the real session UUID before any DB lookup. The second risk is ticket scoring: the session-level ticket stored at import time reflects the whole session, not each post-/clear context. Ticket scoring must be re-run per segment at query time over each segment's message slice. Both risks have clear, validated prevention strategies.
+The main implementation risk is cursor-anchored zoom math, which requires correctly converting between three coordinate spaces (client X, viewport X, canvas X). The formula is well-understood but has a known failure mode: using raw `event.clientX` instead of `event.clientX - rect.left` produces zoom that drifts toward the page's left edge. A secondary risk is `scrollLeft` assignment timing — it must be deferred to `nextTick()` after the zoom state change, or the browser silently clamps it to the pre-zoom scroll maximum. Both risks have clear, validated prevention strategies documented in PITFALLS.md.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Zero new dependencies. The stack is unchanged from v0.5.0.
+No new dependencies. The user-proposed width-expansion approach requires only Vue 3 reactivity (already installed), native CSS (`width: calc(var(--zoom-level) * 100%)`), native DOM events (`addEventListener('wheel', handler, { passive: false })`), and approximately 5 lines of scroll math. Every panzoom library evaluated (panzoom, vue-zoomable, vue-panzoom) uses CSS `transform: scale()` — a visual-only zoom that does not cause child percentage widths to reflow, making each library fundamentally incompatible with the bar positioning model.
 
-**Core technologies (unchanged, all already present):**
-- **node:sqlite schema migration** (v6 to v7): adds `command TEXT` column with composite index on `(session_id, command)` — routine ALTER TABLE pattern used five times in this codebase already
-- **Standard JavaScript iteration**: segment derivation is a simple ordered-list scan in the timeline route — no SQL window functions, CTEs, or additional libraries needed
-- **Existing utility functions**: `scoreTickets()`, `determineWorkingBranch()`, and `computeWorkingTime()` are reused over message slices per segment without modification
-
-See `.planning/research/ARCHITECTURE.md` for the exact SQL and JavaScript patterns.
+**Core technologies:**
+- Vue 3 reactivity (`ref`, `watch`, `nextTick`): zoom state management — already installed, no addition needed
+- Native CSS `width: calc()` with CSS custom property: canvas scaling — correct model for percentage-based child layout
+- `addEventListener` with `{ passive: false }`: wheel event capture — required to call `preventDefault()` and block vertical page scroll during zoom
+- `getBoundingClientRect()` + `scrollLeft` math: cursor-anchored zoom — approximately 5 lines, no library
 
 ### Expected Features
 
+Research clearly distinguishes what users will expect on day one, what raises quality meaningfully, and what to explicitly avoid.
+
 **Must have (table stakes):**
-- `command` column on messages table (schema v7) — foundation for all query-time splitting
-- Segment boundary detection (`deriveSegments()`) — JavaScript function over ordered message rows; `/clear` is the only boundary signal
-- Per-segment ticket scoring — `scoreTickets()` re-run over each segment's message slice at query time
-- Per-segment branch detection — `determineWorkingBranch()` over segment messages
-- Per-segment working time — `computeWorkingTime()` over segment timestamps; DaySummary aggregation unchanged
-- Segment Gantt bars — segments returned as session-shaped objects with `sessionId: "uuid:N"`; GanttSwimlane and DaySummary need no changes if shape is correct
-- Per-segment first prompt — `segmentFirstPrompt` computed from first user message in the segment's slice (prevents all segments showing the session's global `first_prompt` as their title)
-- Sessions without /clear unchanged — gated by boundary detection returning a single segment; zero regressions
+- Scroll wheel zoom with cursor anchoring — users will try this first; without cursor anchoring the chart jumps and feels broken
+- Time axis scales with content — tick labels must remain aligned with bars at all zoom levels (automatic once both are inside the shared canvas)
+- Horizontal scrollbar appears when zoomed — content beyond 1x is unreachable without it
+- Lane labels stay fixed and do not zoom — labels must live in a pinned column outside the scaled canvas
+- +/- buttons for manual zoom control — required for touch and non-scroll-wheel users
+- Zoom resets on date navigation — carrying zoom state across date changes is disorienting
+- Zoom range 1x–4x — per stated requirements; appropriate for a 24h single-day view
 
 **Should have (differentiators):**
-- Segment indicator in detail panel — "segment N of M" shown in SessionDetailPanel when `segmentTotal > 1`; high orientation value, low effort
-- `/clear` shown in messages modal — `command` column makes this low-effort context for users
+- Zoom level indicator (e.g., "2x") — orientation aid at very low cost
+- Reset zoom button — same-day reset without navigating away
+- Smooth zoom animation — `transition: width 100ms ease` on the canvas
+- Trackpad pinch support — `ctrlKey: true` on `WheelEvent` from macOS trackpad, nearly free to add alongside the wheel handler
 
-**Defer to post-v0.6.0:**
-- Per-segment user_label / user_ticket editing — requires a new `session_segments` table or a clear storage strategy; full complexity, separate milestone
-- Visual split indicator on Gantt bar — adds GanttBar rendering complexity; do after core splitting works
-- Segment threshold UI control — query param is sufficient for v0.6.0; UI config can follow
-
-**Deliberate anti-features (do not build):**
-- `/rename` as a split signal — explicitly out of scope as of 2026-03-15
-- Persisting segments to the database — defeats the purpose of query-time derivation
-- Splitting in the import pipeline — couples boundary rules to import; rule changes would require re-import
-- Retroactive in-place migration of command column — let incremental import handle it naturally
-
-See `.planning/research/FEATURES.md` for the full feature matrix and dependency tree.
+**Defer (v2+):**
+- Current time indicator — separate feature, unrelated to zoom mechanics
+- Adaptive tick density — useful at high zoom but not blocking; fixed 2h ticks remain intelligible at 4x
 
 ### Architecture Approach
 
-The data flow is a clean three-layer pipeline: import layer detects `/clear` and writes `command = 'clear'` to the messages table; the timeline route fetches ordered messages including the `command` column and runs `deriveSegments()` in JavaScript; each segment is expanded into a session-shaped response object. The frontend receives session-shaped objects regardless of whether they are real sessions or segments — only four components need modification, all to handle the `:N` suffix in the synthetic segment ID.
+The structural change creates two parallel layout regions inside `.gantt-chart`: a pinned `.gantt-labels` column (140px, `flex-shrink: 0`, scrolls vertically with page but not horizontally) and a `.gantt-scroll-area` (`flex: 1`, `overflow-x: auto`) containing the `.gantt-canvas` (`width: zoomLevel * 100%`). The canvas holds both the time axis and all swimlane rows so they scroll together. The three hardcoded `140px` values in GanttChart.vue (margin-left on `.time-axis`, left on `.grid-overlay`, width on `.lane-label`) must all be removed as part of this refactor. `GanttBar.vue` and `GanttSwimlane.vue` require zero changes.
 
-**Components and change type:**
+**Major components:**
+1. `GanttChart.vue` (modified heavily): layout restructure, `zoomLevel` prop, canvas width binding, label height sync per swimlane, scroll reset on date change
+2. `TimelinePage.vue` (modified): owns `zoomLevel` ref with localStorage persistence, passes prop to GanttChart, wires toolbar event
+3. `TimelineToolbar.vue` (modified): adds +/- zoom control UI, emits `@update:zoom`
+4. `GanttSwimlane.vue` / `GanttBar.vue` (no change): percentage positioning scales automatically with canvas width
 
-| Component | Status | Change |
-|-----------|--------|--------|
-| `src/db/schema.js` | MODIFIED | `command TEXT` column, `MIGRATION_V6_TO_V7`, bump SCHEMA_VERSION to 7 |
-| `src/db/index.js` | MODIFIED | Add v6→v7 migration path in openDatabase() |
-| `src/importer/parser.js` | MODIFIED | Detect `/clear` in user messages; populate `command` field |
-| `src/importer/db-writer.js` | MODIFIED | Add `command` to insertMessages INSERT |
-| `src/importer/index.js` | MODIFIED | Add `command: msg.command ?? null` to messagesForDb mapping |
-| `src/server/routes/timeline.js` | MODIFIED | Fetch `command` column; `deriveSegments()`; expand into segment objects |
-| `src/client/pages/TimelinePage.vue` | MODIFIED | `onSessionEdited` must patch all segments sharing same `parentSessionId` |
-| `src/client/components/SessionDetailPanel.vue` | MODIFIED | Strip `:N` from displayed ID; show segment badge when `isSegment` |
-| `src/client/components/SessionMessagesModal.vue` | MODIFIED | Strip `:N` suffix before API call |
-| `src/client/components/SessionEditModal.vue` | MODIFIED | Strip `:N` suffix before PATCH call |
-| GanttBar, GanttSwimlane, DaySummary, GanttChart, bin/cli.js | UNCHANGED | No changes needed |
-
-See `.planning/research/ARCHITECTURE.md` for exact code patterns, SQL queries, and the `deriveSegments()` algorithm.
+**Height synchronization note:** Label column per-row divs must match each swimlane's computed height (`subRows.length * 36 + 8`). GanttChart has access to sessions arrays and can replicate this calculation without adding emit/prop complexity.
 
 ### Critical Pitfalls
 
-1. **Segment IDs break all existing API endpoints** — `PATCH /api/sessions/:id` and `GET /api/sessions/:id/messages` perform direct DB lookups. A segment ID `abc123:2` returns nothing (404). All three modal/edit components must strip the `:N` suffix before API calls. Add `isSegment: true` and `parentSessionId` fields to segment response objects so the UI knows when to strip. Must be addressed before any UI work on editing.
+1. **Time axis and bar area desync** — if only `.lanes-container` is wrapped in a scroll container while `.time-axis` remains a sibling, they scroll independently. Every bar ends up under the wrong time label. Fix: a single `.gantt-scroll-area` must wrap both the time axis row and all swimlane rows.
 
-2. **Ticket scoring is wrong at session granularity** — Import-time scoring over all session messages means segment 2 (post-/clear work on a different ticket) inherits the session's dominant ticket from segment 1. Re-run `scoreTickets()` per segment at query time over each segment's message slice. Session-level `primary_ticket` from DB is only a fallback for unsplit sessions.
+2. **`overflow: hidden` on `.gantt-chart` blocks all child scrolling** — any `overflow-x: auto` on a child is clipped by the parent's `overflow: hidden`. Fix: remove `overflow: hidden` from `.gantt-chart` before adding any scroll container; move overflow containment to `.gantt-scroll-area`.
 
-3. **Working time double-counting at segment boundaries** — If the `/clear` message timestamp is included in both adjacent segments, the boundary gap inflates both totals. The `/clear` message is the exclusive boundary: segment N ends at the message before `/clear`; segment N+1 starts at the message after `/clear`. The `/clear` message itself is excluded from both segments' timestamp lists.
+3. **Cursor-anchor uses wrong coordinate space** — using raw `event.clientX` instead of `event.clientX - rect.left` produces zoom that drifts toward the page's left edge. Fix: always subtract `viewport.getBoundingClientRect().left`.
 
-4. **Overnight clipping and segment splitting order matters** — Clip timestamps to the day boundary first, then split into segments. Segments with zero clamped messages after clipping are excluded. `continuesFromPrevDay`/`continuesIntoNextDay` flags must be recalculated per segment, not inherited from the parent session.
+4. **`scrollLeft` assigned before DOM updates** — setting `scrollLeft` synchronously after updating zoom state silently clamps to the pre-zoom scroll maximum. Fix: assign inside `await nextTick()` after changing `zoom.value`.
 
-5. **user_label and user_ticket have no per-segment storage** — Both columns live on the sessions row. For v0.6.0, edits apply session-wide: all segments of a session share the same `userLabel`/`userTicket`. The `onSessionEdited` handler in TimelinePage must patch all segments with matching `parentSessionId`. Decide this before building the UI — do not allow the edit UI to imply per-segment storage that does not exist.
-
-See `.planning/research/PITFALLS.md` for the full catalog including moderate and minor pitfalls.
+5. **`transform: scale` zooms the label column** — any approach applying CSS transform to the chart element scales the 140px label column with bars, breaking alignment at every zoom level. Fix: use canvas width expansion only; never apply transform-scale to any container that includes the label column.
 
 ## Implications for Roadmap
 
-The feature has a hard dependency chain: schema before import changes, import before query-time logic, query-time logic before frontend. This maps to three phases with clear validation gates between them.
+Research strongly suggests a 3-phase build order: structural prerequisite, core zoom mechanic, then polish. The structural refactor must complete and visually verify at 1x before any zoom state or event handling is written. Mixing the two adds debugging complexity with no benefit.
 
-### Phase 1: Schema + Import Pipeline
+### Phase 1: Structural Refactor (layout prerequisite)
 
-**Rationale:** The `command` column must exist in the database before any other work can be tested. This phase has zero visible UI impact and can be shipped and re-imported independently. It is the foundation that unblocks all downstream phases.
+**Rationale:** The current layout cannot support horizontal scroll without breaking time axis alignment. This must be correct before any zoom logic is added. It is a pure layout change with no visible effect at zoom level 1 — verifiable by confirming the chart renders identically to the current version before proceeding to Phase 2.
 
-**Delivers:** `command` column populated in the messages table for all re-imported sessions. Existing functionality completely unchanged. Degraded behavior (NULL = no segment) is acceptable for sessions not yet re-imported.
+**Delivers:** A chart container that supports horizontal scroll; the correct DOM structure for zoom to operate on.
 
-**Addresses:** Pitfalls 8 (command column missing blocks all query-time logic), 9 (keep per-session query count at 2, not 3, by folding command into existing messageStmt).
+**Key tasks:**
+- Introduce `.gantt-labels` (pinned, 140px) and `.gantt-scroll-area` (scrollable, flex: 1) as parallel layout regions
+- Move `.lane-label` elements out of individual lane rows into the pinned column
+- Remove three hardcoded `140px` offsets from `.time-axis` (margin-left) and `.grid-overlay` (left)
+- Remove `overflow: hidden` from `.gantt-chart`; add `overflow-x: auto` to `.gantt-scroll-area`
+- Sync label row heights with swimlane heights (GanttChart computes sub-row counts)
+- Preserve `.gantt-chart` class on outermost element (driver.js tour target — see Pitfall 11)
 
-**Files:** `schema.js`, `db/index.js`, `parser.js`, `db-writer.js`, `importer/index.js`
+**Avoids pitfalls:** Time axis desync (pitfall 1), overflow:hidden block (pitfall 3), label column scaling (pitfall 5).
 
-**Validation gate:** Re-import transcripts; run `SELECT command, COUNT(*) FROM messages WHERE command IS NOT NULL GROUP BY command;` — expect rows for `clear`.
+**Research flag:** Standard Vue flex layout restructure — no additional research needed. Validate by visual comparison with current rendering at zoom 1.
 
-### Phase 2: Timeline Route Segment Derivation
+### Phase 2: Core Zoom Mechanic
 
-**Rationale:** The API changes must be correct and backward-compatible before any frontend component depends on segment IDs. Getting the response shape right here makes Phase 3 low-risk mechanical work.
+**Rationale:** Once the DOM structure is verified correct, zoom is purely additive: wire the `zoomLevel` prop, apply canvas width, add the wheel handler, and add +/- buttons. State lives in TimelinePage (not GanttChart) to survive data refreshes.
 
-**Delivers:** `/api/timeline` returns segment objects (`sessionId: "uuid:N"`, `isSegment: true`, `parentSessionId`) for split sessions; unsplit sessions return unchanged. Per-segment working time, ticket scoring, and branch detection all computed correctly.
+**Delivers:** Functional zoom from 1x–4x, scroll wheel with cursor anchoring, +/- buttons, zoom state in TimelinePage with localStorage persistence, zoom reset on date navigation.
 
-**Addresses:** Core feature (segment boundary detection, per-segment data), Pitfalls 1 (segment IDs in response design), 3 (ticket scoring per segment), 4 (overnight clipping order), 5 (working time boundary).
+**Key tasks:**
+- Add `zoomLevel` prop to GanttChart; apply `width: ${zoomLevel * 100}%` to `.gantt-canvas`
+- Add `zoomLevel` ref in TimelinePage; pass as prop to GanttChart (not local to GanttChart)
+- Register wheel listener with `{ passive: false }` (not `@wheel` in template)
+- Implement cursor-anchored zoom: `newScrollLeft = (oldScrollLeft + cursorViewportX) * (newZoom / oldZoom) - cursorViewportX`
+- Assign `scrollLeft` inside `nextTick()` after zoom state change
+- Gate zoom on `ctrlKey` (pinch gesture) vs. raw scroll to avoid trackpad horizontal pan conflict
+- Add guard in bar click handler against accidental click-after-zoom gesture
+- Add +/- buttons to TimelineToolbar; emit `@update:zoom`
 
-**Key constraints:** `deriveSegments()` is a pure JavaScript function — no complex SQL. The `/clear` message is the exclusive boundary (not counted in either segment). Clip to day boundary first, then split. Skip emitting segments with zero timestamps after clipping.
+**Avoids pitfalls:** Wrong coordinate space (pitfall 2), passive wheel listener (pitfall 8), scrollLeft timing (pitfall 9), zoom state reset on data refresh (pitfall 10), trackpad ambiguity (pitfall 12).
 
-**Files:** `src/server/routes/timeline.js`
+**Research flag:** Cursor-anchor math should be validated in a working prototype before treating Phase 2 as complete. FEATURES.md rates the formula MEDIUM confidence (derived from first principles, corroborated by one practitioner blog). Failure mode is immediately visible: zoom in near the right edge; content under the cursor must stay anchored.
 
-**Validation gate:** API returns `"uuid:0"`, `"uuid:1"` for sessions with `/clear` markers. Total working time across all segments of a session equals what the unsplit session would have reported for the same period.
+### Phase 3: Polish and Discoverability
 
-### Phase 3: Frontend Adaptations
+**Rationale:** Non-blocking improvements that raise quality and address edge cases identified in research. All are additive and independent of Phase 2 correctness.
 
-**Rationale:** With Phase 2 delivering a correctly shaped API response, frontend changes are a bounded, known set. Each component change is independent and can be done sequentially.
+**Delivers:** Zoom level indicator, reset zoom affordance, smooth animation, adaptive tick density at high zoom, right-edge padding for continuation arrows.
 
-**Delivers:** Segments render as distinct Gantt bars. Detail panel shows segment indicator ("segment N of M"). Messages modal and edit modal work correctly. Session edits propagate to all segments of the same parent.
+**Key tasks:**
+- Display current zoom level (e.g., "2x") in toolbar
+- Add reset zoom affordance (button or clickable display)
+- Add `transition: width 100ms ease` to `.gantt-canvas`
+- Make `timeAxisTicks` reactive to zoom level (every 2h at 1x, 1h at 2x, 30min at 4x)
+- Add `padding-right: 16px` to canvas for continuation icon breathing room at the right edge
 
-**Addresses:** Pitfalls 1 (`:N` stripping in modals), 2 (session-wide edit applies to all segments via `onSessionEdited`), 6 (messages modal shows full-session messages — acceptable degraded behavior for v0.6.0).
+**Avoids pitfalls:** Tick density sparseness (pitfall 7), continuation icon clipping (pitfall 13).
 
-**Files:** `SessionMessagesModal.vue`, `SessionEditModal.vue`, `SessionDetailPanel.vue`, `TimelinePage.vue`
-
-**Validation gate:** Click a split session bar — detail panel shows "segment N of M". Open messages modal — shows first messages of full session (correct for v0.6.0). Edit label on a segment — all other segments of the same parent session update in the UI without a page refresh.
+**Research flag:** Tick density logic is purely additive inside GanttChart — no research needed. Animation is a one-liner CSS addition.
 
 ### Phase Ordering Rationale
 
-- Schema migration is the strict prerequisite; nothing else is testable without it
-- Timeline route changes must stabilize before frontend components commit to the ID scheme
-- Frontend changes are all reactive to the API shape — batching them in Phase 3 keeps each phase independently verifiable
-- The three-phase structure matches the build order suggested in ARCHITECTURE.md exactly
+- Phase 1 must come first: the DOM structure is a prerequisite for scroll; implementing zoom before the structural refactor means unwinding the refactor around zoom logic already in place.
+- Phase 2 depends on Phase 1 being verified correct at 1x (chart renders identically to today) before zoom state is added.
+- Phase 3 is fully independent of Phase 2 correctness — polish items can be deferred or pulled forward without risk.
+- No backend changes at any phase — zoom is entirely client-side. No API, no schema, no server code is touched.
 
 ### Research Flags
 
-Phases with well-documented, low-risk patterns (no additional research needed):
-- **Phase 1 (Schema + Import):** ALTER TABLE ADD COLUMN is a routine pattern in this codebase (done five times). Parser regex for `/clear` detection is straightforward. No unknowns.
-- **Phase 3 (Frontend):** Changes are mechanical ID-stripping in known, already-read component files. No unknowns.
+Phases needing attention during execution:
 
-Phases requiring implementation-time rigor (not additional research, but careful execution):
-- **Phase 2 (Route logic):** Working time boundary handling (Pitfall 5) and overnight clipping order (Pitfall 4) need unit tests against known session fixtures. The logic is fully understood; execution needs rigor, not more research.
+- **Phase 2 (cursor-anchor math):** Validate the scroll formula with an interactive prototype before marking complete. Test by zooming in near the right edge of a day with many sessions — verify the content under the cursor stays visually anchored.
+
+Phases with standard patterns (no additional research needed):
+
+- **Phase 1 (layout refactor):** Standard Vue flex layout restructure with known constraints. Verify visually at 1x before proceeding.
+- **Phase 3 (polish):** Each item is a small additive change with no integration risk.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Zero new dependencies; established migration pattern used five times already |
-| Features | HIGH | Based on direct codebase analysis; splitting rules already decided and simplified to /clear only |
-| Architecture | HIGH | Pure JavaScript segment derivation; data flow completely mapped with exact file and function names |
-| Pitfalls | HIGH | Based on direct code inspection of v0.5.0; all failure modes verified against actual code paths |
+| Stack | HIGH | All libraries evaluated directly from source; MDN docs confirm layout model; zero-dependency conclusion is solid |
+| Features | HIGH | Based on direct codebase analysis plus cross-reference with dhtmlxGantt docs, Asana design case study, and real shipping products |
+| Architecture | HIGH | Based on direct reading of all four component files; three hardcoded 140px values identified and verified |
+| Pitfalls | HIGH | All pitfalls derived from direct source inspection, not inference; specific failure modes and line-level evidence documented |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Messages modal segment filtering (v0.7.0 backlog):** For v0.6.0, the messages modal shows the first messages of the full session regardless of which segment was clicked (Pitfall 6 in PITFALLS.md). This is documented acceptable degraded behavior. A future improvement passes segment timestamps as query params to filter the message stream.
+- **Cursor-anchor math validation:** The scroll formula is logically correct and derived from first principles, but should be tested with an interactive prototype at Phase 2 start. Failure mode is obvious and immediately visible — no hidden failure risk.
 
-- **Per-segment user editing (post-v0.6.0):** The v0.6.0 decision is edits apply session-wide. If per-segment labels become a user need, the storage key should be the UUID of the `/clear` message that triggered the split (not the segment index N, which can shift if earlier messages are inserted).
+- **TimelineToolbar internal structure:** ARCHITECTURE.md notes TimelineToolbar was not directly read during research. The assumption is it follows the same emit pattern as the idle threshold control. Confirm before writing zoom control UI.
 
-- **Re-import requirement for existing data:** Sessions imported before schema v7 will have NULL `command` values and will appear as single unsplit segments until re-imported. The incremental import system handles this naturally; no forced full re-import is required. This is acceptable degraded behavior, not data corruption.
+- **Label height synchronization drift:** GanttChart must replicate swimlane sub-row count logic to compute label heights. If swimlane height calculation changes in a future milestone, these two locations can drift. Consider extracting to a shared utility or emitting `laneHeight` from GanttSwimlane.
+
+- **Minimum bar size at high zoom:** At 4x, the existing `min-width: 4px` and `Math.max(widthPct, 0.03)` may still leave very short sessions hard to click. Accepted for this milestone; revisit if user feedback identifies it as a blocker.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct code analysis of `/home/claude/cctimereporter/src/` (v0.5.0) — all architecture findings, schema state, component boundaries
-- `references/claude-transcript-schema.md` — JSONL message type definitions for /clear command detection
+- Direct source analysis: `GanttChart.vue`, `GanttBar.vue`, `GanttSwimlane.vue`, `TimelinePage.vue` — architecture, layout model, hardcoded values
+- MDN: [Element: wheel event](https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event) — passive listeners, deltaY, preventDefault behavior
+- MDN: [CSS zoom property](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/zoom) — zoom vs transform:scale layout behavior
+- GitHub: [timmywil/panzoom](https://github.com/timmywil/panzoom) v4.6.1 — confirmed transform-based, not scroll-based
+- GitHub: [ehassaan/vue-zoomable](https://github.com/ehassaan/vue-zoomable) v1.2.8 — confirmed transform-based
 
-### Secondary
-- Project orchestrator scope decision (2026-03-15) — /rename removed from scope; /clear is the only split signal; no coalescing thresholds
+### Secondary (MEDIUM confidence)
+- [dhtmlxGantt 6.2 zoom and mouse wheel](https://dhtmlx.com/blog/dhtmlxgantt-6-2-minor-update-boosting-gantt-chart-performance-zooming-mouse-wheel-much/) — Gantt zoom UX conventions
+- [Implementing a timeline with scrolling and zooming](https://thomas.preissler.me/blog/2022/01/10/implementing-a-timeline-with-scrolling-and-zooming-or-how-i-failed-at-elementary-school-math) — cursor-anchor formula corroboration
+- [Asana Design: Designing Timeline](https://medium.com/asana-design/designing-timeline-lessons-learned-from-our-journey-beyond-gantt-charts-645e80177aaa) — zoom UX case study from production tool
+- [Screen Studio: zoom shortcut](https://hub.screen.studio/p/shortcut-to-zoom-timeline-cmd-scroll-pinch-to-zoom-cmd) — trackpad pinch interaction pattern in shipping product
+- modern-css.com: [CSS zoom vs transform: scale()](https://modern-css.com/scaling-elements-without-transform-hacks/) — layout footprint difference
+
+### Tertiary (MEDIUM confidence, not independently verified)
+- [AIMMS: Zoom and Scroll in a Gantt Chart](https://how-to.aimms.com/Articles/279/279-gantt-chart-scroll.html) — vendor how-to on Gantt scroll patterns
 
 ---
-*Research completed: 2026-03-15*
-*Scope note: /rename is NOT a split signal for v0.6.0. Only /clear creates segments. Disregard any FEATURES.md or PITFALLS.md references to /rename splitting, configurable coalescing thresholds, or rename-proximity logic — those reflect the original scope before simplification.*
+*Research completed: 2026-03-18*
 *Ready for roadmap: yes*
