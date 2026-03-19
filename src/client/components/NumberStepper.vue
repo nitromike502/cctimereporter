@@ -61,14 +61,14 @@ function decrement() {
 }
 
 function onInput(e) {
-  const n = parseInt(e.target.value, 10)
+  const n = parseFloat(e.target.value)
   emit('update:modelValue', isNaN(n) ? props.modelValue : clamp(n))
 }
 
 function onBlur(e) {
   focused.value = false
   // Reset display if user typed something invalid
-  const n = parseInt(e.target.value, 10)
+  const n = parseFloat(e.target.value)
   if (isNaN(n)) e.target.value = props.modelValue
 }
 

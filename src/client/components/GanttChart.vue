@@ -13,8 +13,8 @@
     </div>
 
     <!-- Scrollable canvas area -->
-    <div class="gantt-scroll-area">
-      <div class="gantt-canvas">
+    <div class="gantt-scroll-area" ref="scrollAreaEl">
+      <div class="gantt-canvas" :style="{ width: zoomLevel * 100 + '%' }">
         <!-- Time axis -->
         <div class="time-axis">
           <div
@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import GanttSwimlane from './GanttSwimlane.vue'
 
 /**
@@ -67,12 +67,13 @@ import GanttSwimlane from './GanttSwimlane.vue'
  * grid lines, and swimlanes.
  *
  * At 1x zoom (.gantt-canvas is 100% width) the chart looks identical
- * to the old single-flow layout. Phase 20 will set canvas width to
- * zoomLevel * 100% to enable horizontal scroll.
+ * to the old single-flow layout. Canvas width scales to zoomLevel * 100%
+ * to enable horizontal scroll.
  *
  * @prop {Array}  projects          - Array of { projectId, displayName, color, sessions } objects
  * @prop {string} date              - YYYY-MM-DD date string
  * @prop {string} selectedSessionId - Session ID of the currently selected bar (or null)
+ * @prop {number} zoomLevel         - Zoom multiplier (1–4), controls canvas width
  */
 const props = defineProps({
   projects: {
@@ -87,9 +88,66 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  zoomLevel: {
+    type: Number,
+    default: 1,
+  },
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'update:zoomLevel'])
+
+// --- Scroll area ref ---
+
+const scrollAreaEl = ref(null)
+
+// --- Wheel zoom handler ---
+
+const ZOOM_MIN = 1
+const ZOOM_MAX = 4
+const ZOOM_STEP = 0.25
+
+function onWheel(event) {
+  // Only zoom on vertical scroll (deltaY). Ignore horizontal scroll (deltaX dominant = trackpad pan).
+  if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
+
+  event.preventDefault()
+
+  const direction = event.deltaY < 0 ? 1 : -1
+  const oldZoom = props.zoomLevel
+  const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, oldZoom + direction * ZOOM_STEP))
+  if (newZoom === oldZoom) return
+
+  const viewport = scrollAreaEl.value
+  if (!viewport) return
+
+  // Cursor-anchor math:
+  // cursorViewportX = horizontal distance from left edge of viewport to cursor
+  const cursorViewportX = event.clientX - viewport.getBoundingClientRect().left
+  const oldScrollLeft = viewport.scrollLeft
+
+  emit('update:zoomLevel', newZoom)
+
+  nextTick(() => {
+    // After DOM update, reposition scroll so content under cursor stays anchored
+    viewport.scrollLeft = (oldScrollLeft + cursorViewportX) * (newZoom / oldZoom) - cursorViewportX
+  })
+}
+
+// Must use addEventListener (not @wheel in template) because Vue template event listeners
+// are passive by default and we need preventDefault() to prevent page scrolling.
+onMounted(() => {
+  scrollAreaEl.value?.addEventListener('wheel', onWheel, { passive: false })
+})
+onUnmounted(() => {
+  scrollAreaEl.value?.removeEventListener('wheel', onWheel)
+})
+
+// Reset scrollLeft when date changes (zoom reset is handled in Plan 02)
+watch(() => props.date, () => {
+  if (scrollAreaEl.value) {
+    scrollAreaEl.value.scrollLeft = 0
+  }
+})
 
 /** Bar height (28px) + gap (8px) — must match GanttSwimlane.vue BAR_ROW_HEIGHT */
 const BAR_ROW_HEIGHT = 36
@@ -190,7 +248,7 @@ const timeAxisTicks = computed(() => {
 }
 
 .gantt-canvas {
-  width: 100%;
+  /* Width is set via inline style: zoomLevel * 100% — see :style binding in template */
 }
 
 .time-axis {
