@@ -7,7 +7,7 @@
 - SHIPPED **v0.3.0 Session Polish** — Phases 12-16 (shipped 2026-03-05)
 - SHIPPED **v0.4.0 Session Intelligence** — Phases 17-18 (shipped 2026-03-08)
 - SHIPPED **v0.5.0 Import Performance** — Ad-hoc (shipped 2026-03-12, no GSD phases)
-- **v0.6.0 Session Splitting** — Phases 19-22 (in progress)
+- **v0.6.0 Gantt Chart Zoom** — Phases 19-21 (in progress)
 
 ---
 
@@ -61,73 +61,52 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
 
 </details>
 
-### v0.6.0 Session Splitting (Phases 19-22)
+### v0.6.0 Gantt Chart Zoom (Phases 19-21)
 
-**Milestone Goal:** Sessions containing `/clear` commands are split into segments, each displayed as a separate Gantt bar with independent ticket, branch, and working time. Users see a clear picture of context switches within a working day.
+**Milestone Goal:** Users can zoom into the Gantt timeline to inspect short sessions and focus on specific time ranges, with scroll-wheel and button controls. Zoom operates 1x–4x with cursor anchoring, resets on date navigation, and does not regress any existing interactions.
 
-#### Phase 19: Schema, Import, and API Contract
+#### Phase 19: Layout Restructure
 
-**Goal**: The database records slash commands found in session messages, existing data migrates automatically, and the segment-aware API response shape is defined so backend and frontend work can proceed in parallel.
+**Goal**: The chart container correctly separates the pinned label column from the scrollable canvas area, enabling horizontal scroll without breaking time axis alignment.
 **Depends on**: Phase 18 (v0.6.0 starting point)
-**Requirements**: SCHM-01, SCHM-02, SCHM-03
+**Requirements**: LYOT-01, LYOT-02, LYOT-03
 **Success Criteria** (what must be TRUE):
-  1. After upgrade, the messages table has a `command` column without any manual intervention
-  2. The importer populates `command = 'clear'` for messages that contain a `/clear` user turn
-  3. Other slash commands (e.g. `/rename`) are also stored in `command` when present in a user message
-  4. Sessions imported before the upgrade have `command = NULL` on all messages until re-imported
-  5. API contract for segment-aware timeline response is defined and documented (response shape, segment fields, ID format)
+  1. Project name labels stay fixed on the left while the timeline canvas scrolls horizontally at any zoom level
+  2. Time axis tick labels remain aligned with session bars at all horizontal scroll positions
+  3. The chart at 1x zoom is visually indistinguishable from the pre-refactor layout (no regression)
+  4. The horizontal scrollbar appears inside the chart area and does not affect the pinned label column
 
 Plans:
-- [x] 19-01: Schema migration v6→v7, JSONL parser command detection, and API contract definition
+- [ ] 19-01: GanttChart layout restructure — pinned labels column, scrollable canvas, remove overflow:hidden
 
-#### Phase 20: Segment Derivation (backend)
+#### Phase 20: Core Zoom Mechanic
 
-**Goal**: The timeline API returns segment-aware session data — sessions with `/clear` boundaries produce multiple independent segments, each with their own ticket, branch, and working time.
-**Depends on**: Phase 19
-**Parallel with**: Phases 21, 22 (frontend phases code against API contract)
-**Requirements**: SEGM-01, SEGM-02, SEGM-03, SEGM-04, SEGM-05
+**Goal**: Users can zoom the Gantt chart from 1x to 4x using the scroll wheel or +/- buttons, with the content under the cursor staying anchored during wheel zoom, and zoom resetting to 1x on date navigation.
+**Depends on**: Phase 19 (scrollable canvas structure required)
+**Requirements**: ZOOM-01, ZOOM-02, ZOOM-03, ZOOM-04, ZOOM-05, INTR-01, INTR-02
 **Success Criteria** (what must be TRUE):
-  1. A session with two `/clear` commands returns three segments from the timeline API
-  2. Each segment's ticket reflects only the messages within that segment's boundaries
-  3. Each segment's working time excludes the `/clear` message itself and idle gaps spanning /clear boundaries
-  4. A session with no `/clear` messages returns as a single entry, identical to pre-v0.6.0 behavior
-  5. Segment IDs use `session-id:N` format and existing PATCH/messages endpoints resolve them correctly
+  1. Scrolling the wheel over the chart zooms in or out without any modifier key; the content under the cursor stays visually anchored
+  2. +/- buttons in the toolbar change zoom level in discrete steps within the 1x–4x range
+  3. Navigating to a different date resets zoom to 1x
+  4. Clicking a session bar after zooming and scrolling opens the correct session's detail panel
+  5. The session detail panel, messages modal, and edit modal open and function normally at any zoom level
 
 Plans:
-- [ ] 20-01: Timeline route segment derivation with independent scoring and working time
-- [ ] 20-02: Endpoint ID resolution for segment IDs (PATCH, messages routes)
+- [ ] 20-01: Zoom state in TimelinePage, zoomLevel prop, canvas width binding, wheel handler with cursor-anchor math
+- [ ] 20-02: Toolbar +/- zoom buttons, zoom reset on date navigation, bar click guard
 
-#### Phase 21: Gantt Segments (frontend)
+#### Phase 21: Zoom Polish
 
-**Goal**: Segments from the same session appear as distinct Gantt bars in the correct project row, with a visual indicator that they belong to the same parent session.
-**Depends on**: Phase 19 (API contract)
-**Parallel with**: Phases 20, 22
-**Requirements**: GANT-01, GANT-02, GANT-03
+**Goal**: The zoom experience is refined with a level indicator, smooth animation, and adaptive time axis tick density that remains readable at high zoom.
+**Depends on**: Phase 20 (zoom mechanic must be correct before adding polish)
+**Requirements**: ZPOL-01, ZPOL-02, ZPOL-03
 **Success Criteria** (what must be TRUE):
-  1. A session with three segments renders three separate Gantt bars rather than one
-  2. Each bar is labeled with the `session-id:N` suffix so segments are individually identifiable
-  3. Bars from the same parent session have a shared visual grouping cue (e.g. connecting line, shared color band, or bracket)
-  4. Segments from different sessions do not share grouping cues
+  1. The current zoom level is displayed in the toolbar (e.g., "2.5x") and updates as zoom changes
+  2. Zooming in or out produces a smooth visual transition rather than a snap
+  3. Time axis tick spacing increases at higher zoom levels so labels remain legible and non-overlapping (e.g., 15-minute intervals at 4x)
 
 Plans:
-- [ ] 21-01: GanttBar and GanttRow segment rendering with grouping cue
-
-#### Phase 22: Detail, Summary, and Notifications (frontend)
-
-**Goal**: Clicking a segment bar shows that segment's specific data in the detail panel; day summary totals reflect per-segment working time; the messages modal labels context switches; and a one-time notification tells the user to re-import after upgrade.
-**Depends on**: Phase 19 (API contract)
-**Parallel with**: Phases 20, 21
-**Requirements**: DETL-01, DETL-02, SUMM-01, MSGS-01, NOTF-01
-**Success Criteria** (what must be TRUE):
-  1. Clicking segment 2 of 3 shows that segment's ticket, branch, working time, and messages — not the full session's data
-  2. The detail panel displays "segment 2 of 3" (or equivalent) when the selected bar belongs to a multi-segment session
-  3. The day summary working time matches the sum of all segment working times for that day
-  4. The messages modal shows `/clear` entries labeled "context switch" at the point they occurred
-  5. On first load after schema migration, a notification informs the user that re-import is needed to see segments
-
-Plans:
-- [ ] 22-01: Detail panel segment view and day summary totals
-- [ ] 22-02: Messages modal context switch label and re-import notification
+- [ ] 21-01: Zoom indicator, CSS transition on canvas width, adaptive tick density
 
 ## Progress
 
@@ -151,7 +130,6 @@ Plans:
 | 16. Import Progress Indicator | v0.3.0 | 2/2 | Complete | 2026-03-05 |
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
-| 19. Schema and Import | v0.6.0 | 1/1 | Complete | 2026-03-17 |
-| 20. Segment Derivation | v0.6.0 | 0/TBD | Not started | - |
-| 21. Gantt Segments | v0.6.0 | 0/TBD | Not started | - |
-| 22. Detail, Summary, and Notifications | v0.6.0 | 0/TBD | Not started | - |
+| 19. Layout Restructure | v0.6.0 | 0/1 | Not started | - |
+| 20. Core Zoom Mechanic | v0.6.0 | 0/2 | Not started | - |
+| 21. Zoom Polish | v0.6.0 | 0/1 | Not started | - |

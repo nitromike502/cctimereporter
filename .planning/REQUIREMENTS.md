@@ -66,25 +66,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LYOT-01 | TBD | Pending |
-| LYOT-02 | TBD | Pending |
-| LYOT-03 | TBD | Pending |
-| ZOOM-01 | TBD | Pending |
-| ZOOM-02 | TBD | Pending |
-| ZOOM-03 | TBD | Pending |
-| ZOOM-04 | TBD | Pending |
-| ZOOM-05 | TBD | Pending |
-| ZPOL-01 | TBD | Pending |
-| ZPOL-02 | TBD | Pending |
-| ZPOL-03 | TBD | Pending |
-| INTR-01 | TBD | Pending |
-| INTR-02 | TBD | Pending |
+| LYOT-01 | Phase 19 | Pending |
+| LYOT-02 | Phase 19 | Pending |
+| LYOT-03 | Phase 19 | Pending |
+| ZOOM-01 | Phase 20 | Pending |
+| ZOOM-02 | Phase 20 | Pending |
+| ZOOM-03 | Phase 20 | Pending |
+| ZOOM-04 | Phase 20 | Pending |
+| ZOOM-05 | Phase 20 | Pending |
+| ZPOL-01 | Phase 21 | Pending |
+| ZPOL-02 | Phase 21 | Pending |
+| ZPOL-03 | Phase 21 | Pending |
+| INTR-01 | Phase 20 | Pending |
+| INTR-02 | Phase 20 | Pending |
 
 **Coverage:**
 - v0.6.0 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after initial definition*
+*Last updated: 2026-03-18 — traceability mapped to phases 19-21*
