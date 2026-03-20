@@ -1,5 +1,5 @@
 <template>
-  <div class="gantt-chart">
+  <div class="gantt-chart" :class="{ 'is-pannable': zoomLevel > 1 }">
     <!-- Pinned label column -->
     <div class="gantt-labels">
       <div class="gantt-label-header"></div>
@@ -54,12 +54,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Zoom controls overlay (bottom-right of chart) -->
+    <div class="zoom-overlay">
+      <span class="zoom-overlay-label">Zoom</span>
+      <NumberStepper
+        :model-value="zoomLevel"
+        :min="1"
+        :max="4"
+        :step="0.25"
+        label="Zoom level"
+        @update:model-value="emit('update:zoomLevel', $event)"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import GanttSwimlane from './GanttSwimlane.vue'
+import NumberStepper from './NumberStepper.vue'
 
 /**
  * GanttChart — the main timeline canvas.
@@ -142,16 +156,51 @@ onMounted(() => {
 })
 onUnmounted(() => {
   scrollAreaEl.value?.removeEventListener('wheel', onWheel)
+  document.removeEventListener('mousemove', onPanMove)
+  document.removeEventListener('mouseup', onPanEnd)
 })
 
-// --- Bar click guard (prevent false selection after scroll-dragging) ---
+// --- Drag-pan + bar click guard ---
 
 let scrollStartX = 0
 let didScroll = false
+let isPanning = false
+let panStartMouseX = 0
+let panStartScrollLeft = 0
 
-function onScrollAreaMouseDown() {
+function onScrollAreaMouseDown(event) {
   scrollStartX = scrollAreaEl.value?.scrollLeft ?? 0
   didScroll = false
+
+  // Only enable drag-pan when zoomed in
+  if (props.zoomLevel > 1 && event.button === 0) {
+    isPanning = true
+    panStartMouseX = event.clientX
+    panStartScrollLeft = scrollAreaEl.value?.scrollLeft ?? 0
+    scrollAreaEl.value?.classList.add('is-grabbing')
+    event.preventDefault()
+
+    document.addEventListener('mousemove', onPanMove)
+    document.addEventListener('mouseup', onPanEnd)
+  }
+}
+
+function onPanMove(event) {
+  if (!isPanning || !scrollAreaEl.value) return
+  const delta = panStartMouseX - event.clientX
+  scrollAreaEl.value.scrollLeft = panStartScrollLeft + delta
+
+  // Set didScroll if movement exceeds threshold (prevents bar click on drag release)
+  if (Math.abs(delta) > 5) {
+    didScroll = true
+  }
+}
+
+function onPanEnd() {
+  isPanning = false
+  scrollAreaEl.value?.classList.remove('is-grabbing')
+  document.removeEventListener('mousemove', onPanMove)
+  document.removeEventListener('mouseup', onPanEnd)
 }
 
 function onScrollAreaScroll() {
@@ -238,6 +287,17 @@ const timeAxisTicks = computed(() => {
 .gantt-chart {
   width: 100%;
   display: flex;
+  position: relative;
+}
+
+/* Grab cursor when zoomed in (pannable) */
+.gantt-chart.is-pannable .gantt-scroll-area {
+  cursor: grab;
+}
+
+.gantt-chart.is-pannable .gantt-scroll-area.is-grabbing {
+  cursor: grabbing;
+  user-select: none;
 }
 
 /* Pinned label column */
@@ -328,5 +388,27 @@ const timeAxisTicks = computed(() => {
 
 .swimlane-row {
   position: relative;
+}
+
+/* Zoom controls overlay */
+.zoom-overlay {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  right: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  z-index: 10;
+}
+
+.zoom-overlay-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 </style>
