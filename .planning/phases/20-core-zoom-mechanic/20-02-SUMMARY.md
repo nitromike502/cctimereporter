@@ -89,11 +89,20 @@ None — plan executed cleanly. Build succeeded after both tasks.
 
 None - no external service configuration required.
 
+## Post-Checkpoint Work
+
+Additional changes made during human verification:
+
+- **Hidden scrollbar** (`e3aaa2a`): `scrollbar-width: none` + `::-webkit-scrollbar { display: none }` on `.gantt-scroll-area` to prevent page height shift on zoom
+- **Drag-to-pan** (`594ccb6`): Click-drag panning when zoomed >1x with grab/grabbing cursors, integrated with existing 5px click guard
+- **Zoom controls relocated** (`09e1800`, `1dbd5e2`): Moved from toolbar to below Gantt chart. Added `.gantt-chart-inner` wrapper for flex layout
+- **Branch display fix** (`e5cf410`): `determineWorkingBranch()` now falls back to default branches (main, master) instead of null. GanttBar label still skips defaults. Detail panel always shows the actual branch.
+- **NumberStepper fix** (in 20-01): `parseInt` → `parseFloat` for decimal step support
+
 ## Next Phase Readiness
 
-- Full zoom mechanic complete: wheel zoom + cursor anchor (Plan 01), toolbar buttons + reset + click guard (Plan 02)
-- Awaiting human verification checkpoint before phase is considered done
-- Phase 21 (zoom polish) can proceed once checkpoint approved
+- Full zoom mechanic complete and human-verified
+- Phase 21 (zoom polish) can proceed
 
 ---
 *Phase: 20-core-zoom-mechanic*
