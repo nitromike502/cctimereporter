@@ -7,7 +7,7 @@
 - SHIPPED **v0.3.0 Session Polish** — Phases 12-16 (shipped 2026-03-05)
 - SHIPPED **v0.4.0 Session Intelligence** — Phases 17-18 (shipped 2026-03-08)
 - SHIPPED **v0.5.0 Import Performance** — Ad-hoc (shipped 2026-03-12, no GSD phases)
-- **v0.6.0 Gantt Chart Zoom** — Phases 19-21 (in progress)
+- SHIPPED **v0.6.0 Gantt Chart Zoom** — Phases 19-21 (shipped 2026-03-19)
 
 ---
 
@@ -61,52 +61,16 @@ See: `.planning/milestones/v0.4.0-ROADMAP.md` for full details.
 
 </details>
 
-### v0.6.0 Gantt Chart Zoom (Phases 19-21)
+<details>
+<summary>v0.6.0 Gantt Chart Zoom (Phases 19-21) — SHIPPED 2026-03-19</summary>
 
-**Milestone Goal:** Users can zoom into the Gantt timeline to inspect short sessions and focus on specific time ranges, with scroll-wheel and button controls. Zoom operates 1x–4x with cursor anchoring, resets on date navigation, and does not regress any existing interactions.
+- [x] Phase 19: Layout Restructure (1/1 plans) — completed 2026-03-19
+- [x] Phase 20: Core Zoom Mechanic (2/2 plans) — completed 2026-03-19
+- [x] Phase 21: Zoom Polish (1/1 plans) — completed 2026-03-19
 
-#### Phase 19: Layout Restructure
+See: `.planning/milestones/v0.6.0-ROADMAP.md` for full details.
 
-**Goal**: The chart container correctly separates the pinned label column from the scrollable canvas area, enabling horizontal scroll without breaking time axis alignment.
-**Depends on**: Phase 18 (v0.6.0 starting point)
-**Requirements**: LYOT-01, LYOT-02, LYOT-03
-**Success Criteria** (what must be TRUE):
-  1. Project name labels stay fixed on the left while the timeline canvas scrolls horizontally at any zoom level
-  2. Time axis tick labels remain aligned with session bars at all horizontal scroll positions
-  3. The chart at 1x zoom is visually indistinguishable from the pre-refactor layout (no regression)
-  4. The horizontal scrollbar appears inside the chart area and does not affect the pinned label column
-
-Plans:
-- [x] 19-01: GanttChart layout restructure — pinned labels column, scrollable canvas, remove overflow:hidden
-
-#### Phase 20: Core Zoom Mechanic
-
-**Goal**: Users can zoom the Gantt chart from 1x to 4x using the scroll wheel or +/- buttons, with the content under the cursor staying anchored during wheel zoom, and zoom resetting to 1x on date navigation.
-**Depends on**: Phase 19 (scrollable canvas structure required)
-**Requirements**: ZOOM-01, ZOOM-02, ZOOM-03, ZOOM-04, ZOOM-05, INTR-01, INTR-02
-**Success Criteria** (what must be TRUE):
-  1. Scrolling the wheel over the chart zooms in or out without any modifier key; the content under the cursor stays visually anchored
-  2. +/- buttons in the toolbar change zoom level in discrete steps within the 1x–4x range
-  3. Navigating to a different date resets zoom to 1x
-  4. Clicking a session bar after zooming and scrolling opens the correct session's detail panel
-  5. The session detail panel, messages modal, and edit modal open and function normally at any zoom level
-
-Plans:
-- [x] 20-01: Zoom state in TimelinePage, zoomLevel prop, canvas width binding, wheel handler with cursor-anchor math
-- [x] 20-02: Toolbar +/- zoom buttons, zoom reset on date navigation, bar click guard
-
-#### Phase 21: Zoom Polish
-
-**Goal**: The zoom experience is refined with a level indicator, smooth animation, and adaptive time axis tick density that remains readable at high zoom.
-**Depends on**: Phase 20 (zoom mechanic must be correct before adding polish)
-**Requirements**: ZPOL-01, ZPOL-02, ZPOL-03
-**Success Criteria** (what must be TRUE):
-  1. The current zoom level is displayed in the toolbar (e.g., "2.5x") and updates as zoom changes
-  2. Zooming in or out produces a smooth visual transition rather than a snap
-  3. Time axis tick spacing increases at higher zoom levels so labels remain legible and non-overlapping (e.g., 15-minute intervals at 4x)
-
-Plans:
-- [x] 21-01: Zoom indicator, CSS transition on canvas width, adaptive tick density
+</details>
 
 ## Progress
 

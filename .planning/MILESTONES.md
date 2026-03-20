@@ -1,5 +1,35 @@
 # Project Milestones: CC Time Reporter
 
+## v0.6.0 Gantt Chart Zoom (Shipped: 2026-03-19)
+
+**Delivered:** Users can zoom the Gantt timeline 1x–4x to inspect short sessions and focus on time ranges, with scroll-wheel zoom, cursor anchoring, drag-to-pan, and adaptive tick density.
+
+**Phases completed:** 19-21 (4 plans total)
+
+**Key accomplishments:**
+
+- Restructured GanttChart.vue to two-column layout: pinned project labels + horizontally scrollable canvas
+- Scroll-wheel zoom with cursor-anchor math (content under cursor stays fixed during zoom)
+- Click-drag pan when zoomed >1x with grab/grabbing cursors
+- Zoom controls (NumberStepper) positioned below the chart with "x" suffix indicator
+- Adaptive time axis tick density: 2h at 1x, 1h at 2x, 30min at 3x, 15min at 4x
+- Smooth CSS transition on button-triggered zoom; instant on wheel zoom
+- Branch display fix: default branches (main, master) now stored instead of null
+- NumberStepper parseFloat fix for decimal step values (0.25)
+
+**Stats:**
+
+- 29 files changed, 2,452 insertions
+- 7,246 lines of JS/Vue/CSS (total codebase)
+- 3 phases, 4 plans
+- 2 days (2026-03-19 → 2026-03-19)
+
+**Git range:** `32d46ec` (milestone start) → `727b8fa` (phase 21 complete)
+
+**What's next:** TBD — next milestone planning
+
+---
+
 ## v0.5.0 Import Performance (Shipped: 2026-03-12)
 
 **Delivered:** Incremental import with 2-day default window and configurable debug logging — dramatically faster daily imports.

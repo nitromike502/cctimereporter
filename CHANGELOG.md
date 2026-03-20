@@ -4,6 +4,26 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-03-19
+
+### Added
+
+- **Gantt chart zoom:** Zoom the timeline 1x–4x using scroll wheel (cursor-anchored) or +/- buttons below the chart. Short sessions become easier to distinguish and click at higher zoom levels.
+- **Click-drag pan:** When zoomed in, click and drag to pan the chart horizontally. Grab/grabbing cursor indicates panning is available.
+- **Adaptive time axis ticks:** Time axis shows denser tick marks at higher zoom levels — 2-hour intervals at 1x, 1-hour at 2x, 30-minute at 3x, 15-minute at 4x.
+- **Smooth button zoom:** Clicking +/- buttons produces a smooth 150ms CSS transition. Scroll-wheel zoom remains instant for responsive cursor anchoring.
+- **Zoom level indicator:** Zoom controls show the current level with an "x" suffix (e.g. "2.5x").
+
+### Changed
+
+- **Branch display:** Default branches (main, master, develop, etc.) are now stored in the database instead of null. The session detail panel always shows the actual branch. Gantt bar labels still skip default branches in the display fallback chain.
+- **Chart layout:** GanttChart restructured to two-column layout with pinned project labels and a separately scrollable canvas area.
+
+### Fixed
+
+- **NumberStepper decimal support:** Fixed `parseInt` to `parseFloat` in NumberStepper input handling, enabling decimal step values (0.25 for zoom).
+- **Tick label clipping:** First time axis label ("12a") no longer clips at the left edge of the chart.
+
 ## [0.5.1] - 2026-03-18
 
 ### Added

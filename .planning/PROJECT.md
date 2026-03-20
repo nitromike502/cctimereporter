@@ -47,17 +47,18 @@ A user can run one command and immediately see a clear visual timeline of their 
 - ✓ Messages modal XML cleaning (task-notification, bash, local-command, skill expansion tags) — v0.4.0
 - ✓ Expandable message cards with DOM overflow detection — v0.4.0
 
+- ✓ Gantt chart zoom 1x–4x with cursor-anchored scroll-wheel zoom — v0.6.0
+- ✓ Two-column layout: pinned project labels + scrollable canvas — v0.6.0
+- ✓ Click-drag pan when zoomed with grab cursor — v0.6.0
+- ✓ Zoom controls (NumberStepper) below chart with "x" suffix — v0.6.0
+- ✓ Adaptive time axis tick density (2h→1h→30min→15min by zoom level) — v0.6.0
+- ✓ Smooth CSS transition on button zoom, instant on wheel zoom — v0.6.0
+- ✓ Branch always stored in DB (including main/master), skipped in label only — v0.6.0
+- ✓ NumberStepper parseFloat for decimal step values — v0.6.0
+
 ### Active
 
-**Current Milestone: v0.6.0 Gantt Chart Zoom**
-
-**Goal:** Users can zoom into the Gantt timeline to inspect short sessions and focus on specific time ranges, with scroll-wheel and button controls.
-
-- [ ] Zoom widens the chart container (percentage-based bars scale naturally), overflow-x: auto for horizontal scroll
-- [ ] Scroll wheel over chart zooms in/out, anchored to cursor position
-- [ ] Visible +/- zoom buttons in the UI
-- [ ] Zoom range: 1x to 4x
-- [ ] Zoom resets to 1x on date navigation
+(No active milestone — planning next)
 
 ### Out of Scope
 
@@ -70,14 +71,14 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ## Context
 
-**Shipped v0.5.0** with ~6,900 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+**Shipped v0.6.0** with ~7,246 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
 Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, driver.js, Vite 7.
-Database: SQLite with WAL mode, schema v6, auto-migration (v1→v6).
+Database: SQLite with WAL mode, schema v7, auto-migration (v1→v7).
 Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
 
-**Known tech debt (v0.4.0):**
+**Known tech debt (v0.6.0):**
 - GET /api/projects route registered but unused by frontend
 - AppTooltip and AppBadge components exist in library but are not used in production UI
 - SessionDetailPanel has dead `.detail-placeholder` CSS class
@@ -132,6 +133,13 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | 6-source ticket scoring system | Comprehensive detection across slash commands, branches, content, commits, MCP, summaries | ✓ Good — covers all sources |
 | Summary/title scoring at 25pt flat | Low weight since generated text, not user-authored | ✓ Good |
 | Session splitting abandoned | /clear creates new sessions (separate JSONL files), splitting unnecessary | ✗ Invalidated |
+| Width-expansion zoom (not transform:scale) | Percentage-based bars reflow correctly with canvas width change | ✓ Good |
+| Zoom state in TimelinePage (not GanttChart) | Survives data refreshes and date navigation | ✓ Good |
+| Wheel zoom instant, button zoom with CSS transition | Prevents cursor-anchor drift from mid-transition width | ✓ Good |
+| Hidden scrollbar | Prevents page height shift on zoom; scroll via wheel/drag | ✓ Good |
+| Zoom controls below chart (not toolbar) | User preference; keeps toolbar focused on navigation | ✓ Good |
+| Branch always stored (including defaults) | Detail panel always shows branch; label skips defaults | ✓ Good |
+| Adaptive tick density (4 tiers) | 2h/1h/30min/15min at thresholds 1/1.75/2.75/3.75x | ✓ Good |
 
 ---
-*Last updated: 2026-03-18 after v0.6.0 Gantt Chart Zoom milestone start*
+*Last updated: 2026-03-19 after v0.6.0 Gantt Chart Zoom milestone complete*
