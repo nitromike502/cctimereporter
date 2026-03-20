@@ -5,11 +5,9 @@
       :date="selectedDate"
       :import-running="importRunning"
       :threshold="idleThreshold"
-      :zoom-level="zoomLevel"
       @navigate="navigateToDate"
       @import="triggerImport"
       @update:threshold="setIdleThreshold"
-      @update:zoom-level="val => zoomLevel = val"
     />
 
     <!-- Import progress overlay -->

@@ -34,17 +34,6 @@
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       </button>
-      <div class="zoom-control">
-        <span class="zoom-label">Zoom</span>
-        <NumberStepper
-          :model-value="zoomLevel"
-          :min="1"
-          :max="4"
-          :step="0.25"
-          label="Zoom level"
-          @update:model-value="$emit('update:zoom-level', $event)"
-        />
-      </div>
       <div class="threshold-control">
         <span class="threshold-label">Idle Minutes</span>
         <button
@@ -150,14 +139,9 @@ const props = defineProps({
     type: Number,
     default: 10,
   },
-  /** Zoom level for the Gantt chart (1–4) */
-  zoomLevel: {
-    type: Number,
-    default: 1,
-  },
 })
 
-const emit = defineEmits(['navigate', 'import', 'update:threshold', 'update:zoom-level'])
+const emit = defineEmits(['navigate', 'import', 'update:threshold'])
 
 const showImportMenu = ref(false)
 
@@ -243,18 +227,6 @@ function yesterdayStr() {
   align-items: center;
   gap: var(--spacing-sm);
   margin-left: auto;
-}
-
-.zoom-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.zoom-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-  white-space: nowrap;
 }
 
 .threshold-control {
