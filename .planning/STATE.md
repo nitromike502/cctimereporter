@@ -5,24 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.6.0 Gantt Chart Zoom — Phase 21: Zoom Polish
+**Current focus:** v0.6.0 complete — ready for release packaging
 
 ## Current Position
 
 Phase: 21 of 21 (Zoom Polish)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-03-19 — Phase 20 (Core Zoom Mechanic) complete and verified
+Plan: 1 of 1 in current phase
+Status: Phase complete — all v0.6.0 phases done
+Last activity: 2026-03-20 — Completed 21-01-PLAN.md (Zoom Polish)
 
-Progress: [██████████████░░░░░░] 67% (v0.6.0: 2/3 phases complete)
-Overall:  Phases 1-20 complete (v1.0 through v0.5.1 shipped + v0.6.0 Phases 19-20)
+Progress: [████████████████████] 100% (v0.6.0: 3/3 phases complete)
+Overall:  Phases 1-21 complete (v1.0 through v0.5.1 shipped + v0.6.0 fully implemented)
 
 ## Performance Metrics
 
 **v0.6.0 Velocity:**
-- Total plans completed: 3 (Phase 19: 1, Phase 20: 2)
-- Phases: 2 (19, 20)
-- Timeline: 1 day (2026-03-19)
+- Total plans completed: 4 (Phase 19: 1, Phase 20: 2, Phase 21: 1)
+- Phases: 3 (19, 20, 21)
+- Timeline: 1-2 days (2026-03-19 to 2026-03-20)
 
 ## Accumulated Context
 
@@ -41,6 +41,9 @@ v0.6.0 Gantt Chart Zoom:
 - Phase 20: Zoom controls below chart (not in toolbar) per user request
 - Phase 20: Branch always stored (including main), label skips defaults
 - Phase 20: NumberStepper parseInt → parseFloat for decimal steps
+- Phase 21: "x" suffix span (not duplicate number) in zoom bar
+- Phase 21: isTransitioning ref isolates button zoom from wheel zoom (160ms timeout)
+- Phase 21: Tick thresholds at 1.75/2.75/3.75x for 1h/30min/15min density
 
 ### Pending Todos
 
@@ -48,10 +51,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+None. Ready for v0.6.0 release (version bump, CHANGELOG, publish).
 
 ## Session Continuity
 
-Last session: 2026-03-19
-Stopped at: Phase 20 verified, ready to plan Phase 21
+Last session: 2026-03-20
+Stopped at: Phase 21 complete — v0.6.0 implementation done
 Resume file: None
