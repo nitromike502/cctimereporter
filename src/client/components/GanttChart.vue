@@ -1,5 +1,6 @@
 <template>
-  <div class="gantt-chart" :class="{ 'is-pannable': zoomLevel > 1 }">
+  <div class="gantt-chart">
+    <div class="gantt-chart-inner" :class="{ 'is-pannable': zoomLevel > 1 }">
     <!-- Pinned label column -->
     <div class="gantt-labels">
       <div class="gantt-label-header"></div>
@@ -55,9 +56,11 @@
       </div>
     </div>
 
-    <!-- Zoom controls overlay (bottom-right of chart) -->
-    <div class="zoom-overlay">
-      <span class="zoom-overlay-label">Zoom</span>
+    </div>
+
+    <!-- Zoom controls below the chart -->
+    <div class="zoom-bar">
+      <span class="zoom-bar-label">Zoom</span>
       <NumberStepper
         :model-value="zoomLevel"
         :min="1"
@@ -286,16 +289,18 @@ const timeAxisTicks = computed(() => {
 <style scoped>
 .gantt-chart {
   width: 100%;
+}
+
+.gantt-chart-inner {
   display: flex;
-  position: relative;
 }
 
 /* Grab cursor when zoomed in (pannable) */
-.gantt-chart.is-pannable .gantt-scroll-area {
+.gantt-chart-inner.is-pannable .gantt-scroll-area {
   cursor: grab;
 }
 
-.gantt-chart.is-pannable .gantt-scroll-area.is-grabbing {
+.gantt-chart-inner.is-pannable .gantt-scroll-area.is-grabbing {
   cursor: grabbing;
   user-select: none;
 }
@@ -390,23 +395,16 @@ const timeAxisTicks = computed(() => {
   position: relative;
 }
 
-/* Zoom controls overlay */
-.zoom-overlay {
-  position: absolute;
-  bottom: var(--spacing-sm);
-  right: var(--spacing-sm);
+/* Zoom controls bar below chart */
+.zoom-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  padding: 4px 8px;
-  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
-  backdrop-filter: blur(4px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  z-index: 10;
+  padding: 4px var(--spacing-sm);
 }
 
-.zoom-overlay-label {
+.zoom-bar-label {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
   white-space: nowrap;
