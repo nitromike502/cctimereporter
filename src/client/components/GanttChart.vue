@@ -17,7 +17,7 @@
     <div class="gantt-scroll-area" ref="scrollAreaEl"
          @mousedown="onScrollAreaMouseDown"
          @scroll="onScrollAreaScroll">
-      <div class="gantt-canvas" :style="{ width: zoomLevel * 100 + '%' }">
+      <div class="gantt-canvas" :style="{ width: zoomLevel * 100 + '%' }" :class="{ 'zoom-transitioning': isTransitioning }">
         <!-- Time axis -->
         <div class="time-axis">
           <div
@@ -67,8 +67,9 @@
         :max="4"
         :step="0.25"
         label="Zoom level"
-        @update:model-value="emit('update:zoomLevel', $event)"
+        @update:model-value="onStepperZoom($event)"
       />
+      <span class="zoom-bar-suffix">x</span>
     </div>
   </div>
 </template>
@@ -114,6 +115,18 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['select', 'update:zoomLevel'])
+
+// --- Zoom transition (button zoom only) ---
+
+const isTransitioning = ref(false)
+let transitionTimer = null
+
+function onStepperZoom(newZoom) {
+  isTransitioning.value = true
+  emit('update:zoomLevel', newZoom)
+  clearTimeout(transitionTimer)
+  transitionTimer = setTimeout(() => { isTransitioning.value = false }, 160)
+}
 
 // --- Scroll area ref ---
 
@@ -268,18 +281,42 @@ const laneHeights = computed(() => {
 })
 
 /**
- * Generates tick marks for the 24h time axis, one every 2 hours.
- * Labels use 12-hour format: 12a, 2a, 4a, ... 12p, 2p, ... 10p, 12a
+ * Generates tick marks for the 24h time axis with zoom-adaptive density.
+ * Labels use 12-hour format. Sub-hour ticks show "H:MMa/p" format.
+ *
+ * Density rules:
+ *   1x–1.74x: every 2 hours (13 ticks)
+ *   1.75x–2.74x: every 1 hour (25 ticks)
+ *   2.75x–3.74x: every 30 minutes (49 ticks)
+ *   3.75x–4x: every 15 minutes (97 ticks)
  */
 const timeAxisTicks = computed(() => {
+  const z = props.zoomLevel
+  let stepHours
+  if (z >= 3.75) stepHours = 0.25      // 15 min
+  else if (z >= 2.75) stepHours = 0.5   // 30 min
+  else if (z >= 1.75) stepHours = 1     // 1 hour
+  else stepHours = 2                     // 2 hours
+
   const ticks = []
-  for (let h = 0; h <= 24; h += 2) {
+  for (let h = 0; h <= 24; h += stepHours) {
     const pct = (h / 24) * 100
-    const label =
-      h === 0 ? '12a' :
-      h < 12 ? `${h}a` :
-      h === 12 ? '12p' :
-      `${h - 12}p`
+    const totalMinutes = h * 60
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = Math.round(totalMinutes % 60)
+
+    let label
+    if (minutes === 0) {
+      // Full hour — use 12-hour format
+      const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+      const suffix = hours < 12 || hours === 24 ? 'a' : 'p'
+      label = `${h12}${suffix}`
+    } else {
+      // Sub-hour — show as "H:MM" in 12-hour format
+      const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+      const suffix = hours < 12 ? 'a' : 'p'
+      label = `${h12}:${String(minutes).padStart(2, '0')}${suffix}`
+    }
     ticks.push({ pct, label })
   }
   return ticks
@@ -348,6 +385,11 @@ const timeAxisTicks = computed(() => {
   /* Width is set via inline style: zoomLevel * 100% — see :style binding in template */
 }
 
+/* Smooth transition for button-triggered zoom only (not wheel zoom) */
+.gantt-canvas.zoom-transitioning {
+  transition: width 150ms ease-out;
+}
+
 .time-axis {
   position: relative;
   height: 28px;
@@ -404,7 +446,8 @@ const timeAxisTicks = computed(() => {
   padding: 4px var(--spacing-sm);
 }
 
-.zoom-bar-label {
+.zoom-bar-label,
+.zoom-bar-suffix {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
   white-space: nowrap;
