@@ -120,12 +120,15 @@ const segments = computed(() => {
   return segs
 })
 
+/** Branches that are too generic to use as a session label */
+const DEFAULT_BRANCHES = new Set(['main', 'master', 'develop', 'dev', 'staging'])
+
 /** Session label using userLabel -> customTitle -> ticket -> branch -> summary -> sessionId fallback chain */
 const label = computed(() => {
   if (props.session.userLabel) return props.session.userLabel
   if (props.session.customTitle) return props.session.customTitle
   if (props.session.ticket) return props.session.ticket
-  if (props.session.branch) return props.session.branch
+  if (props.session.branch && !DEFAULT_BRANCHES.has(props.session.branch)) return props.session.branch
   if (props.session.summary) {
     const parsed = parseCommandXml(props.session.summary) || props.session.summary
     const words = parsed.split(/\s+/).slice(0, 5).join(' ')

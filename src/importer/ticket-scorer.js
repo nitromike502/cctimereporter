@@ -82,31 +82,41 @@ function shouldSkipBranch(branch) {
  */
 export function determineWorkingBranch(messages) {
   const branchCounts = new Map();
+  const allBranchCounts = new Map();
 
   for (const msg of messages) {
     const branch = msg.gitBranch;
+    if (!branch) continue;
+    allBranchCounts.set(branch, (allBranchCounts.get(branch) ?? 0) + 1);
     if (!shouldSkipBranch(branch)) {
       branchCounts.set(branch, (branchCounts.get(branch) ?? 0) + 1);
     }
   }
 
-  if (branchCounts.size === 0) return null;
+  // Prefer non-skipped branches
+  if (branchCounts.size > 0) {
+    const sorted = [...branchCounts.entries()].sort((a, b) => b[1] - a[1]);
 
-  // Prefer the first branch (by insertion/iteration order of most common)
-  // that contains a ticket pattern match
-  // Sort by count descending for stable iteration
-  const sorted = [...branchCounts.entries()].sort((a, b) => b[1] - a[1]);
-
-  for (const [branch] of sorted) {
-    // Reset lastIndex before test since TICKET_PATTERN has /g flag
-    TICKET_PATTERN.lastIndex = 0;
-    if (TICKET_PATTERN.test(branch)) {
-      return branch;
+    // Prefer branches containing a ticket pattern match
+    for (const [branch] of sorted) {
+      TICKET_PATTERN.lastIndex = 0;
+      if (TICKET_PATTERN.test(branch)) {
+        return branch;
+      }
     }
+
+    // Fall back to most common non-skipped branch
+    return sorted[0][0];
   }
 
-  // Fall back to most common non-skipped branch
-  return sorted[0][0];
+  // Fall back to most common branch overall (even default branches like main)
+  // so the detail panel always shows something
+  if (allBranchCounts.size > 0) {
+    const sorted = [...allBranchCounts.entries()].sort((a, b) => b[1] - a[1]);
+    return sorted[0][0];
+  }
+
+  return null;
 }
 
 /**
