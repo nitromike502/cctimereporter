@@ -272,6 +272,11 @@ const timeAxisTicks = computed(() => {
   margin-left: -14px;
   padding-left: 14px;
   padding-right: 10px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.gantt-scroll-area::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .gantt-canvas {
