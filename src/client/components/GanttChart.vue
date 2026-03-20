@@ -221,7 +221,7 @@ function onBarSelect(session) {
   emit('select', session)
 }
 
-// Reset scrollLeft when date changes (zoom reset is handled in Plan 02)
+// Reset scrollLeft when date changes (zoom reset to 1x is in TimelinePage's date watcher)
 watch(() => props.date, () => {
   if (scrollAreaEl.value) {
     scrollAreaEl.value.scrollLeft = 0

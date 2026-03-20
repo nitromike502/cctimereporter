@@ -92,8 +92,8 @@ Plans:
   5. The session detail panel, messages modal, and edit modal open and function normally at any zoom level
 
 Plans:
-- [ ] 20-01: Zoom state in TimelinePage, zoomLevel prop, canvas width binding, wheel handler with cursor-anchor math
-- [ ] 20-02: Toolbar +/- zoom buttons, zoom reset on date navigation, bar click guard
+- [x] 20-01: Zoom state in TimelinePage, zoomLevel prop, canvas width binding, wheel handler with cursor-anchor math
+- [x] 20-02: Toolbar +/- zoom buttons, zoom reset on date navigation, bar click guard
 
 #### Phase 21: Zoom Polish
 
@@ -131,5 +131,5 @@ Plans:
 | 17. Session Editing | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 19. Layout Restructure | v0.6.0 | 1/1 | Complete | 2026-03-19 |
-| 20. Core Zoom Mechanic | v0.6.0 | 0/2 | Not started | - |
+| 20. Core Zoom Mechanic | v0.6.0 | 2/2 | Complete | 2026-03-19 |
 | 21. Zoom Polish | v0.6.0 | 0/1 | Not started | - |

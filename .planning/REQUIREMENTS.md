@@ -69,16 +69,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LYOT-01 | Phase 19 | Complete |
 | LYOT-02 | Phase 19 | Complete |
 | LYOT-03 | Phase 19 | Complete |
-| ZOOM-01 | Phase 20 | Pending |
-| ZOOM-02 | Phase 20 | Pending |
-| ZOOM-03 | Phase 20 | Pending |
-| ZOOM-04 | Phase 20 | Pending |
-| ZOOM-05 | Phase 20 | Pending |
+| ZOOM-01 | Phase 20 | Complete |
+| ZOOM-02 | Phase 20 | Complete |
+| ZOOM-03 | Phase 20 | Complete |
+| ZOOM-04 | Phase 20 | Complete |
+| ZOOM-05 | Phase 20 | Complete |
 | ZPOL-01 | Phase 21 | Pending |
 | ZPOL-02 | Phase 21 | Pending |
 | ZPOL-03 | Phase 21 | Pending |
-| INTR-01 | Phase 20 | Pending |
-| INTR-02 | Phase 20 | Pending |
+| INTR-01 | Phase 20 | Complete |
+| INTR-02 | Phase 20 | Complete |
 
 **Coverage:**
 - v0.6.0 requirements: 13 total
