@@ -106,7 +106,7 @@ Plans:
   3. Time axis tick spacing increases at higher zoom levels so labels remain legible and non-overlapping (e.g., 15-minute intervals at 4x)
 
 Plans:
-- [ ] 21-01: Zoom indicator, CSS transition on canvas width, adaptive tick density
+- [x] 21-01: Zoom indicator, CSS transition on canvas width, adaptive tick density
 
 ## Progress
 
@@ -132,4 +132,4 @@ Plans:
 | 18. Ticket Detection Pipeline | v0.4.0 | 2/2 | Complete | 2026-03-07 |
 | 19. Layout Restructure | v0.6.0 | 1/1 | Complete | 2026-03-19 |
 | 20. Core Zoom Mechanic | v0.6.0 | 2/2 | Complete | 2026-03-19 |
-| 21. Zoom Polish | v0.6.0 | 0/1 | Not started | - |
+| 21. Zoom Polish | v0.6.0 | 1/1 | Complete | 2026-03-19 |

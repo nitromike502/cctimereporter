@@ -74,9 +74,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ZOOM-03 | Phase 20 | Complete |
 | ZOOM-04 | Phase 20 | Complete |
 | ZOOM-05 | Phase 20 | Complete |
-| ZPOL-01 | Phase 21 | Pending |
-| ZPOL-02 | Phase 21 | Pending |
-| ZPOL-03 | Phase 21 | Pending |
+| ZPOL-01 | Phase 21 | Complete |
+| ZPOL-02 | Phase 21 | Complete |
+| ZPOL-03 | Phase 21 | Complete |
 | INTR-01 | Phase 20 | Complete |
 | INTR-02 | Phase 20 | Complete |
 
