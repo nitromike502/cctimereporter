@@ -58,7 +58,14 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-(No active milestone — planning next)
+**Current Milestone: v0.7.0 Fork Visualization**
+
+**Goal:** Display fork branches as half-height sub-rows beneath their parent session bar in the Gantt chart, each starting at the fork point timestamp.
+
+- [ ] Fork branches displayed as 50% height sub-rows under parent session bar
+- [ ] Each fork bar starts at the fork point timestamp on the timeline
+- [ ] Fork bars are visually distinct from parent (height, indentation, or styling)
+- [ ] Sessions without forks remain unchanged
 
 ### Out of Scope
 
@@ -144,4 +151,4 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Adaptive tick density (4 tiers) | 2h/1h/30min/15min at thresholds 1/1.75/2.75/3.75x | ✓ Good |
 
 ---
-*Last updated: 2026-03-19 after v0.6.0 Gantt Chart Zoom milestone complete*
+*Last updated: 2026-03-20 after v0.7.0 Fork Visualization milestone start*
