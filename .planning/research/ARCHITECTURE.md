@@ -1,223 +1,277 @@
-# Architecture: Gantt Chart Zoom/Pan Integration
+# Architecture Patterns: Fork Visualization
 
-**Project:** CC Time Reporter — Gantt zoom/pan milestone
-**Researched:** 2026-03-18
-**Confidence:** HIGH (based on direct source reading of all four component files)
+**Domain:** Adding fork segment visualization to existing Gantt chart
+**Researched:** 2026-03-20
+**Confidence:** HIGH — based on direct source reading, no external dependencies to verify
 
 ---
 
-## Current Architecture (read from source)
+## Current Architecture (Verified)
 
 ### Component Hierarchy
 
 ```
 TimelinePage.vue
-  GanttChart.vue            — time axis + swimlane rows; width: 100%; overflow: hidden
-    GanttSwimlane.vue       — per-project row; stacks bars in sub-rows (px vertical offsets)
-      GanttBar.vue          — single session bar; left/width as CSS percentages
+  GanttChart.vue           — two-column layout, zoom, scroll/pan
+    GanttSwimlane.vue      — greedy sub-row layout per project
+      GanttBar.vue         — single session bar, absolute positioned
 ```
 
-### How Bar Positioning Works (GanttBar.vue)
+### Data Flow (Current)
 
-```javascript
-barLeft  = (startTime - dayStart) / dayMs * 100   // CSS left: N%
-barWidth = (endTime - startTime)  / dayMs * 100   // CSS width: N%
+```
+GET /api/timeline
+  → sessions[].idleGaps[]        (computed from message timestamps in route)
+  → sessions[].forkCount         (from sessions table, already present)
+  → sessions[].realForkCount     (from sessions table, already present)
+
+TimelinePage → GanttChart → GanttSwimlane → GanttBar
+                                             ↳ renders idle gap segments inline
 ```
 
-These percentages are relative to `.lane-bars` — the `flex: 1` div inside each `.lane-row` in GanttChart. The time axis ticks use the same system: `tick.pct = (h / 24) * 100`. Grid lines use `left: tick.pct + '%'` inside `.grid-overlay`.
+### Key Sizing Constants (Must Stay In Sync)
 
-**The critical property:** because everything is percentage-based relative to the bar area container, widening that container scales all bars and ticks automatically. Zero changes required in GanttBar or GanttSwimlane.
+`GanttChart.vue` and `GanttSwimlane.vue` share a `BAR_ROW_HEIGHT = 36` constant (28px bar + 8px gap). **Both files must be updated together** when row height changes. The label column height (`laneHeights` computed) mirrors `GanttSwimlane`'s `laneHeight` via a duplicated greedy algorithm — this coupling is a maintenance risk.
 
-### What Does NOT Scale Automatically
+### What the DB Already Has
 
-The 140px label column is hardcoded in three places in GanttChart.vue:
-- `.time-axis` — `margin-left: 140px` (offsets the header to align with the bar area)
-- `.grid-overlay` — `left: 140px` (offsets the grid to skip the label column)
-- `.lane-label` — `width: 140px; flex-shrink: 0`
+- `messages.is_fork_branch` (BOOLEAN) — set at import time by `fork-detector.js`
+- `sessions.fork_count`, `sessions.real_fork_count` — aggregate counts
+- `messages.timestamp` — needed to derive time segments
+- `messages.type` — already filtered in the message query in `timeline.js`
 
-This column is a fixed sidebar and must stay outside the horizontal scroll area.
-
-### GanttSwimlane Vertical Layout
-
-Sub-row stacking uses `BAR_ROW_HEIGHT = 36` and positions bars with `top: rowIdx * 36px`. This is vertical only — unaffected by horizontal zoom.
+The fork branch messages are **not currently fetched** by the timeline route. The message query only retrieves `timestamp` from `type IN ('user', 'assistant')` for working time computation.
 
 ---
 
-## Zoom/Pan Integration Design
+## The Core Problem: Interleaved Messages to Segments
 
-### Core Mechanism
+Fork branch messages are interleaved chronologically with main branch messages. Given a session with 5006 main messages and 3029 fork-branch messages, both streams share the same timeline.
 
-Widen the horizontal bar area by a zoom factor. Wrap it in a scroll container. The 140px label column stays fixed outside the scroll area.
+To render a fork bar, we need discrete time segments: contiguous runs of `is_fork_branch = 1` messages. Consecutive fork-branch messages that are close in time (under some threshold) form one segment; a long gap splits them into separate segments.
 
-At `zoomLevel = 2`, the canvas renders at `200%` of the scroll container's width. All percentage-based bars and ticks remain correct — they are still percentages of their (now wider) container.
+**Segment derivation algorithm** (same structure as `computeIdleGaps`):
+1. Fetch timestamps for `is_fork_branch = 1` messages in the session, ordered by timestamp
+2. Walk the list: when two consecutive timestamps are more than `thresholdMs` apart, end the current segment and start a new one
+3. Each segment has `{ start: timestamp, end: timestamp }`
 
-### Required Structural Change in GanttChart
+This mirrors the idle-gap computation already in `timeline.js`. The idle threshold already propagated from the UI can serve double duty here.
 
-The current layout places label and bars inside the same flex row inside `.gantt-chart`. The time axis uses `margin-left: 140px` to fake alignment with the bars. The grid overlay uses `left: 140px` for the same reason.
+---
 
-This layout cannot scroll horizontally without also scrolling the labels. It must be restructured to separate the fixed label column from the scrollable canvas column.
+## Recommended Architecture
 
-**Before (current structure):**
+### 1. Where Fork Segments Are Computed
+
+**Recommendation: API route (`timeline.js`), not client-side.**
+
+Rationale:
+- Fork segments require a DB query (`is_fork_branch = 1` messages for each session with forks)
+- The route already performs per-session message queries in a tight loop
+- Clients should receive ready-to-render data, not raw timestamps requiring re-derivation
+- Consistency: idle gaps are already server-computed; fork segments follow the same pattern
+
+**Do not compute at import time.** Segments depend on the idle threshold (a UI-configurable parameter), so they cannot be fixed at import. The threshold changes dynamically.
+
+**Do not add a new API endpoint.** Fork segments are per-session data logically belonging to the session object. Adding them to the existing timeline response is the right coupling point.
+
+### 2. API Changes Required
+
+Add a `forkSegments` array to each session object in the timeline response, alongside `idleGaps`.
+
+New prepared statement needed in `timeline.js`:
+
+```js
+const forkMessageStmt = db.prepare(`
+  SELECT timestamp
+  FROM messages
+  WHERE session_id = ?
+    AND is_fork_branch = 1
+    AND timestamp IS NOT NULL
+  ORDER BY timestamp
+`);
 ```
-.gantt-chart (width: 100%, overflow: hidden)
-  .time-axis (margin-left: 140px — pixel hack for alignment)
-  .lanes-container
-    .grid-overlay (left: 140px — pixel hack)
-    .lane-row (display: flex)
-      .lane-label (width: 140px, flex-shrink: 0)
-      .lane-bars (flex: 1)
-        GanttSwimlane
-```
 
-**After (zoom-ready structure):**
-```
-.gantt-chart (display: flex)
-  .gantt-labels (width: 140px, flex-shrink: 0)
-    .gantt-label-header (height matching time-axis)
-    .gantt-label-row × N (one per project, height synced with swimlane)
-  .gantt-scroll-area (flex: 1, overflow-x: auto)
-    .gantt-canvas (width: zoomLevel * 100%)
-      .time-axis (full canvas width)
-      .grid-overlay (full canvas width, no offset needed)
-      .swimlane-row × N
-        GanttSwimlane
-```
+New helper function (structurally identical to `computeIdleGaps`):
 
-The labels column scrolls vertically with the page but not horizontally. The canvas scrolls horizontally inside `.gantt-scroll-area`.
-
-**Height synchronization:** The label rows and swimlane rows must have matching heights. Currently GanttSwimlane computes its height as `subRows.length * BAR_ROW_HEIGHT + 8`. The label column divs must match. The cleanest approach: expose `laneHeight` upward from GanttSwimlane to GanttChart via an emit or by GanttChart computing it directly (since it has access to the sessions array and can replicate the sub-row count logic). Replicating the logic in GanttChart is simpler and avoids prop/event complexity — GanttChart already knows the sessions arrays for each project.
-
-### State: Where Zoom Lives
-
-**TimelinePage.vue owns zoomLevel.** This follows the existing pattern for `idleThreshold`:
-
-- Owned at the page level
-- Persisted to localStorage
-- Passed down as a prop to GanttChart
-- Mutated via a toolbar event
-
-```javascript
-// In TimelinePage.vue
-const ZOOM_KEY = 'cctimereporter:zoomLevel'
-const zoomLevel = ref(parseFloat(localStorage.getItem(ZOOM_KEY)) || 1)
-
-function setZoomLevel(val) {
-  zoomLevel.value = val
-  localStorage.setItem(ZOOM_KEY, String(val))
+```js
+function computeForkSegments(timestamps, thresholdMs) {
+  if (timestamps.length === 0) return [];
+  const segments = [];
+  let segStart = timestamps[0];
+  let segEnd = timestamps[0];
+  for (let i = 1; i < timestamps.length; i++) {
+    const gap = new Date(timestamps[i]).getTime() - new Date(segEnd).getTime();
+    if (gap > thresholdMs) {
+      segments.push({ start: segStart, end: segEnd });
+      segStart = timestamps[i];
+    }
+    segEnd = timestamps[i];
+  }
+  segments.push({ start: segStart, end: segEnd });
+  return segments;
 }
 ```
 
-`zoomLevel` flows: `TimelinePage → GanttChart (prop) → applied to .gantt-canvas width`
+Call site in the session loop (only when `realForkCount > 0` to avoid the DB query overhead for the common case):
 
-### Applying Zoom in GanttChart
-
-GanttChart receives a `zoomLevel` prop (Number, default 1). The canvas div uses an inline style:
-
-```javascript
-const canvasStyle = computed(() => ({ width: `${props.zoomLevel * 100}%` }))
+```js
+let forkSegments = [];
+if (row.real_fork_count > 0) {
+  const forkMsgRows = forkMessageStmt.all(row.session_id);
+  const forkTimestamps = forkMsgRows
+    .map(m => m.timestamp)
+    .filter(t => t >= dayStartUTC && t < dayEndUTC);
+  forkSegments = computeForkSegments(forkTimestamps, thresholdMs);
+}
 ```
 
-Applied as `:style="canvasStyle"` on `.gantt-canvas`. No changes in GanttSwimlane or GanttBar — the percentage math is unchanged.
+The session object gets `forkSegments` appended:
 
-### Tick Density
-
-At 1x zoom: 13 ticks across 24h (every 2h). At 4x zoom: the canvas is 4x wider, so those ticks are spaced 4x further apart — this is correct and improves readability of time positions.
-
-Optional enhancement (not needed for MVP): add denser ticks at higher zoom levels. The `timeAxisTicks` computed in GanttChart can gate on `zoomLevel` to add hourly marks at 2x or 30-minute marks at 4x. This is purely additive and does not affect the structural change.
-
-### Zoom Controls
-
-**Add to TimelineToolbar** — same component that hosts the idle threshold control. TimelinePage passes `zoomLevel` down and handles `@update:zoom` back up. Keeps GanttChart as a pure rendering component.
-
-Discrete steps are preferable to a continuous slider: 1x, 1.5x, 2x, 3x, 4x. A simple button group (+/-) or segmented control works. The exact UI is a detail of the toolbar implementation.
-
-### Scroll Position on Date Change
-
-When the user navigates to a different date, the horizontal scroll position of `.gantt-scroll-area` should reset to 0. Two approaches:
-
-1. GanttChart watches its `date` prop and resets its own scroll via a template ref on `.gantt-scroll-area`.
-2. TimelinePage holds a ref to GanttChart and calls an exposed `resetScroll()` method.
-
-Option 1 is simpler — GanttChart is already aware of `date` (passed to swimlanes). A `watch(props.date, () => { scrollArea.value.scrollLeft = 0 })` inside GanttChart handles it without adding surface area to the component boundary.
-
----
-
-## Component Change Summary
-
-| Component | Change | What |
-|-----------|--------|------|
-| `GanttChart.vue` | **Modified** | Structural refactor — separate label column from scrollable canvas; add `zoomLevel` prop; apply canvas width; sync label row heights with swimlane heights; watch `date` to reset scroll |
-| `TimelinePage.vue` | **Modified** | Add `zoomLevel` ref, localStorage persistence, `setZoomLevel()` function; pass `zoomLevel` prop to GanttChart; wire zoom event from toolbar |
-| `TimelineToolbar.vue` | **Modified** | Add zoom control UI; emit `@update:zoom` event |
-| `GanttSwimlane.vue` | **No change** | Vertical stacking unaffected |
-| `GanttBar.vue` | **No change** | Percentage-based positioning scales naturally |
-
-No new components required for the core feature.
-
----
-
-## Build Order
-
-Step 1 is the riskiest (layout restructure) and must be done first. Steps 2-4 are additive.
-
-**Step 1 — Restructure GanttChart layout**
-Separate the label column from the scrollable canvas. Add an inner `.gantt-canvas` div with `width: 100%` (no zoom yet). Validate that the chart renders identically to the current version at default width — this is a pure layout refactor with no visible change.
-
-Key tasks in this step:
-- Remove `margin-left: 140px` from `.time-axis`
-- Remove `left: 140px` from `.grid-overlay`
-- Move `.lane-label` divs into a parallel `.gantt-labels` column
-- Sync label row heights with swimlane heights (compute sub-row counts in GanttChart)
-- Set `overflow-x: auto` on `.gantt-scroll-area`
-
-**Step 2 — Wire zoomLevel prop**
-Add `zoomLevel` prop to GanttChart. Apply `width: ${zoomLevel * 100}%` to `.gantt-canvas`. Test at 2x: bars and ticks should scale correctly, scroll should appear.
-
-**Step 3 — Add zoom state to TimelinePage**
-Add `zoomLevel` ref with localStorage persistence. Pass to GanttChart. Add `setZoomLevel()` handler.
-
-**Step 4 — Add zoom controls to TimelineToolbar**
-Add +/- or step control for zoom. Emit `@update:zoom`. Wire in TimelinePage.
-
-**Step 5 (optional) — Scroll reset on date change**
-Watch `date` prop in GanttChart, reset `scrollLeft` to 0 on change.
-
-**Step 6 (optional) — Adaptive tick density**
-In `timeAxisTicks`, add more marks when `zoomLevel >= 2`.
-
----
-
-## Integration Points with Existing Code
-
-**The `.gantt-chart` CSS class** is referenced by the guided tour in TimelinePage.vue:
-```javascript
-{ element: '.gantt-chart', popover: { title: 'Session Timeline', ... } }
+```js
+const sessionObj = {
+  // ... existing fields ...
+  forkSegments,   // [{ start, end }] — empty array when no forks
+};
 ```
-The outer container must keep this class name after the restructure.
 
-**`overflow: hidden` on `.gantt-chart`** currently prevents any scroll. This must become `overflow: visible` (or be removed) on the outer container, with `overflow-x: auto` moved to the inner `.gantt-scroll-area`.
+### 3. Component Changes
 
-**`padding-right: 10px` on `.gantt-chart`** currently adds breathing room. After restructure, this should apply to the scroll area or canvas, not the outer flex container.
+#### GanttSwimlane.vue — Modified
+
+Currently renders one `GanttBar` per session, stacked in sub-rows via the greedy algorithm.
+
+For fork visualization, each main bar needs an associated fork bar rendered at half-height directly below it (not in a separate greedy sub-row — it belongs to the same logical session row).
+
+**Change required:** When a session has `forkSegments.length > 0`, render an additional `GanttForkBar` positioned at `top: rowIdx * BAR_ROW_HEIGHT + 14px` (14px = half of the 28px bar height). This is an overlay within the same row, not a new row.
+
+The swimlane lane height does **not** change when forks are present — fork bars share vertical space with the bottom half of the main bar. No changes to `laneHeight` or the label-column height sync.
+
+**Alternative considered:** Render fork bars as a second sub-row at 50% height, doubling lane height when forks are present. This would require updating `laneHeights` in `GanttChart.vue` and adds visual noise when a session has both forks and overlapping sessions. Rejected in favor of the overlay approach.
+
+#### GanttChart.vue — No Changes Required (likely)
+
+The `laneHeights` computed and its mirrored greedy algorithm do not need to change if fork bars are rendered as overlays within existing rows. If the overlay approach is chosen, `GanttChart.vue` is untouched.
+
+If the sub-row approach is chosen instead, `computeSubRowCount` and `laneHeights` must be updated to account for fork rows. This is the main reason to prefer the overlay approach.
+
+#### GanttBar.vue — No Changes Required
+
+Fork bars are a separate component. The existing bar handles its own idle-gap rendering and label; fork bars are a distinct visual element with different semantics.
+
+### 4. New Component: GanttForkBar.vue
+
+A simpler, display-only variant of `GanttBar`. Key differences from `GanttBar`:
+
+- No click/select interaction (forks are informational, not selectable as separate sessions)
+- No label text (too small and no meaningful label to show)
+- Rendered at 50% height (14px instead of 28px)
+- Positioned in the lower half of its parent session's row
+- Color derived from parent session's color at lower opacity (visually subordinate)
+- No idle-gap segment rendering (each segment is already a discrete bar)
+- Multiple instances per session (one per segment in `forkSegments`)
+
+Props: `{ segment: { start, end }, date, color }`
+
+Positioning uses the same `timeToPercent` logic as `GanttBar`. The component is absolutely positioned within the swimlane, not within the parent bar.
+
+**Rendering location:** `GanttSwimlane.vue`, rendered after the main `GanttBar` for each session, in the same row slot.
+
+### 5. Rendering the Fork Bars in GanttSwimlane
+
+After the existing `GanttBar` for a session, iterate `session.forkSegments` and render one `GanttForkBar` per segment:
+
+```html
+<template v-for="(row, rowIdx) in subRows" :key="rowIdx">
+  <GanttBar
+    v-for="session in row"
+    :key="session.sessionId"
+    :session="session"
+    ...
+    :style="{ top: rowIdx * BAR_ROW_HEIGHT + 'px' }"
+  />
+  <!-- Fork segment bars: lower half of the same row -->
+  <template v-for="session in row" :key="'forks-' + session.sessionId">
+    <GanttForkBar
+      v-for="(seg, segIdx) in session.forkSegments"
+      :key="segIdx"
+      :segment="seg"
+      :date="date"
+      :color="color"
+      :style="{ top: rowIdx * BAR_ROW_HEIGHT + 14 + 'px' }"
+    />
+  </template>
+</template>
+```
 
 ---
 
-## Key Risks
+## Data Flow After Changes
 
-**Height sync between label column and swimlane rows.** The swimlane height is computed from `subRows.value.length * BAR_ROW_HEIGHT + 8`. If the label divs do not match exactly, the label column will misalign vertically as the user scrolls. GanttChart must compute or receive the same height values for each project row.
+```
+GET /api/timeline?date=...&threshold=...
+  messages table (is_fork_branch=1, per session)
+    → computeForkSegments()
+    → sessions[].forkSegments[{ start, end }]
 
-**Horizontal scroll discoverability.** Users need to understand the chart can scroll. At 1x zoom there is no scrollbar. A visible scrollbar only appears when zoomed. Consider a subtle affordance (e.g., dim zoom indicator showing current level, or a scroll shadow at the right edge).
-
-**Firefox vs Chrome scrollbar behavior.** Custom scrollbar styling (`overflow-x: auto`) renders differently across browsers. Use `scrollbar-width: thin` (CSS) for Firefox; WebKit-prefixed styles for Chrome. Not a blocker, but affects polish.
+TimelinePage → GanttChart → GanttSwimlane → GanttBar (main, unchanged)
+                                           → GanttForkBar × N (one per segment)
+```
 
 ---
 
-## Confidence Assessment
+## Zoom Interaction
 
-| Area | Confidence | Reason |
-|------|------------|--------|
-| Bar percentage scaling | HIGH | Verified in GanttBar.vue source — pure math, no layout assumptions |
-| Structural change required | HIGH | GanttChart.vue source read directly; three hardcoded 140px values identified |
-| State placement | HIGH | Matches existing idleThreshold pattern exactly |
-| Height sync complexity | MEDIUM | Requires GanttChart to replicate sub-row count logic or receive it from swimlanes |
-| Toolbar zoom control | MEDIUM | TimelineToolbar not read; assuming same emit pattern as threshold control |
-| Scroll reset on date change | MEDIUM | Standard Vue pattern; no unusual constraints identified |
+Fork bars use the same CSS percentage positioning as main bars. At all zoom levels, they scale identically. At 14px height they will be narrow but visible — same minimum width constraint (`min-width: 4px`) should apply. No special zoom handling needed.
+
+The 14px height is fixed in pixels (not percentage), so it does not shrink at 1x zoom. This is correct behavior — the visual indicator should remain visible regardless of zoom.
+
+---
+
+## Suggested Build Order
+
+1. **API route change** — Add `forkSegments` to the session object in `timeline.js`. Gate on `real_fork_count > 0` for performance. This is independently testable via the API.
+
+2. **GanttForkBar.vue** — Create the new component. Can be developed and visually tested in the `/components` preview page before integration.
+
+3. **GanttSwimlane.vue** — Import and render `GanttForkBar` instances. This is the integration point; nothing else needs to change.
+
+4. **Visual polish** — Color, opacity, tooltip, and minimum-width decisions for fork bars.
+
+This order respects the existing dependency graph: the API change is pure addition (no breaking changes to existing consumers), the new component has no dependencies on modified code, and the swimlane change is last because it depends on both.
+
+---
+
+## Integration Points Summary
+
+| Component | Change Type | What Changes |
+|-----------|-------------|--------------|
+| `timeline.js` | Modified | New `forkMessageStmt`, `computeForkSegments()`, `forkSegments` in session object |
+| `GanttSwimlane.vue` | Modified | Import and render `GanttForkBar` per segment per session |
+| `GanttForkBar.vue` | New | Display-only fork segment bar at 50% height |
+| `GanttChart.vue` | No change | Overlay approach avoids lane height recalculation |
+| `GanttBar.vue` | No change | Main bar unaffected |
+| `TimelinePage.vue` | No change | Passes sessions through unchanged |
+
+---
+
+## Risks and Constraints
+
+**Performance:** Sessions with many forks (e.g., 1042 forks = 3029 fork-branch messages) add one DB query per session with `real_fork_count > 0`. This is bounded by the number of sessions on a given day. The `idx_messages_session` index makes each query O(log n). The `real_fork_count > 0` guard skips the query for the common case (most sessions have no forks).
+
+**Segment threshold:** Using the same idle threshold for fork segment grouping as for main working time is pragmatic. If the threshold is 10 minutes, two fork-branch messages 11 minutes apart become separate segments. This may produce too many small bars for sessions with scattered fork activity. A fixed minimum segment gap (e.g., 30 minutes, independent of the idle threshold) is worth considering for visual clarity.
+
+**DB constraint:** `is_fork_branch` is already populated by the existing import pipeline. No re-import or schema change required. This is a read-only addition to the query layer.
+
+---
+
+## Sources
+
+All findings are HIGH confidence — derived from direct reading of the source files listed in the milestone context.
+
+- `/home/claude/cctimereporter/src/client/components/GanttChart.vue`
+- `/home/claude/cctimereporter/src/client/components/GanttSwimlane.vue`
+- `/home/claude/cctimereporter/src/client/components/GanttBar.vue`
+- `/home/claude/cctimereporter/src/server/routes/timeline.js`
+- `/home/claude/cctimereporter/src/importer/fork-detector.js`
+- `/home/claude/cctimereporter/src/db/schema.js`

@@ -1,194 +1,220 @@
 # Project Research Summary
 
-**Project:** CC Time Reporter v0.6.0 — Gantt Chart Zoom/Pan
-**Domain:** Zoomable timeline UI — horizontal scroll zoom on a CSS percentage-based Gantt chart
-**Researched:** 2026-03-18
+**Project:** CC Time Reporter v0.7.0 — Fork Branch Visualization
+**Domain:** Timeline Gantt chart enhancement — visualizing branched conversation history
+**Researched:** 2026-03-20
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone adds horizontal zoom and pan to the existing Gantt chart in CC Time Reporter. The chart currently renders session bars using CSS percentage positions (`left: X%`, `width: Y%`) relative to a flex container. Research confirms the correct zoom approach is a layout-reflow model: widen the inner canvas element proportionally to the zoom level (e.g., `width: 200%` at 2x), wrap it in a scrollable container with `overflow-x: auto`, and let the browser handle pan via the native scrollbar. All panzoom libraries evaluated use `transform: scale()`, which is a visual-only zoom that does not affect child percentage widths — this model is fundamentally incompatible with this chart and must be avoided. Zero new npm dependencies are required.
+Fork visualization adds 50%-height sub-bars beneath parent session bars in the Gantt chart to represent time spent on secondary conversation branches in Claude Code sessions. The good news: all required data already exists in the database (`messages.is_fork_branch`, `messages.timestamp`), no new libraries are needed, and the existing CSS percentage-positioning model accommodates fork bars without architectural changes. The implementation is an additive extension to the existing pipeline: one new server-side helper function, one new frontend component, and targeted modifications to `GanttSwimlane.vue` and `timeline.js`.
 
-The implementation requires one non-trivial structural refactor before any zoom logic can be written: separating the fixed 140px label column from the scrollable canvas area. Currently the time axis and lane bars share the same parent element, aligned by a `margin-left: 140px` hack. A scroll container cannot cover only the bar area while leaving the label pinned unless the two are explicitly separated into parallel layout regions. This structural change is the critical-path prerequisite — everything else is additive. The refactor must preserve the `.gantt-chart` CSS class on the outermost element (targeted by the driver.js tour) and remove `overflow: hidden` from `.gantt-chart` (which currently blocks all child scrolling).
+The key design decision is fork identity. The `is_fork_branch` boolean in the messages table marks messages as "on a secondary branch" but cannot distinguish between Branch A and Branch B in a session with multiple forks. The research recommends a two-phase approach: ship an MVP that renders a single aggregated "fork activity" span (min/max timestamps of all `is_fork_branch=1` messages) — no schema change needed. Defer per-fork distinction to a follow-up that introduces a `fork_branch_id` column (schema v7 migration) enabling discrete per-branch bars.
 
-The main implementation risk is cursor-anchored zoom math, which requires correctly converting between three coordinate spaces (client X, viewport X, canvas X). The formula is well-understood but has a known failure mode: using raw `event.clientX` instead of `event.clientX - rect.left` produces zoom that drifts toward the page's left edge. A secondary risk is `scrollLeft` assignment timing — it must be deferred to `nextTick()` after the zoom state change, or the browser silently clamps it to the pre-zoom scroll maximum. Both risks have clear, validated prevention strategies documented in PITFALLS.md.
+The most dangerous pitfall is the duplicated sub-row height algorithm shared between `GanttSwimlane.vue` and `GanttChart.vue`. Any layout change that affects row height must be synchronized across both files or the pinned project label column will visually misalign from its swimlane rows. The research consensus is clear: if fork bars use the overlay approach (rendered in the lower half of the existing row rather than in a new expanded row), the lane height computation is untouched and `GanttChart.vue` requires no changes at all. This architectural choice eliminates the most critical pitfall.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies. The user-proposed width-expansion approach requires only Vue 3 reactivity (already installed), native CSS (`width: calc(var(--zoom-level) * 100%)`), native DOM events (`addEventListener('wheel', handler, { passive: false })`), and approximately 5 lines of scroll math. Every panzoom library evaluated (panzoom, vue-zoomable, vue-panzoom) uses CSS `transform: scale()` — a visual-only zoom that does not cause child percentage widths to reflow, making each library fundamentally incompatible with the bar positioning model.
+No new libraries or dependencies are required. The existing Vue 3 + pure CSS percentage-positioning system is sufficient for fork bar rendering. The `timeToPercent()` function in `GanttBar.vue` already converts any ISO timestamp to a canvas percentage offset, and the absolute-positioning model already handles arbitrary overlapping elements. See [STACK.md](.planning/research/STACK.md) for full integration point analysis.
 
-**Core technologies:**
-- Vue 3 reactivity (`ref`, `watch`, `nextTick`): zoom state management — already installed, no addition needed
-- Native CSS `width: calc()` with CSS custom property: canvas scaling — correct model for percentage-based child layout
-- `addEventListener` with `{ passive: false }`: wheel event capture — required to call `preventDefault()` and block vertical page scroll during zoom
-- `getBoundingClientRect()` + `scrollLeft` math: cursor-anchored zoom — approximately 5 lines, no library
+**Core technologies (unchanged):**
+- Vue 3 (Composition API): frontend rendering — handles new `GanttForkBar.vue` component natively
+- Pure CSS percentage layout: Gantt positioning — fork bars use identical positioning math as main bars
+- Fastify + node:sqlite: backend query layer — new `forkMessageStmt` and `computeForkSegments()` helper added to `timeline.js`
+- Existing schema v6: `messages.is_fork_branch` and `messages.timestamp` already populated at import time
+
+**Optional schema addition (deferred):** `fork_branch_id INTEGER` on messages (schema v7 migration) enables per-branch bars. Not required for MVP.
 
 ### Expected Features
 
-Research clearly distinguishes what users will expect on day one, what raises quality meaningfully, and what to explicitly avoid.
+The feature scope breaks cleanly into MVP (no schema change) and post-MVP (schema change required). See [FEATURES.md](.planning/research/FEATURES.md) for full dependency graph.
 
-**Must have (table stakes):**
-- Scroll wheel zoom with cursor anchoring — users will try this first; without cursor anchoring the chart jumps and feels broken
-- Time axis scales with content — tick labels must remain aligned with bars at all zoom levels (automatic once both are inside the shared canvas)
-- Horizontal scrollbar appears when zoomed — content beyond 1x is unreachable without it
-- Lane labels stay fixed and do not zoom — labels must live in a pinned column outside the scaled canvas
-- +/- buttons for manual zoom control — required for touch and non-scroll-wheel users
-- Zoom resets on date navigation — carrying zoom state across date changes is disorienting
-- Zoom range 1x–4x — per stated requirements; appropriate for a 24h single-day view
+**Must have (table stakes for v0.7.0):**
+- Fork count indicator on session bar — surface `real_fork_count > 0` visually; already available in API response
+- Fork activity sub-row — single span from first to last `is_fork_branch=1` message, rendered at 50% height below parent bar
+- Toggle show/hide fork sub-rows — prevents visual noise on fork-heavy sessions; toolbar or settings checkbox
 
-**Should have (differentiators):**
-- Zoom level indicator (e.g., "2x") — orientation aid at very low cost
-- Reset zoom button — same-day reset without navigating away
-- Smooth zoom animation — `transition: width 100ms ease` on the canvas
-- Trackpad pinch support — `ctrlKey: true` on `WheelEvent` from macOS trackpad, nearly free to add alongside the wheel handler
+**Should have (differentiators, include if time allows):**
+- Fork bar minimum width enforcement — short fork spans stay visible on 24h axis
+- Visual distinction via opacity/color — fork bars clearly subordinate to main bars (lower opacity, same hue)
 
-**Defer (v2+):**
-- Current time indicator — separate feature, unrelated to zoom mechanics
-- Adaptive tick density — useful at high zoom but not blocking; fixed 2h ticks remain intelligible at 4x
+**Defer to post-MVP (require schema v7):**
+- Multiple distinct fork sub-bars (one per branch): needs `fork_branch_id` on messages
+- Fork branch detail on click: depends on fork identity; defer with multiple sub-bars
+- Visual connector lines from parent bar to fork bar at fork point: cosmetic, low information value
+
+**Anti-features (explicitly excluded):**
+- Rendering progress forks (use `real_fork_count` only, not `fork_count`)
+- Per-fork idle gap calculation (expensive, rarely meaningful)
+- Named fork branches ("Branch A", "Fork 2") — adds cognitive overhead without meaning
+- Inline accordion expansion (breaks zoom/pan interaction model)
 
 ### Architecture Approach
 
-The structural change creates two parallel layout regions inside `.gantt-chart`: a pinned `.gantt-labels` column (140px, `flex-shrink: 0`, scrolls vertically with page but not horizontally) and a `.gantt-scroll-area` (`flex: 1`, `overflow-x: auto`) containing the `.gantt-canvas` (`width: zoomLevel * 100%`). The canvas holds both the time axis and all swimlane rows so they scroll together. The three hardcoded `140px` values in GanttChart.vue (margin-left on `.time-axis`, left on `.grid-overlay`, width on `.lane-label`) must all be removed as part of this refactor. `GanttBar.vue` and `GanttSwimlane.vue` require zero changes.
+The recommended architecture uses an **overlay approach**: fork bars are rendered as absolutely-positioned siblings within the same lane row as the parent bar, occupying the lower 14px (50% of 28px bar height). This avoids any change to `laneHeight` in `GanttSwimlane.vue` and `laneHeights` in `GanttChart.vue`, which is the highest-risk part of the codebase. Fork segments are computed server-side in `timeline.js` following the same pattern as `computeIdleGaps()`, gated on `real_fork_count > 0` to skip the DB query for the common case. See [ARCHITECTURE.md](.planning/research/ARCHITECTURE.md) for pseudocode and the full data flow diagram.
 
 **Major components:**
-1. `GanttChart.vue` (modified heavily): layout restructure, `zoomLevel` prop, canvas width binding, label height sync per swimlane, scroll reset on date change
-2. `TimelinePage.vue` (modified): owns `zoomLevel` ref with localStorage persistence, passes prop to GanttChart, wires toolbar event
-3. `TimelineToolbar.vue` (modified): adds +/- zoom control UI, emits `@update:zoom`
-4. `GanttSwimlane.vue` / `GanttBar.vue` (no change): percentage positioning scales automatically with canvas width
+1. `timeline.js` (modified): New `forkMessageStmt` prepared statement + `computeForkSegments()` helper; `forkSegments: []` added to each session object in the API response
+2. `GanttForkBar.vue` (new): Display-only component at 50% height; props `{ segment: { start, end }, date, color }`; uses same `timeToPercent` logic as `GanttBar`; no click interaction, no label, no idle-gap segments
+3. `GanttSwimlane.vue` (modified): Imports and renders `GanttForkBar` instances after each main `GanttBar`, positioned at `top: rowIdx * BAR_ROW_HEIGHT + 14px`; no lane height changes needed
+4. `GanttChart.vue` (no change): Overlay approach avoids the mirrored lane height recalculation entirely
+5. `GanttBar.vue` (no change): Main bar unaffected
 
-**Height synchronization note:** Label column per-row divs must match each swimlane's computed height (`subRows.length * 36 + 8`). GanttChart has access to sessions arrays and can replicate this calculation without adding emit/prop complexity.
+**Suggested build order:** API route first (independently testable), then `GanttForkBar.vue` (testable in `/components` preview), then `GanttSwimlane.vue` integration last.
 
 ### Critical Pitfalls
 
-1. **Time axis and bar area desync** — if only `.lanes-container` is wrapped in a scroll container while `.time-axis` remains a sibling, they scroll independently. Every bar ends up under the wrong time label. Fix: a single `.gantt-scroll-area` must wrap both the time axis row and all swimlane rows.
+See [PITFALLS.md](.planning/research/PITFALLS.md) for full analysis with detection and prevention steps.
 
-2. **`overflow: hidden` on `.gantt-chart` blocks all child scrolling** — any `overflow-x: auto` on a child is clipped by the parent's `overflow: hidden`. Fix: remove `overflow: hidden` from `.gantt-chart` before adding any scroll container; move overflow containment to `.gantt-scroll-area`.
+1. **Duplicated sub-row height algorithm breaks label alignment** — `GanttChart.vue` and `GanttSwimlane.vue` each independently compute lane heights. The overlay approach avoids this entirely: fork bars share existing row height, neither file's height computation changes. If the sub-row approach is chosen instead, both files must be updated together before any fork bars render.
 
-3. **Cursor-anchor uses wrong coordinate space** — using raw `event.clientX` instead of `event.clientX - rect.left` produces zoom that drifts toward the page's left edge. Fix: always subtract `viewport.getBoundingClientRect().left`.
+2. **Fork identity not derivable from `is_fork_branch` alone** — `is_fork_branch=1` cannot distinguish Branch A from Branch B. MVP renders a single aggregated span (min/max timestamps). Per-fork bars require schema v7 (`fork_branch_id` column). Do not attempt per-fork rendering in v0.7.0 without the schema migration.
 
-4. **`scrollLeft` assigned before DOM updates** — setting `scrollLeft` synchronously after updating zoom state silently clamps to the pre-zoom scroll maximum. Fix: assign inside `await nextTick()` after changing `zoom.value`.
+3. **Working time inflated by fork branch messages** — The existing `computeWorkingTime()` query does not filter `is_fork_branch`. Fork message timestamps may inflate session working time. This decision must be made explicitly before the fork UI ships: include or exclude fork time. Document the choice as a code comment in `timeline.js`.
 
-5. **`transform: scale` zooms the label column** — any approach applying CSS transform to the chart element scales the 140px label column with bars, breaking alignment at every zoom level. Fix: use canvas width expansion only; never apply transform-scale to any container that includes the label column.
+4. **Fork bar click events must route through `GanttChart.onBarSelect`** — The drag-pan guard (`didScroll` check) only fires via `GanttChart`'s handler. If fork bars emit click events directly from `GanttSwimlane`, panning at zoom > 1x will accidentally trigger fork selection. Route all fork interactions through the existing event chain, or make fork bars display-only with no click handling (recommended for MVP).
+
+5. **Per-session fork query doubles DB round-trips** — One extra query per session with `real_fork_count > 0`. The `real_fork_count > 0` guard limits impact. For days with many fork-heavy sessions, batch the fork query across all sessions using `WHERE session_id IN (...)` instead of a loop. Profile before optimizing.
 
 ## Implications for Roadmap
 
-Research strongly suggests a 3-phase build order: structural prerequisite, core zoom mechanic, then polish. The structural refactor must complete and visually verify at 1x before any zoom state or event handling is written. Mixing the two adds debugging complexity with no benefit.
+### Phase 1: Data Contract and Architecture Decisions
 
-### Phase 1: Structural Refactor (layout prerequisite)
+**Rationale:** Two architectural decisions must be locked before any code is written, and the backend data contract must be in place before frontend work begins. These decisions affect every subsequent phase.
 
-**Rationale:** The current layout cannot support horizontal scroll without breaking time axis alignment. This must be correct before any zoom logic is added. It is a pure layout change with no visible effect at zoom level 1 — verifiable by confirming the chart renders identically to the current version before proceeding to Phase 2.
+**Delivers:** Working API that returns `forkSegments` per session; explicit policy on working time calculation; decision on overlay vs sub-row rendering approach; shared layout utility if sub-row approach is chosen
 
-**Delivers:** A chart container that supports horizontal scroll; the correct DOM structure for zoom to operate on.
+**Decisions to lock:**
+- Working time policy: include or exclude `is_fork_branch=1` messages (document in code)
+- Rendering approach: overlay (recommended) vs sub-row expansion (adds risk)
+- MVP scope: single aggregated span (recommended) vs per-fork bars (requires schema v7)
 
-**Key tasks:**
-- Introduce `.gantt-labels` (pinned, 140px) and `.gantt-scroll-area` (scrollable, flex: 1) as parallel layout regions
-- Move `.lane-label` elements out of individual lane rows into the pinned column
-- Remove three hardcoded `140px` offsets from `.time-axis` (margin-left) and `.grid-overlay` (left)
-- Remove `overflow: hidden` from `.gantt-chart`; add `overflow-x: auto` to `.gantt-scroll-area`
-- Sync label row heights with swimlane heights (GanttChart computes sub-row counts)
-- Preserve `.gantt-chart` class on outermost element (driver.js tour target — see Pitfall 11)
+**Addresses (from FEATURES.md):** Fork sub-row prerequisite (API data contract)
+**Avoids (from PITFALLS.md):** Pitfall 2 (working time inflation), Pitfall 3 (fork data not available), Pitfall 4 (fork identity), Pitfall 1 (label alignment — via overlay approach choice)
 
-**Avoids pitfalls:** Time axis desync (pitfall 1), overflow:hidden block (pitfall 3), label column scaling (pitfall 5).
+**Research flag:** No additional research needed. All implementation patterns are fully specified in the research files.
 
-**Research flag:** Standard Vue flex layout restructure — no additional research needed. Validate by visual comparison with current rendering at zoom 1.
+---
 
-### Phase 2: Core Zoom Mechanic
+### Phase 2: Backend Implementation
 
-**Rationale:** Once the DOM structure is verified correct, zoom is purely additive: wire the `zoomLevel` prop, apply canvas width, add the wheel handler, and add +/- buttons. State lives in TimelinePage (not GanttChart) to survive data refreshes.
+**Rationale:** API-first. Frontend components cannot be developed without the `forkSegments` data shape in the timeline response. This phase is independently testable via `curl /api/timeline`.
 
-**Delivers:** Functional zoom from 1x–4x, scroll wheel with cursor anchoring, +/- buttons, zoom state in TimelinePage with localStorage persistence, zoom reset on date navigation.
+**Delivers:** `forkSegments: [{ start, end }]` in the timeline API response; `forkCount` badge data already present
 
-**Key tasks:**
-- Add `zoomLevel` prop to GanttChart; apply `width: ${zoomLevel * 100}%` to `.gantt-canvas`
-- Add `zoomLevel` ref in TimelinePage; pass as prop to GanttChart (not local to GanttChart)
-- Register wheel listener with `{ passive: false }` (not `@wheel` in template)
-- Implement cursor-anchored zoom: `newScrollLeft = (oldScrollLeft + cursorViewportX) * (newZoom / oldZoom) - cursorViewportX`
-- Assign `scrollLeft` inside `nextTick()` after zoom state change
-- Gate zoom on `ctrlKey` (pinch gesture) vs. raw scroll to avoid trackpad horizontal pan conflict
-- Add guard in bar click handler against accidental click-after-zoom gesture
-- Add +/- buttons to TimelineToolbar; emit `@update:zoom`
+**Implements (from ARCHITECTURE.md):**
+- `computeForkSegments()` helper in `timeline.js`
+- `forkMessageStmt` prepared statement (gated on `real_fork_count > 0`)
+- Day-boundary clamping for fork timestamps (same as idle gaps)
 
-**Avoids pitfalls:** Wrong coordinate space (pitfall 2), passive wheel listener (pitfall 8), scrollLeft timing (pitfall 9), zoom state reset on data refresh (pitfall 10), trackpad ambiguity (pitfall 12).
+**Avoids (from PITFALLS.md):** Pitfall 7 (per-session query overhead — use `real_fork_count` guard); Pitfall 9 (day-continuation flags not inherited by fork objects)
 
-**Research flag:** Cursor-anchor math should be validated in a working prototype before treating Phase 2 as complete. FEATURES.md rates the formula MEDIUM confidence (derived from first principles, corroborated by one practitioner blog). Failure mode is immediately visible: zoom in near the right edge; content under the cursor must stay anchored.
+**Research flag:** Standard patterns. Mirrors existing `computeIdleGaps` implementation. No additional research needed.
 
-### Phase 3: Polish and Discoverability
+---
 
-**Rationale:** Non-blocking improvements that raise quality and address edge cases identified in research. All are additive and independent of Phase 2 correctness.
+### Phase 3: Frontend Components
 
-**Delivers:** Zoom level indicator, reset zoom affordance, smooth animation, adaptive tick density at high zoom, right-edge padding for continuation arrows.
+**Rationale:** With the API contract settled and working, frontend components can be built bottom-up: new component first (isolated), then integration into swimlane.
 
-**Key tasks:**
-- Display current zoom level (e.g., "2x") in toolbar
-- Add reset zoom affordance (button or clickable display)
-- Add `transition: width 100ms ease` to `.gantt-canvas`
-- Make `timeAxisTicks` reactive to zoom level (every 2h at 1x, 1h at 2x, 30min at 4x)
-- Add `padding-right: 16px` to canvas for continuation icon breathing room at the right edge
+**Delivers:** `GanttForkBar.vue` component; fork bars rendered in the timeline for sessions with `real_fork_count > 0`; show/hide toggle
 
-**Avoids pitfalls:** Tick density sparseness (pitfall 7), continuation icon clipping (pitfall 13).
+**Implements (from ARCHITECTURE.md):**
+- `GanttForkBar.vue`: display-only, 50% height, same positioning math as `GanttBar`
+- `GanttSwimlane.vue` modification: render `GanttForkBar` instances after main bars
+- Fork visibility toggle in toolbar or settings
 
-**Research flag:** Tick density logic is purely additive inside GanttChart — no research needed. Animation is a one-liner CSS addition.
+**Addresses (from FEATURES.md):** Fork count indicator, fork activity sub-row, toggle show/hide
+
+**Avoids (from PITFALLS.md):** Pitfall 1 (label alignment — overlay approach means no height changes); Pitfall 5 (14px bars are display-only, not click targets); Pitfall 6 (no click events needed for display-only bars); Pitfall 10 (explicit `z-index: 1` on fork bars)
+
+**Research flag:** Standard patterns. Component structure mirrors existing Gantt components.
+
+---
+
+### Phase 4: Visual Polish (Optional for v0.7.0)
+
+**Rationale:** Once fork bars render correctly, visual refinements can be done without risk to layout or data correctness.
+
+**Delivers:** Fork bar color/opacity tuning; minimum width enforcement; tooltip showing fork duration; (optional) fork count badge on main bar
+
+**Avoids (from PITFALLS.md):** Pitfall 8 is lower risk than initially flagged (0.03% minimum width = ~26 seconds, rarely an issue for fork spans)
+
+**Research flag:** No research needed. Pure visual iteration.
+
+---
+
+### Phase 5: Per-Fork Identity (Post-v0.7.0)
+
+**Rationale:** Multiple distinct fork bars require schema v7 (`fork_branch_id` on messages), which means a DB migration and re-import. This is a meaningful disruption and should only be tackled once MVP fork visualization proves its value.
+
+**Delivers:** Distinct sub-bars per fork branch; `fork_branch_id` schema migration; extended fork detail on click
+
+**Uses (from STACK.md):** Schema v7 migration pattern (existing migration chain in `src/db/index.js`)
+
+**Implements (from ARCHITECTURE.md):** `fork_branch_id INTEGER` on messages; `fork-detector.js` assigns integer branch indices; new GROUP BY query replaces min/max approach
+
+**Research flag:** May need research on UX patterns for multi-fork display and click-through to fork messages.
+
+---
 
 ### Phase Ordering Rationale
 
-- Phase 1 must come first: the DOM structure is a prerequisite for scroll; implementing zoom before the structural refactor means unwinding the refactor around zoom logic already in place.
-- Phase 2 depends on Phase 1 being verified correct at 1x (chart renders identically to today) before zoom state is added.
-- Phase 3 is fully independent of Phase 2 correctness — polish items can be deferred or pulled forward without risk.
-- No backend changes at any phase — zoom is entirely client-side. No API, no schema, no server code is touched.
+- Phase 1 before all others: architecture decisions made wrong are expensive to undo; working time policy especially affects correctness of existing displayed data
+- Phase 2 before Phase 3: frontend cannot be built without a real API response shape to develop against
+- Phase 3 sequenced bottom-up (new component before integration): isolates risk, allows component preview page testing
+- Phase 4 deferred: polish has no dependencies but zero urgency
+- Phase 5 deferred: schema migration risk justifies a clear post-MVP boundary
 
 ### Research Flags
 
-Phases needing attention during execution:
+Phases needing additional research during planning:
+- **Phase 5 only:** UX patterns for clicking through to individual fork branch messages when branches are identified by ID
 
-- **Phase 2 (cursor-anchor math):** Validate the scroll formula with an interactive prototype before marking complete. Test by zooming in near the right edge of a day with many sessions — verify the content under the cursor stays visually anchored.
-
-Phases with standard patterns (no additional research needed):
-
-- **Phase 1 (layout refactor):** Standard Vue flex layout restructure with known constraints. Verify visually at 1x before proceeding.
-- **Phase 3 (polish):** Each item is a small additive change with no integration risk.
+Phases with standard patterns (research complete, no additional research needed):
+- **Phase 1:** Decision-making only; no implementation research required
+- **Phase 2:** Mirrors `computeIdleGaps` pattern exactly; implementation fully specified in ARCHITECTURE.md
+- **Phase 3:** Mirrors existing Gantt component structure; implementation fully specified
+- **Phase 4:** Pure visual iteration; no research needed
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All libraries evaluated directly from source; MDN docs confirm layout model; zero-dependency conclusion is solid |
-| Features | HIGH | Based on direct codebase analysis plus cross-reference with dhtmlxGantt docs, Asana design case study, and real shipping products |
-| Architecture | HIGH | Based on direct reading of all four component files; three hardcoded 140px values identified and verified |
-| Pitfalls | HIGH | All pitfalls derived from direct source inspection, not inference; specific failure modes and line-level evidence documented |
+| Stack | HIGH | All findings from direct source code inspection; no external libraries involved |
+| Features | HIGH | Based on codebase analysis + established git visualization UX patterns; scope is well-bounded |
+| Architecture | HIGH | Full pseudocode provided; all integration points verified against actual source; overlay approach is concrete |
+| Pitfalls | HIGH | All pitfalls derived from actual source code reading with line numbers; no general-pattern speculation |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Cursor-anchor math validation:** The scroll formula is logically correct and derived from first principles, but should be tested with an interactive prototype at Phase 2 start. Failure mode is obvious and immediately visible — no hidden failure risk.
-
-- **TimelineToolbar internal structure:** ARCHITECTURE.md notes TimelineToolbar was not directly read during research. The assumption is it follows the same emit pattern as the idle threshold control. Confirm before writing zoom control UI.
-
-- **Label height synchronization drift:** GanttChart must replicate swimlane sub-row count logic to compute label heights. If swimlane height calculation changes in a future milestone, these two locations can drift. Consider extracting to a shared utility or emitting `laneHeight` from GanttSwimlane.
-
-- **Minimum bar size at high zoom:** At 4x, the existing `min-width: 4px` and `Math.max(widthPct, 0.03)` may still leave very short sessions hard to click. Accepted for this milestone; revisit if user feedback identifies it as a blocker.
+- **Working time policy:** Must be decided in Phase 1 and documented as a code comment. Neither include nor exclude is obviously correct — make the call, write it down, move on.
+- **Fork bar segment threshold:** Should the fork segment grouping threshold match the idle threshold (user-configurable) or use a fixed value (e.g., 30 minutes)? Using the idle threshold is pragmatic but may produce many small bars for scattered fork activity. Decide during Phase 2 implementation.
+- **Toggle UX location:** Show/hide fork sub-rows toggle belongs somewhere in the UI (toolbar, settings panel, sidebar). Not specified in research. Decide during Phase 3 based on existing UI patterns.
+- **Per-fork bars (Phase 5 scope):** The exact UX for clicking a fork sub-bar to see its messages is unresolved. Clicking to a filtered messages modal (showing only fork-branch messages for that branch ID) is the likely pattern, but the sessions/:id/messages route currently has no fork-branch filtering.
 
 ## Sources
 
-### Primary (HIGH confidence)
-- Direct source analysis: `GanttChart.vue`, `GanttBar.vue`, `GanttSwimlane.vue`, `TimelinePage.vue` — architecture, layout model, hardcoded values
-- MDN: [Element: wheel event](https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event) — passive listeners, deltaY, preventDefault behavior
-- MDN: [CSS zoom property](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/zoom) — zoom vs transform:scale layout behavior
-- GitHub: [timmywil/panzoom](https://github.com/timmywil/panzoom) v4.6.1 — confirmed transform-based, not scroll-based
-- GitHub: [ehassaan/vue-zoomable](https://github.com/ehassaan/vue-zoomable) v1.2.8 — confirmed transform-based
+### Primary (HIGH confidence — direct source inspection)
 
-### Secondary (MEDIUM confidence)
-- [dhtmlxGantt 6.2 zoom and mouse wheel](https://dhtmlx.com/blog/dhtmlxgantt-6-2-minor-update-boosting-gantt-chart-performance-zooming-mouse-wheel-much/) — Gantt zoom UX conventions
-- [Implementing a timeline with scrolling and zooming](https://thomas.preissler.me/blog/2022/01/10/implementing-a-timeline-with-scrolling-and-zooming-or-how-i-failed-at-elementary-school-math) — cursor-anchor formula corroboration
-- [Asana Design: Designing Timeline](https://medium.com/asana-design/designing-timeline-lessons-learned-from-our-journey-beyond-gantt-charts-645e80177aaa) — zoom UX case study from production tool
-- [Screen Studio: zoom shortcut](https://hub.screen.studio/p/shortcut-to-zoom-timeline-cmd-scroll-pinch-to-zoom-cmd) — trackpad pinch interaction pattern in shipping product
-- modern-css.com: [CSS zoom vs transform: scale()](https://modern-css.com/scaling-elements-without-transform-hacks/) — layout footprint difference
+- `/home/claude/cctimereporter/src/client/components/GanttChart.vue` — lane height computation, zoom mechanics, drag-pan guard
+- `/home/claude/cctimereporter/src/client/components/GanttSwimlane.vue` — sub-row stacking, bar height constants
+- `/home/claude/cctimereporter/src/client/components/GanttBar.vue` — bar geometry, `timeToPercent`, positioning model
+- `/home/claude/cctimereporter/src/server/routes/timeline.js` — session shape, message query, `computeIdleGaps` pattern
+- `/home/claude/cctimereporter/src/importer/fork-detector.js` — fork detection algorithm, UUID tree traversal
+- `/home/claude/cctimereporter/src/db/schema.js` — schema v6 DDL, migration constants
 
-### Tertiary (MEDIUM confidence, not independently verified)
-- [AIMMS: Zoom and Scroll in a Gantt Chart](https://how-to.aimms.com/Articles/279/279-gantt-chart-scroll.html) — vendor how-to on Gantt scroll patterns
+### Secondary (MEDIUM confidence — UX pattern reference)
+
+- GitKraken Commit Graph — branch lane visualization patterns
+- Mermaid GitGraph Diagrams — declarative branch/commit timeline layout
+- Graphite stacked branch visualization — DAG branch lane UX
+- git log --graph — column-per-branch convention
 
 ---
-*Research completed: 2026-03-18*
+*Research completed: 2026-03-20*
 *Ready for roadmap: yes*
