@@ -95,6 +95,8 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 - Subagent working time attribution to parent session
 - **Store all text messages in DB** — capture full user/assistant message text (excluding tool_use/tool_result payloads) in the messages table. Enables richer search, per-segment ticket scoring, and message preview without re-reading JSONL files from disk. Size impact should be manageable if internal/tool messages are excluded.
 - **Claude Code /rename tracking** — investigate how repeated /rename commands affect sessions-index.json and whether re-import overwrites user_label set via the edit modal. Ensure rename history or latest-wins behavior is well-defined.
+- **Claude Desktop sessions** — import and display sessions from Claude Desktop (not just Claude Code). Investigate transcript format differences, project/conversation structure, and how to represent non-coding sessions in the timeline.
+- **Terminal-style messages modal** — restyle the messages modal to visually resemble a Claude Code terminal session (prompt/response styling, monospace, command-line aesthetic). A visual polish touch that reinforces the tool's identity.
 
 ## Constraints
 
