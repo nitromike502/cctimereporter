@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 22 of 25 (Schema and Import)
-Plan: 1 of TBD in current phase
-Status: In progress
-Last activity: 2026-03-22 — Completed 22-01-PLAN.md (schema v7 + fork_branch_id)
+Phase: 23 of 25 (Backend Fork Segments)
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-03-22 — Completed 23-01-PLAN.md (forkSegments in timeline API)
 
-Progress: [█░░░░░░░░░░░░░░░░░░░] ~5% (v0.7.0: 1 plan complete)
+Progress: [██░░░░░░░░░░░░░░░░░░] ~10% (v0.7.0: 2 plans complete)
 Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped)
 
 ## Performance Metrics
@@ -47,11 +47,11 @@ None.
 
 ### Blockers/Concerns
 
-- Working time policy: must decide whether `is_fork_branch=1` messages are included or excluded from `computeWorkingTime()` before Phase 23 ships. Decision must be documented as a code comment.
+- Working time policy: RESOLVED in 23-01. Fork messages included in working time (parallel exploration counts as work). Documented with code comment.
 - Fork bar click events must route through `GanttChart.onBarSelect` drag-pan guard to avoid accidental selection during panning (Phase 25).
 
 ## Session Continuity
 
-Last session: 2026-03-22T02:58:29Z
-Stopped at: Completed 22-01-PLAN.md (schema v7 + fork_branch_id import pipeline)
+Last session: 2026-03-22T03:08:01Z
+Stopped at: Completed 23-01-PLAN.md (forkSegments in timeline API)
 Resume file: None
