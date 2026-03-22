@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 22 of 25 (Schema and Import)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-21 — Roadmap created for v0.7.0 Fork Visualization
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-03-22 — Completed 22-01-PLAN.md (schema v7 + fork_branch_id)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v0.7.0: 0/4 phases)
+Progress: [█░░░░░░░░░░░░░░░░░░░] ~5% (v0.7.0: 1 plan complete)
 Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped)
 
 ## Performance Metrics
@@ -30,13 +30,16 @@ Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped)
 
 All decisions logged in PROJECT.md Key Decisions table.
 
-Fork data model (from research):
-- `is_fork_branch` boolean exists on messages; `fork_branch_id` does not yet exist (schema v7 adds it)
+Fork data model (from research + 22-01 execution):
+- `is_fork_branch` boolean exists on messages; `fork_branch_id` TEXT added in schema v7 (22-01 complete)
+- Branch ID = first child UUID of secondary branch (stable, immutable UUID from JSONL)
+- Primary branch messages have NULL fork_branch_id; only secondary branches get IDs
 - Fork bars use overlay approach: positioned in lower half of existing row; no lane height changes needed
 - `GanttChart.vue` requires no changes (overlay avoids the mirrored height-computation pitfall)
 - Fork segments computed at API query time (follows "import raw, derive at query time" philosophy)
 - Only real forks rendered (gated on `real_fork_count > 0`); progress forks excluded
 - Working time policy for fork messages: must be decided and documented in Phase 23
+- Existing messages get NULL fork_branch_id until re-imported (normal, expected)
 
 ### Pending Todos
 
@@ -49,6 +52,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21
-Stopped at: Roadmap written for v0.7.0; ready to plan Phase 22
+Last session: 2026-03-22T02:58:29Z
+Stopped at: Completed 22-01-PLAN.md (schema v7 + fork_branch_id import pipeline)
 Resume file: None
