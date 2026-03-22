@@ -1,6 +1,40 @@
 <template>
   <div class="session-detail-panel">
-    <div class="detail-grid">
+    <!-- Fork detail view: shown when a fork bar is selected -->
+    <div v-if="fork" class="detail-grid detail-grid--fork">
+      <!-- Column 1: Fork identity -->
+      <div class="detail-item">
+        <span class="detail-label">Fork Branch:</span>
+        <span class="detail-value" :title="fork.forkBranchId">{{ forkBranchIdShort }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Parent Session:</span>
+        <span class="detail-value" :title="fork.sessionId">{{ forkParentIdShort }}</span>
+      </div>
+
+      <!-- Column 2: Timing -->
+      <div class="detail-item">
+        <span class="detail-label">Start:</span>
+        <span class="detail-value">{{ forkStartDateTime || '\u00A0' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">End:</span>
+        <span class="detail-value">{{ forkEndDateTime || '\u00A0' }}</span>
+      </div>
+
+      <!-- Column 3: Stats -->
+      <div class="detail-item">
+        <span class="detail-label">Messages:</span>
+        <span class="detail-value">{{ fork.messageCount ?? '\u00A0' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Type:</span>
+        <span class="detail-value fork-type-badge">Fork Branch</span>
+      </div>
+    </div>
+
+    <!-- Session detail view: shown when a session bar is selected -->
+    <div v-else class="detail-grid">
       <!-- Column 1: Session identity -->
       <div class="detail-item detail-item--editable">
         <span class="detail-label">Session Name:</span>
@@ -94,13 +128,21 @@ import { computed } from 'vue'
  * Shows a placeholder when no session is selected. When a session is selected,
  * renders a horizontal key-value grid with all session details.
  *
+ * When a fork bar is selected (fork prop is non-null), renders a fork-specific
+ * layout showing branch ID, parent session, time range, and message count.
+ *
  * @prop {Object} session     - Session object or null
+ * @prop {Object} fork        - Fork segment object or null (takes priority over session view)
  * @prop {string} projectName - Display name of the project owning this session
  */
 defineEmits(['show-messages', 'edit'])
 
 const props = defineProps({
   session: {
+    type: Object,
+    default: null,
+  },
+  fork: {
     type: Object,
     default: null,
   },
@@ -114,6 +156,18 @@ const props = defineProps({
 const sessionIdShort = computed(() => {
   if (!props.session) return ''
   return props.session.sessionId.slice(0, 12) + '...'
+})
+
+/** Abbreviated fork branch ID: first 12 chars + ellipsis */
+const forkBranchIdShort = computed(() => {
+  if (!props.fork?.forkBranchId) return ''
+  return props.fork.forkBranchId.slice(0, 12) + '...'
+})
+
+/** Abbreviated fork parent session ID: first 12 chars + ellipsis */
+const forkParentIdShort = computed(() => {
+  if (!props.fork?.sessionId) return ''
+  return props.fork.sessionId.slice(0, 12) + '...'
 })
 
 /**
@@ -161,6 +215,18 @@ const endDateTime = computed(() => {
   if (!props.session) return ''
   return formatDateTime(props.session.endTime)
 })
+
+/** Fork start datetime */
+const forkStartDateTime = computed(() => {
+  if (!props.fork) return ''
+  return formatDateTime(props.fork.startTime)
+})
+
+/** Fork end datetime */
+const forkEndDateTime = computed(() => {
+  if (!props.fork) return ''
+  return formatDateTime(props.fork.endTime)
+})
 </script>
 
 <style scoped>
@@ -186,6 +252,11 @@ const endDateTime = computed(() => {
   grid-auto-flow: column;
   gap: var(--spacing-xs) var(--spacing-lg);
   width: 100%;
+}
+
+/* Fork view uses 2 rows (6 items across 3 columns) */
+.detail-grid--fork {
+  grid-template-rows: repeat(2, auto);
 }
 
 .detail-item {
@@ -265,5 +336,12 @@ const endDateTime = computed(() => {
   color: var(--color-muted);
   font-weight: 400;
   margin-left: var(--spacing-xs);
+}
+
+.fork-type-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  font-weight: 400;
+  font-style: italic;
 }
 </style>
