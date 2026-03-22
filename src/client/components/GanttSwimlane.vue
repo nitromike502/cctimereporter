@@ -11,6 +11,16 @@
         :style="{ top: rowIdx * BAR_ROW_HEIGHT + 'px' }"
         @select="emit('select', $event)"
       />
+      <template v-for="session in row" :key="'forks-' + session.sessionId">
+        <GanttForkBar
+          v-for="fork in (session.forkSegments || [])"
+          :key="fork.forkBranchId"
+          :fork="fork"
+          :date="date"
+          :color="color"
+          :style="{ top: rowIdx * BAR_ROW_HEIGHT + 14 + 'px' }"
+        />
+      </template>
     </template>
   </div>
 </template>
@@ -18,6 +28,7 @@
 <script setup>
 import { computed } from 'vue'
 import GanttBar from './GanttBar.vue'
+import GanttForkBar from './GanttForkBar.vue'
 
 /**
  * GanttSwimlane — renders all session bars for one project.
