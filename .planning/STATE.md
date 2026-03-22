@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.7.0 Fork Visualization — Phase 22: Schema and Import
+**Current focus:** v0.7.0 Fork Visualization — Phase 24: Gantt Fork Bar Rendering
 
 ## Current Position
 
-Phase: 23 of 25 (Backend Fork Segments)
+Phase: 24 of 25 (Gantt Fork Bar Rendering)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-03-22 — Completed 23-01-PLAN.md (forkSegments in timeline API)
+Last activity: 2026-03-22 — Completed 24-01-PLAN.md (GanttForkBar component + GanttSwimlane integration)
 
-Progress: [██░░░░░░░░░░░░░░░░░░] ~10% (v0.7.0: 2 plans complete)
+Progress: [███░░░░░░░░░░░░░░░░░] ~15% (v0.7.0: 3 plans complete)
 Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped)
 
 ## Performance Metrics
@@ -49,9 +49,10 @@ None.
 
 - Working time policy: RESOLVED in 23-01. Fork messages included in working time (parallel exploration counts as work). Documented with code comment.
 - Fork bar click events must route through `GanttChart.onBarSelect` drag-pan guard to avoid accidental selection during panning (Phase 25).
+- Fork bar overlay positioning: top = rowIdx * 36 + 14px (places bar in lower half of 36px row). Established in 24-01.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:08:01Z
-Stopped at: Completed 23-01-PLAN.md (forkSegments in timeline API)
+Last session: 2026-03-22T03:04:32Z
+Stopped at: Completed 24-01-PLAN.md (GanttForkBar component + GanttSwimlane integration)
 Resume file: None
