@@ -60,25 +60,25 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHM-01 | TBD | Pending |
-| SCHM-02 | TBD | Pending |
-| SCHM-03 | TBD | Pending |
-| FSEG-01 | TBD | Pending |
-| FSEG-02 | TBD | Pending |
-| FSEG-03 | TBD | Pending |
-| GANT-01 | TBD | Pending |
-| GANT-02 | TBD | Pending |
-| GANT-03 | TBD | Pending |
-| GANT-04 | TBD | Pending |
-| INTR-01 | TBD | Pending |
-| INTR-02 | TBD | Pending |
-| DETL-01 | TBD | Pending |
+| SCHM-01 | Phase 22 | Pending |
+| SCHM-02 | Phase 22 | Pending |
+| SCHM-03 | Phase 22 | Pending |
+| FSEG-01 | Phase 23 | Pending |
+| FSEG-02 | Phase 23 | Pending |
+| FSEG-03 | Phase 23 | Pending |
+| GANT-01 | Phase 24 | Pending |
+| GANT-02 | Phase 24 | Pending |
+| GANT-03 | Phase 24 | Pending |
+| GANT-04 | Phase 24 | Pending |
+| INTR-01 | Phase 25 | Pending |
+| INTR-02 | Phase 25 | Pending |
+| DETL-01 | Phase 25 | Pending |
 
 **Coverage:**
 - v0.7.0 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Last updated: 2026-03-21 after roadmap creation*
