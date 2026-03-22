@@ -7,6 +7,7 @@
       '--fork-color': color,
     }"
     :title="`Fork: ${fork.forkBranchId.slice(0, 8)} (${fork.messageCount} messages)`"
+    @click.stop="emit('select', fork)"
   />
 </template>
 
@@ -23,12 +24,14 @@ import { computed } from 'vue'
  * Visual treatment: 50% opacity of the project color, clearly subordinate
  * to the main session bar above it.
  *
- * Click behavior is deferred to Phase 25.
+ * Emits 'select' with the fork object when clicked.
  *
  * @prop {Object} fork  - Fork segment: { forkBranchId, startTime, endTime, messageCount }
  * @prop {string} date  - YYYY-MM-DD date string for time-to-percent conversion
  * @prop {string} color - Project color hex string (same as parent session)
  */
+const emit = defineEmits(['select'])
+
 const props = defineProps({
   fork: {
     type: Object,
@@ -73,7 +76,7 @@ const barWidth = computed(() => {
   border-radius: var(--radius-sm);
   background: var(--fork-color);
   opacity: 0.5;
-  cursor: default;
+  cursor: pointer;
   pointer-events: auto;
 }
 

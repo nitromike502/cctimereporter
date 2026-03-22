@@ -11,7 +11,7 @@
         :style="{ top: rowIdx * BAR_ROW_HEIGHT + 'px' }"
         @select="emit('select', $event)"
       />
-      <template v-for="session in row" :key="'forks-' + session.sessionId">
+      <template v-if="showForks" v-for="session in row" :key="'forks-' + session.sessionId">
         <GanttForkBar
           v-for="fork in (session.forkSegments || [])"
           :key="fork.forkBranchId"
@@ -19,6 +19,7 @@
           :date="date"
           :color="color"
           :style="{ top: rowIdx * BAR_ROW_HEIGHT + 14 + 'px' }"
+          @select="emit('select-fork', $event)"
         />
       </template>
     </template>
@@ -58,9 +59,13 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  showForks: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'select-fork'])
 
 /** Bar height (28px) + gap (8px) */
 const BAR_ROW_HEIGHT = 36

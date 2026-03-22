@@ -43,7 +43,6 @@
           </div>
 
           <!-- Project swim lanes (bars only, labels are in .gantt-labels) -->
-          <!-- TODO Phase 24: add @select-fork="onForkSelect" to GanttSwimlane once GanttForkBar emits are wired -->
           <div v-for="project in projects" :key="project.projectId" class="swimlane-row">
             <GanttSwimlane
               :sessions="project.sessions"
@@ -52,6 +51,7 @@
               :selected-session-id="selectedSessionId"
               :show-forks="showForks"
               @select="onBarSelect($event)"
+              @select-fork="onForkSelect($event)"
             />
           </div>
         </div>
