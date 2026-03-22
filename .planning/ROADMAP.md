@@ -93,10 +93,10 @@ See: `.planning/milestones/v0.6.0-ROADMAP.md` for full details.
   2. Re-importing existing sessions populates `fork_branch_id` on all fork-branch messages without losing user edits (user_label, user_ticket)
   3. Sessions with multiple distinct fork branches have different `fork_branch_id` values per branch (not all the same ID)
   4. Sessions without forks have NULL `fork_branch_id` on all their messages
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 22-01: Schema v7 migration and fork-detector assignment
+- [ ] 22-01-PLAN.md &mdash; Schema v7 migration + fork-detector branch ID assignment
 
 #### Phase 23: Backend Fork Segments
 **Goal**: The timeline API returns computed fork segment data for sessions that have real forks, usable directly by frontend components without further processing
@@ -107,7 +107,7 @@ Plans:
   2. Each fork segment object contains start time, end time, and fork branch ID
   3. Sessions with `real_fork_count = 0` skip the fork query entirely (no DB overhead for the common case)
   4. Fork segment timestamps are clamped to day boundaries (consistent with idle gap clamping)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 23-01: computeForkSegments helper and timeline route integration
@@ -122,7 +122,7 @@ Plans:
   3. Fork sub-bars are visually distinct from the main bar — lighter color or reduced opacity — so the hierarchy is immediately apparent
   4. Sessions without forks render identically to before this phase; no layout shifts or empty space appears
   5. The GanttForkBar component is listed on the /components preview page
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 24-01: GanttForkBar.vue component and GanttSwimlane integration
@@ -136,7 +136,7 @@ Plans:
   2. Panning the chart at zoom > 1x does not accidentally trigger fork bar selection (drag guard respected)
   3. A show/hide toggle controls fork sub-row visibility; toggling hides all fork bars without affecting main bars or row heights
   4. The show/hide preference persists across page reloads (localStorage)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 25-01: Fork bar click routing and detail panel fork view
@@ -169,7 +169,7 @@ Plans:
 | 19. Layout Restructure | v0.6.0 | 1/1 | Complete | 2026-03-19 |
 | 20. Core Zoom Mechanic | v0.6.0 | 2/2 | Complete | 2026-03-19 |
 | 21. Zoom Polish | v0.6.0 | 1/1 | Complete | 2026-03-19 |
-| 22. Schema and Import | v0.7.0 | 0/TBD | Not started | - |
+| 22. Schema and Import | v0.7.0 | 0/1 | Not started | - |
 | 23. Backend Fork Segments | v0.7.0 | 0/TBD | Not started | - |
 | 24. Gantt Fork Bar Rendering | v0.7.0 | 0/TBD | Not started | - |
 | 25. Interaction and Detail Panel | v0.7.0 | 0/TBD | Not started | - |
