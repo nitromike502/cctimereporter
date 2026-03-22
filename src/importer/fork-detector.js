@@ -16,6 +16,7 @@
  *   forkCount: number,
  *   realForkCount: number,
  *   forkBranchUuids: Set<string>,
+ *   forkBranchMap: Map<string, string>,
  * }}
  */
 export function detectForks(messages) {
@@ -40,6 +41,9 @@ export function detectForks(messages) {
   let forkCount = 0;
   let realForkCount = 0;
   const forkBranchUuids = new Set();
+  // forkBranchMap: message UUID → branch ID (first child UUID of that secondary branch).
+  // Primary branch messages and non-fork messages are NOT in this map (no fork_branch_id).
+  const forkBranchMap = new Map();
 
   // Find fork points: parents with 2+ children
   for (const [, childUuids] of childrenMap) {
@@ -80,12 +84,15 @@ export function detectForks(messages) {
     const branchInfo = childUuids.map(uuid => [uuid, countDescendants(uuid)]);
     branchInfo.sort((a, b) => b[1] - a[1]);
 
-    // Mark all secondary branch descendants as fork branches
+    // Mark all secondary branch descendants as fork branches.
+    // The branch ID is the first child UUID of that secondary branch (stable across re-imports).
     for (const [childUuid] of branchInfo.slice(1)) {
+      const branchId = childUuid;
       const stack = [childUuid];
       while (stack.length > 0) {
         const current = stack.pop();
         forkBranchUuids.add(current);
+        forkBranchMap.set(current, branchId);
         const children = childrenMap.get(current);
         if (children) {
           for (const child of children) {
@@ -96,5 +103,5 @@ export function detectForks(messages) {
     }
   }
 
-  return { forkCount, realForkCount, forkBranchUuids };
+  return { forkCount, realForkCount, forkBranchUuids, forkBranchMap };
 }

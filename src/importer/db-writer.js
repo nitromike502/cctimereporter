@@ -152,7 +152,9 @@ export function upsertSession(db, sessionData) {
 
 /**
  * Batch-inserts messages for a session in a single transaction.
- * Uses INSERT OR IGNORE so duplicate (session_id, uuid) pairs are silently skipped.
+ * Uses INSERT INTO ... ON CONFLICT(session_id, uuid) DO UPDATE SET to ensure
+ * fork_branch_id and is_fork_branch are updated on re-import without losing
+ * other message fields.
  *
  * @param {import('node:sqlite').DatabaseSync} db
  * @param {string} sessionId
@@ -165,14 +167,15 @@ export function upsertSession(db, sessionData) {
  *   git_branch?: string,
  *   is_meta?: number,
  *   is_sidechain?: number,
- *   is_fork_branch?: number
+ *   is_fork_branch?: number,
+ *   fork_branch_id?: string|null
  * }>} messages
  */
 export function insertMessages(db, sessionId, messages) {
   if (!messages || messages.length === 0) return;
 
   const stmt = db.prepare(`
-    INSERT OR IGNORE INTO messages (
+    INSERT INTO messages (
       session_id,
       uuid,
       type,
@@ -182,7 +185,8 @@ export function insertMessages(db, sessionId, messages) {
       git_branch,
       is_meta,
       is_sidechain,
-      is_fork_branch
+      is_fork_branch,
+      fork_branch_id
     ) VALUES (
       $session_id,
       $uuid,
@@ -193,24 +197,29 @@ export function insertMessages(db, sessionId, messages) {
       $git_branch,
       $is_meta,
       $is_sidechain,
-      $is_fork_branch
+      $is_fork_branch,
+      $fork_branch_id
     )
+    ON CONFLICT(session_id, uuid) DO UPDATE SET
+      fork_branch_id  = excluded.fork_branch_id,
+      is_fork_branch  = excluded.is_fork_branch
   `);
 
   db.exec('BEGIN');
   try {
     for (const msg of messages) {
       stmt.run({
-        $session_id:    sessionId,
-        $uuid:          msg.uuid,
-        $type:          msg.type,
-        $subtype:       msg.subtype        ?? null,
-        $timestamp:     msg.timestamp,
-        $parent_uuid:   msg.parent_uuid    ?? null,
-        $git_branch:    msg.git_branch     ?? null,
-        $is_meta:       msg.is_meta        ?? 0,
-        $is_sidechain:  msg.is_sidechain   ?? 0,
+        $session_id:     sessionId,
+        $uuid:           msg.uuid,
+        $type:           msg.type,
+        $subtype:        msg.subtype        ?? null,
+        $timestamp:      msg.timestamp,
+        $parent_uuid:    msg.parent_uuid    ?? null,
+        $git_branch:     msg.git_branch     ?? null,
+        $is_meta:        msg.is_meta        ?? 0,
+        $is_sidechain:   msg.is_sidechain   ?? 0,
         $is_fork_branch: msg.is_fork_branch ?? 0,
+        $fork_branch_id: msg.fork_branch_id ?? null,
       });
     }
     db.exec('COMMIT');

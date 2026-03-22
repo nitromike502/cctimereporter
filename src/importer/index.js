@@ -328,15 +328,16 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
 
   // 9. Insert messages
   const messagesForDb = messages.map(msg => ({
-    uuid:          msg.uuid,
-    type:          msg.type,
-    subtype:       msg.subtype,
-    timestamp:     msg.timestamp,
-    parent_uuid:   msg.parentUuid,
-    git_branch:    msg.gitBranch,
-    is_meta:       msg.isMeta ? 1 : 0,
-    is_sidechain:  msg.isSidechain ? 1 : 0,
+    uuid:           msg.uuid,
+    type:           msg.type,
+    subtype:        msg.subtype,
+    timestamp:      msg.timestamp,
+    parent_uuid:    msg.parentUuid,
+    git_branch:     msg.gitBranch,
+    is_meta:        msg.isMeta ? 1 : 0,
+    is_sidechain:   msg.isSidechain ? 1 : 0,
     is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
+    fork_branch_id: forkData.forkBranchMap.get(msg.uuid) ?? null,
   }));
   // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
   const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
@@ -544,15 +545,16 @@ export async function importAll(db, options = {}) {
         const agentMessages = agentData.messages
           .filter(m => m.timestamp)
           .map(msg => ({
-            uuid:          msg.uuid,
-            type:          msg.type,
-            subtype:       msg.subtype,
-            timestamp:     msg.timestamp,
-            parent_uuid:   msg.parentUuid,
-            git_branch:    msg.gitBranch,
-            is_meta:       msg.isMeta ? 1 : 0,
-            is_sidechain:  1, // Agent messages are always sidechains
+            uuid:           msg.uuid,
+            type:           msg.type,
+            subtype:        msg.subtype,
+            timestamp:      msg.timestamp,
+            parent_uuid:    msg.parentUuid,
+            git_branch:     msg.gitBranch,
+            is_meta:        msg.isMeta ? 1 : 0,
+            is_sidechain:   1, // Agent messages are always sidechains
             is_fork_branch: 0,
+            fork_branch_id: null, // Agent messages never have fork branches
           }));
 
         if (agentMessages.length > 0) {
