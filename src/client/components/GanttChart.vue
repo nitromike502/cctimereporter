@@ -43,12 +43,14 @@
           </div>
 
           <!-- Project swim lanes (bars only, labels are in .gantt-labels) -->
+          <!-- TODO Phase 24: add @select-fork="onForkSelect" to GanttSwimlane once GanttForkBar emits are wired -->
           <div v-for="project in projects" :key="project.projectId" class="swimlane-row">
             <GanttSwimlane
               :sessions="project.sessions"
               :date="date"
               :color="project.color"
               :selected-session-id="selectedSessionId"
+              :show-forks="showForks"
               @select="onBarSelect($event)"
             />
           </div>
@@ -58,8 +60,23 @@
 
     </div>
 
-    <!-- Zoom controls below the chart -->
+    <!-- Controls bar below the chart: forks toggle + zoom -->
     <div class="zoom-bar">
+      <button
+        class="fork-toggle-btn"
+        :class="{ 'fork-toggle-btn--active': showForks }"
+        :title="showForks ? 'Hide fork branches' : 'Show fork branches'"
+        @click="$emit('update:showForks', !showForks)"
+        aria-label="Toggle fork branch visibility"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="6" r="3"/>
+          <path d="M6 15V7a9 9 0 0 0 9 9"/>
+        </svg>
+        Forks
+      </button>
+      <span class="zoom-bar-spacer"></span>
       <span class="zoom-bar-label">Zoom</span>
       <NumberStepper
         :model-value="zoomLevel"
@@ -112,9 +129,14 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  /** Whether fork sub-rows are visible. Passed through to GanttSwimlane. */
+  showForks: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-const emit = defineEmits(['select', 'update:zoomLevel'])
+const emit = defineEmits(['select', 'select-fork', 'update:zoomLevel', 'update:showForks'])
 
 // --- Zoom transition (button zoom only) ---
 
@@ -232,6 +254,19 @@ function onBarSelect(session) {
     return
   }
   emit('select', session)
+}
+
+/**
+ * Routes fork bar clicks through the drag-pan guard.
+ * Prevents accidental fork selection when the user was panning at zoom > 1x.
+ * Called from GanttSwimlane's select-fork event (wired by Phase 24).
+ */
+function onForkSelect(fork) {
+  if (didScroll) {
+    didScroll = false
+    return
+  }
+  emit('select-fork', fork)
 }
 
 // Reset scrollLeft when date changes (zoom reset to 1x is in TimelinePage's date watcher)
@@ -437,7 +472,7 @@ const timeAxisTicks = computed(() => {
   position: relative;
 }
 
-/* Zoom controls bar below chart */
+/* Controls bar below chart: forks toggle + zoom */
 .zoom-bar {
   display: flex;
   align-items: center;
@@ -451,5 +486,42 @@ const timeAxisTicks = computed(() => {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
   white-space: nowrap;
+}
+
+.zoom-bar-spacer {
+  flex: 1;
+}
+
+/* Fork visibility toggle button */
+.fork-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.fork-toggle-btn:hover {
+  opacity: 1;
+  color: var(--color-heading);
+  border-color: var(--color-muted);
+}
+
+.fork-toggle-btn--active {
+  color: var(--color-link);
+  border-color: var(--color-link);
+  opacity: 1;
+}
+
+.fork-toggle-btn--active:hover {
+  color: var(--color-link);
 }
 </style>

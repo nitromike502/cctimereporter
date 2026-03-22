@@ -77,6 +77,7 @@
       <!-- Session detail panel: always visible, populated on bar click -->
       <SessionDetailPanel
         :session="selectedSession"
+        :fork="selectedFork"
         :project-name="selectedProjectName"
         @show-messages="messagesModalOpen = true"
         @edit="editModalOpen = true"
@@ -106,8 +107,11 @@
         :date="selectedDate"
         :selected-session-id="selectedSession?.sessionId"
         :zoom-level="zoomLevel"
+        :show-forks="showForks"
         @select="onSelectSession"
+        @select-fork="onSelectFork"
         @update:zoom-level="val => zoomLevel = val"
+        @update:show-forks="onToggleShowForks"
       />
 
       <!-- Day summary: total time + per-project/ticket/branch breakdowns -->
@@ -170,11 +174,21 @@ const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
 const idleThreshold = ref(parseInt(localStorage.getItem(THRESHOLD_KEY), 10) || 10)
 // Zoom level for the Gantt chart (1x = full day, 4x = max zoom)
 const zoomLevel = ref(1)
+// Show/hide fork sub-rows, persisted to localStorage
+const SHOW_FORKS_KEY = 'cctimereporter:showForks'
+const showForks = ref(localStorage.getItem(SHOW_FORKS_KEY) !== 'false')
+// Currently selected fork segment (mutually exclusive with selectedSession)
+const selectedFork = ref(null)
 
 function setIdleThreshold(val) {
   idleThreshold.value = val
   localStorage.setItem(THRESHOLD_KEY, String(val))
   fetchTimeline()
+}
+
+function onToggleShowForks(val) {
+  showForks.value = val
+  localStorage.setItem(SHOW_FORKS_KEY, String(val))
 }
 
 // --- Guided tour ---
@@ -297,12 +311,28 @@ async function fetchTimeline() {
 /**
  * Handles clicking a session bar. Toggles selection: clicking the same bar
  * again deselects it; clicking a different bar selects it.
+ * Clears any selected fork (session and fork selections are mutually exclusive).
  */
 function onSelectSession(session) {
   if (selectedSession.value?.sessionId === session.sessionId) {
     selectedSession.value = null
   } else {
     selectedSession.value = session
+    selectedFork.value = null
+  }
+}
+
+/**
+ * Handles clicking a fork bar. Toggles selection: clicking the same fork
+ * again deselects it; clicking a different fork selects it.
+ * Clears any selected session (fork and session selections are mutually exclusive).
+ */
+function onSelectFork(fork) {
+  if (selectedFork.value?.forkBranchId === fork.forkBranchId) {
+    selectedFork.value = null
+  } else {
+    selectedFork.value = fork
+    selectedSession.value = null
   }
 }
 
@@ -423,6 +453,7 @@ onMounted(fetchTimeline)
 onUnmounted(() => { importEventSource.value?.close() })
 watch(() => route.query.date, () => {
   selectedSession.value = null
+  selectedFork.value = null
   zoomLevel.value = 1
   fetchTimeline()
 })
