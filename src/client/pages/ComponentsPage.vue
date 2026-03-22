@@ -192,6 +192,52 @@
         </div>
       </section>
 
+      <!-- ===== GANTT FORK BAR SHOWCASE ===== -->
+      <section v-if="active === 'gantt-fork-bar'" class="showcase-section">
+        <h2 class="showcase-heading">GanttForkBar</h2>
+        <p class="showcase-description">
+          Fork branch sub-bar rendered beneath a parent session bar in the Gantt chart.
+          Positioned at 50% height (14px vs 28px) in the lower half of a swimlane row,
+          using 50% opacity of the project color to show visual hierarchy.
+        </p>
+
+        <div class="showcase-group">
+          <h3 class="showcase-subheading">Single fork</h3>
+          <div
+            class="fork-bar-stage"
+            style="height: 50px; position: relative; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md);"
+          >
+            <GanttForkBar
+              :fork="{ forkBranchId: 'abc12345-0000-0000-0000-000000000001', startTime: '2026-03-22T09:00:00Z', endTime: '2026-03-22T10:30:00Z', messageCount: 12 }"
+              date="2026-03-22"
+              color="#4e9af1"
+              :style="{ top: '18px' }"
+            />
+          </div>
+        </div>
+
+        <div class="showcase-group">
+          <h3 class="showcase-subheading">Multiple forks (different colors)</h3>
+          <div
+            class="fork-bar-stage"
+            style="height: 50px; position: relative; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md);"
+          >
+            <GanttForkBar
+              :fork="{ forkBranchId: 'abc12345-0000-0000-0000-000000000002', startTime: '2026-03-22T08:00:00Z', endTime: '2026-03-22T09:00:00Z', messageCount: 5 }"
+              date="2026-03-22"
+              color="#4e9af1"
+              :style="{ top: '18px' }"
+            />
+            <GanttForkBar
+              :fork="{ forkBranchId: 'def67890-0000-0000-0000-000000000003', startTime: '2026-03-22T10:00:00Z', endTime: '2026-03-22T11:30:00Z', messageCount: 20 }"
+              date="2026-03-22"
+              color="#e07b54"
+              :style="{ top: '18px' }"
+            />
+          </div>
+        </div>
+      </section>
+
       <!-- ===== DATEPICKER SHOWCASE ===== -->
       <section v-if="active === 'datepicker'" class="showcase-section">
         <h2 class="showcase-heading">DatePicker</h2>
@@ -244,6 +290,7 @@ import AppCheckbox from '../components/AppCheckbox.vue'
 import AppTooltip from '../components/AppTooltip.vue'
 import AppProgressBar from '../components/AppProgressBar.vue'
 import AppDatePicker from '../components/AppDatePicker.vue'
+import GanttForkBar from '../components/GanttForkBar.vue'
 
 /** Sidebar component registry */
 const components = [
@@ -253,6 +300,7 @@ const components = [
   { id: 'tooltip', label: 'Tooltip' },
   { id: 'progress', label: 'ProgressBar' },
   { id: 'datepicker', label: 'DatePicker' },
+  { id: 'gantt-fork-bar', label: 'GanttForkBar' },
 ]
 
 /** Currently active component in the sidebar */
