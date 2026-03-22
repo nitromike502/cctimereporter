@@ -96,6 +96,24 @@ function getWorktreeParentPath(projectPath) {
   return null;
 }
 
+/**
+ * Compute fork segments for a single session from raw DB rows.
+ * Clamps start/end timestamps to day boundaries (consistent with overnight session clamping).
+ *
+ * @param {Array<{fork_branch_id: string, start_time: string, end_time: string, message_count: number}>} rows
+ * @param {string} dayStartUTC - ISO8601 start of day in UTC
+ * @param {string} dayEndUTC   - ISO8601 end of day in UTC
+ * @returns {{ forkBranchId: string, startTime: string, endTime: string, messageCount: number }[]}
+ */
+function computeForkSegments(rows, dayStartUTC, dayEndUTC) {
+  return rows.map(row => ({
+    forkBranchId: row.fork_branch_id,
+    startTime: row.start_time < dayStartUTC ? dayStartUTC : row.start_time,
+    endTime:   row.end_time   > dayEndUTC   ? dayEndUTC   : row.end_time,
+    messageCount: row.message_count,
+  }));
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -183,6 +201,39 @@ export async function timelineRoute(fastify, opts) {
       projectPathLookup.set(encoded, project_path);
     }
 
+    // Collect session IDs that have real forks so we can batch-query fork segments.
+    // Gate on real_fork_count > 0 to avoid any DB overhead for the common (no-fork) case.
+    // Fork branch messages are intentionally included in working time — forks represent
+    // parallel exploration within the same work session.
+    const sessionIdsWithForks = sessions
+      .filter(s => s.real_fork_count > 0)
+      .map(s => s.session_id);
+
+    // Maps session_id → array of fork segment DB rows
+    const forkRowsBySession = new Map();
+    if (sessionIdsWithForks.length > 0) {
+      const placeholders = sessionIdsWithForks.map(() => '?').join(', ');
+      const forkRows = db.prepare(`
+        SELECT session_id, fork_branch_id,
+               MIN(timestamp) AS start_time,
+               MAX(timestamp) AS end_time,
+               COUNT(*) AS message_count
+        FROM messages
+        WHERE session_id IN (${placeholders})
+          AND fork_branch_id IS NOT NULL
+          AND type IN ('user', 'assistant')
+          AND timestamp IS NOT NULL
+        GROUP BY session_id, fork_branch_id
+      `).all(...sessionIdsWithForks);
+
+      for (const forkRow of forkRows) {
+        if (!forkRowsBySession.has(forkRow.session_id)) {
+          forkRowsBySession.set(forkRow.session_id, []);
+        }
+        forkRowsBySession.get(forkRow.session_id).push(forkRow);
+      }
+    }
+
     for (const row of sessions) {
       // Get message timestamps for working time computation
       const msgRows = messageStmt.all(row.session_id);
@@ -206,6 +257,10 @@ export async function timelineRoute(fastify, opts) {
 
       const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
 
+      // Compute fork segments (empty array for sessions with no real forks)
+      const rawForkRows = forkRowsBySession.get(row.session_id) ?? [];
+      const forkSegments = computeForkSegments(rawForkRows, dayStartUTC, dayEndUTC);
+
       const sessionObj = {
         sessionId: row.session_id,
         startTime: clampedStart,
@@ -215,6 +270,7 @@ export async function timelineRoute(fastify, opts) {
         workingTimeMs,
         elapsedTimeMs,
         idleGaps,
+        forkSegments,
         ticket: row.primary_ticket,
         branch: row.working_branch,
         summary: row.summary,
