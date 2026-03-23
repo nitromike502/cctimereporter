@@ -106,12 +106,14 @@ function getWorktreeParentPath(projectPath) {
  * @returns {{ forkBranchId: string, startTime: string, endTime: string, messageCount: number }[]}
  */
 function computeForkSegments(rows, dayStartUTC, dayEndUTC) {
-  return rows.map(row => ({
-    forkBranchId: row.fork_branch_id,
-    startTime: row.start_time < dayStartUTC ? dayStartUTC : row.start_time,
-    endTime:   row.end_time   > dayEndUTC   ? dayEndUTC   : row.end_time,
-    messageCount: row.message_count,
-  }));
+  return rows
+    .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC)
+    .map(row => ({
+      forkBranchId: row.fork_branch_id,
+      startTime: row.start_time < dayStartUTC ? dayStartUTC : row.start_time,
+      endTime:   row.end_time   > dayEndUTC   ? dayEndUTC   : row.end_time,
+      messageCount: row.message_count,
+    }));
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
