@@ -151,10 +151,10 @@ Plans:
   2. User and assistant messages have their text content stored (truncated to 1000 chars)
   3. Progress, tool_use, tool_result, and internal messages have NULL content
   4. Re-importing populates content on existing message rows
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 26-01: Schema migration for content column and importer text extraction
+- [ ] 26-01-PLAN.md — Schema v8 migration + importer content extraction and storage
 
 #### Phase 27: Messages Modal from DB
 **Goal**: The messages modal reads from the database instead of JSONL files, and can show fork-specific messages when a fork bar is selected
@@ -201,5 +201,5 @@ Plans:
 | 23. Backend Fork Segments | v0.7.0 | 1/1 | Paused | - |
 | 24. Gantt Fork Bar Rendering | v0.7.0 | 1/1 | Paused | - |
 | 25. Interaction and Detail Panel | v0.7.0 | 1/1 | Paused | - |
-| 26. Store Message Content | v0.7.0 | 0/TBD | Not started | - |
+| 26. Store Message Content | v0.7.0 | 0/1 | Not started | - |
 | 27. Messages Modal from DB | v0.7.0 | 0/TBD | Not started | - |
