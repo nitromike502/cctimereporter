@@ -186,7 +186,8 @@ export function insertMessages(db, sessionId, messages) {
       is_meta,
       is_sidechain,
       is_fork_branch,
-      fork_branch_id
+      fork_branch_id,
+      content
     ) VALUES (
       $session_id,
       $uuid,
@@ -198,11 +199,13 @@ export function insertMessages(db, sessionId, messages) {
       $is_meta,
       $is_sidechain,
       $is_fork_branch,
-      $fork_branch_id
+      $fork_branch_id,
+      $content
     )
     ON CONFLICT(session_id, uuid) DO UPDATE SET
       fork_branch_id  = excluded.fork_branch_id,
-      is_fork_branch  = excluded.is_fork_branch
+      is_fork_branch  = excluded.is_fork_branch,
+      content         = excluded.content
   `);
 
   db.exec('BEGIN');
@@ -220,6 +223,7 @@ export function insertMessages(db, sessionId, messages) {
         $is_sidechain:   msg.is_sidechain   ?? 0,
         $is_fork_branch: msg.is_fork_branch ?? 0,
         $fork_branch_id: msg.fork_branch_id ?? null,
+        $content:        msg.content        ?? null,
       });
     }
     db.exec('COMMIT');

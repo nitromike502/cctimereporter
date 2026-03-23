@@ -12,7 +12,8 @@ import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readConfig, CONFIG_DIR } from '../utils/config.js';
 import { discoverProjects, findTranscriptFiles, findAgentFiles } from './discovery.js';
-import { parseTranscript, peekFirstTimestamp } from './parser.js';
+import { parseTranscript, peekFirstTimestamp, extractContentText } from './parser.js';
+import { cleanUserMessage } from '../utils/parse-command-xml.js';
 import { readSessionIndex } from './session-index.js';
 import { detectForks } from './fork-detector.js';
 import { scoreTickets, determineWorkingBranch, TICKET_PATTERN, TICKET_PREFIX_DENYLIST, MCP_TICKET_PREFIXES } from './ticket-scorer.js';
@@ -23,6 +24,36 @@ import {
   updateImportLog,
   getImportedFileInfo,
 } from './db-writer.js';
+
+/**
+ * Extract, clean, and truncate displayable text content from a message for DB storage.
+ *
+ * Only user and assistant messages are stored; all others return null.
+ * XML tags (slash commands, bash, skill expansions) are stripped from user messages.
+ * Truncates at word boundary near 1000 chars if text exceeds 1250 chars.
+ *
+ * @param {object} msg - Normalized message from parseTranscript()
+ * @returns {string|null}
+ */
+function extractMessageContent(msg) {
+  if (msg.type !== 'user' && msg.type !== 'assistant') return null;
+
+  const raw = extractContentText(msg.rawMessage);
+  if (!raw || !raw.trim()) return null;
+
+  // Strip XML tags — cleanUserMessage handles slash commands, bash, skill expansions
+  const cleaned = cleanUserMessage(raw).trim();
+  if (!cleaned) return null;
+
+  // Truncate at word boundary near 1000 chars if text exceeds 1250 chars
+  if (cleaned.length > 1250) {
+    const spaceIdx = cleaned.lastIndexOf(' ', 1000);
+    const cutIdx = spaceIdx !== -1 ? spaceIdx : 1000;
+    return cleaned.slice(0, cutIdx) + '...';
+  }
+
+  return cleaned;
+}
 
 // Worktree-based subagent project path patterns.
 // Claude Code's EnterWorktree creates projects at paths like:
@@ -338,6 +369,7 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
     is_sidechain:   msg.isSidechain ? 1 : 0,
     is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
     fork_branch_id: forkData.forkBranchMap.get(msg.uuid) ?? null,
+    content:        extractMessageContent(msg),
   }));
   // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
   const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
@@ -555,6 +587,7 @@ export async function importAll(db, options = {}) {
             is_sidechain:   1, // Agent messages are always sidechains
             is_fork_branch: 0,
             fork_branch_id: null, // Agent messages never have fork branches
+            content:        null, // Agent sidechain messages do not store content
           }));
 
         if (agentMessages.length > 0) {
