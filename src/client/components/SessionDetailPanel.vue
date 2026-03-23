@@ -25,7 +25,15 @@
       <!-- Column 3: Stats -->
       <div class="detail-item">
         <span class="detail-label">Messages:</span>
-        <span class="detail-value">{{ fork.messageCount ?? '\u00A0' }}</span>
+        <span class="detail-value">
+          {{ fork.messageCount ?? '\u00A0' }}
+          <a
+            v-if="fork"
+            class="detail-link"
+            href="#"
+            @click.prevent="$emit('show-messages-fork', fork.forkBranchId)"
+          >view</a>
+        </span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Type:</span>
@@ -135,7 +143,7 @@ import { computed } from 'vue'
  * @prop {Object} fork        - Fork segment object or null (takes priority over session view)
  * @prop {string} projectName - Display name of the project owning this session
  */
-defineEmits(['show-messages', 'edit'])
+defineEmits(['show-messages', 'show-messages-fork', 'edit'])
 
 const props = defineProps({
   session: {

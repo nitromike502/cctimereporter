@@ -4,9 +4,12 @@
       <DialogOverlay class="modal-overlay" />
       <DialogContent class="modal-content">
         <DialogTitle class="modal-title">
-          Session Messages
+          {{ props.forkBranchId ? 'Fork Branch Messages' : 'Session Messages' }}
           <span v-if="totalCount > 0" class="modal-title-count">{{ totalCount }} messages with text</span>
         </DialogTitle>
+        <div v-if="props.forkBranchId" class="modal-fork-subtitle">
+          Showing messages from fork branch {{ props.forkBranchId.slice(0, 8) }}&hellip;
+        </div>
         <DialogDescription class="sr-only">
           First and last messages from this session
         </DialogDescription>
@@ -25,7 +28,10 @@
             class="message-item"
             :class="`message-item--${msg.role}`"
           >
-            <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
+            <span class="message-role">
+              {{ msg.role === 'user' ? 'User' : 'Assistant' }}
+              <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+            </span>
             <pre
               :ref="setContentRef('first-' + i)"
               class="message-content"
@@ -48,7 +54,10 @@
             class="message-item"
             :class="`message-item--${msg.role}`"
           >
-            <span class="message-role">{{ msg.role === 'user' ? 'User' : 'Assistant' }}</span>
+            <span class="message-role">
+              {{ msg.role === 'user' ? 'User' : 'Assistant' }}
+              <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+            </span>
             <pre
               :ref="setContentRef('last-' + i)"
               class="message-content"
@@ -81,6 +90,7 @@ import { cleanUserMessage } from '../../utils/parse-command-xml.js'
 const props = defineProps({
   open: { type: Boolean, default: false },
   sessionId: { type: String, default: '' },
+  forkBranchId: { type: String, default: '' },
 })
 
 defineEmits(['update:open'])
@@ -132,6 +142,21 @@ function formatContent(msg) {
   return msg.content
 }
 
+/**
+ * Format an ISO timestamp as "H:MM AM/PM" for compact display in message headers.
+ * @param {string} isoStr
+ * @returns {string}
+ */
+function formatTimestamp(isoStr) {
+  if (!isoStr) return ''
+  try {
+    const d = new Date(isoStr)
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
 function isOverflow(key, text) {
   // Show button if DOM element overflows OR text exceeds hard cap
   return overflowMessages[key] || (text && text.length > MAX_COLLAPSED_CHARS)
@@ -143,7 +168,7 @@ function truncateContent(text, expanded) {
 }
 
 watch(
-  () => [props.open, props.sessionId],
+  () => [props.open, props.sessionId, props.forkBranchId],
   async ([isOpen, id]) => {
     if (!isOpen || !id) return
     loading.value = true
@@ -155,7 +180,11 @@ watch(
     Object.keys(overflowMessages).forEach(k => delete overflowMessages[k])
     contentRefs.value = {}
     try {
-      const res = await fetch(`/api/sessions/${encodeURIComponent(id)}/messages`)
+      let url = `/api/sessions/${encodeURIComponent(id)}/messages`
+      if (props.forkBranchId) {
+        url += `?forkBranchId=${encodeURIComponent(props.forkBranchId)}`
+      }
+      const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       messages.value = data.messages
@@ -211,6 +240,13 @@ watch(
   font-size: var(--font-size-xs);
   font-weight: 400;
   color: var(--color-muted);
+}
+
+.modal-fork-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  padding: 0 var(--spacing-md) var(--spacing-xs);
+  font-style: italic;
 }
 
 .sr-only {
@@ -277,7 +313,9 @@ watch(
 }
 
 .message-role {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -287,6 +325,13 @@ watch(
   border-bottom: 1px solid var(--color-border);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: color-mix(in srgb, var(--color-bg-secondary) 50%, var(--color-bg));
+}
+
+.message-timestamp {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
 }
 
 .message-item--user .message-role {

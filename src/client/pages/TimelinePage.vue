@@ -79,7 +79,8 @@
         :session="selectedSession"
         :fork="selectedFork"
         :project-name="selectedProjectName"
-        @show-messages="messagesModalOpen = true"
+        @show-messages="onShowMessages"
+        @show-messages-fork="onShowMessagesFork"
         @edit="editModalOpen = true"
       />
 
@@ -121,7 +122,8 @@
     <!-- Session messages modal -->
     <SessionMessagesModal
       v-model:open="messagesModalOpen"
-      :session-id="selectedSession?.sessionId ?? ''"
+      :session-id="messagesModalSessionId"
+      :fork-branch-id="messagesModalForkBranchId"
     />
 
     <!-- Session edit modal -->
@@ -168,6 +170,8 @@ const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
 const selectedSession = ref(null)
 const messagesModalOpen = ref(false)
+const messagesModalSessionId = ref('')
+const messagesModalForkBranchId = ref('')
 const editModalOpen = ref(false)
 // Idle threshold in minutes, persisted to localStorage
 const THRESHOLD_KEY = 'cctimereporter:idleThreshold'
@@ -337,6 +341,28 @@ function onSelectFork(fork) {
 }
 
 /**
+ * Opens the messages modal for the currently selected session (primary branch).
+ */
+function onShowMessages() {
+  if (!selectedSession.value) return
+  messagesModalSessionId.value = selectedSession.value.sessionId
+  messagesModalForkBranchId.value = ''
+  messagesModalOpen.value = true
+}
+
+/**
+ * Opens the messages modal filtered to a specific fork branch.
+ * The session ID comes from the currently selected fork's parent session.
+ * @param {string} forkBranchId
+ */
+function onShowMessagesFork(forkBranchId) {
+  if (!selectedFork.value) return
+  messagesModalSessionId.value = selectedFork.value.sessionId
+  messagesModalForkBranchId.value = forkBranchId
+  messagesModalOpen.value = true
+}
+
+/**
  * Handles session edit save — optimistic UI update without full timeline refetch.
  */
 function onSessionEdited({ userLabel, userTicket }) {
@@ -446,6 +472,14 @@ function triggerImport({ full = false } = {}) {
     error.value = 'Import failed'
   })
 }
+
+// Reset modal fork context when modal closes
+watch(messagesModalOpen, (isOpen) => {
+  if (!isOpen) {
+    messagesModalForkBranchId.value = ''
+    messagesModalSessionId.value = ''
+  }
+})
 
 // --- Lifecycle ---
 
