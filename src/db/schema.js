@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS messages (
   is_sidechain    BOOLEAN DEFAULT 0,
   is_fork_branch  BOOLEAN DEFAULT 0,
   fork_branch_id  TEXT,
+  content         TEXT,
   UNIQUE(session_id, uuid),
   FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
@@ -153,6 +154,16 @@ ALTER TABLE sessions ADD COLUMN user_ticket TEXT;
  */
 export const MIGRATION_V6_TO_V7 = `
 ALTER TABLE messages ADD COLUMN fork_branch_id TEXT;
+`;
+
+/**
+ * ALTER TABLE statements to migrate v7 → v8.
+ * Adds content TEXT column for storing extracted, cleaned message text.
+ * Enables DB-based message display without re-reading JSONL files.
+ * Only user and assistant messages have content; others remain NULL.
+ */
+export const MIGRATION_V7_TO_V8 = `
+ALTER TABLE messages ADD COLUMN content TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `
