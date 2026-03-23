@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 26 of 27 (Store Message Content)
+Phase: 27 of 27 (Messages Modal from DB)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-03-23 — Completed 26-01-PLAN.md (schema v8, content column, importer extraction)
+Last activity: 2026-03-23 — Completed 27-01-PLAN.md (messages API from DB, fork filtering, timestamps)
 
-Progress: [████░░░░░░░░░░░░░░░░] ~22% (v0.8.0: 5 plans complete)
+Progress: [█████░░░░░░░░░░░░░░░] ~27% (v0.8.0: 6 plans complete)
 Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped); Phases 22-25 (fork viz) paused
 
 ## Performance Metrics
@@ -49,6 +49,13 @@ Phase 26 content storage (from 26-01 execution):
 - ON CONFLICT DO UPDATE includes content = excluded.content for re-import idempotency
 - After migration, users must re-import to populate content on existing rows (re-import banner triggers from migrated=true)
 
+Phase 27 messages modal from DB (from 27-01 execution):
+- Messages API reads from DB; no JSONL file access; removed fs/readline imports
+- Default (no forkBranchId) returns primary-branch messages (fork_branch_id IS NULL)
+- ?forkBranchId=X returns only that fork branch; ?forkBranchId=all reserved for future use
+- Modal title/subtitle changes when fork filtering is active
+- Fork detail panel now has "view messages" link emitting show-messages-fork(forkBranchId)
+
 ### Pending Todos
 
 None.
@@ -62,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:58:48Z
-Stopped at: Completed 26-01-PLAN.md (schema v8 content column, importer extraction, db-writer integration)
+Last session: 2026-03-23T23:05:11Z
+Stopped at: Completed 27-01-PLAN.md (messages API from DB, fork filtering, modal timestamps)
 Resume file: None
