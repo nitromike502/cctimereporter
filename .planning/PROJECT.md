@@ -58,14 +58,18 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-**Current Milestone: v0.7.0 Fork Visualization**
+**Current Milestone: v0.7.0 Fork Visualization + Stored Messages**
 
-**Goal:** Display fork branches as half-height sub-rows beneath their parent session bar in the Gantt chart, each starting at the fork point timestamp.
+**Goal:** Display fork branches as sub-rows in the Gantt chart, store user/assistant message text in the DB, and switch the messages modal to read from DB (enabling fork message display).
 
-- [ ] Fork branches displayed as 50% height sub-rows under parent session bar
-- [ ] Each fork bar starts at the fork point timestamp on the timeline
-- [ ] Fork bars are visually distinct from parent (height, indentation, or styling)
-- [ ] Sessions without forks remain unchanged
+- [x] Fork branches displayed as 50% height sub-rows under parent session bar
+- [x] Each fork bar starts at the fork point timestamp on the timeline
+- [x] Fork bars are visually distinct from parent (height, opacity, styling)
+- [x] Sessions without forks remain unchanged
+- [x] Progress forks filtered out — only real user forks shown
+- [ ] User + assistant message text stored in DB (truncated to 1000 chars)
+- [ ] Messages modal reads from DB instead of JSONL files
+- [ ] Fork messages viewable in messages modal (filtered by fork_branch_id)
 
 ### Out of Scope
 

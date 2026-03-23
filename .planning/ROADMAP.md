@@ -142,6 +142,34 @@ Plans:
 - [ ] 25-01: Fork bar click routing and detail panel fork view
 - [ ] 25-02: Show/hide toggle with localStorage persistence
 
+#### Phase 26: Store Message Content
+**Goal**: User and assistant message text is stored in the database during import, enabling DB-based message display without re-reading JSONL files
+**Depends on**: Phase 22 (schema migration pattern)
+**Requirements**: MSGS-01, MSGS-02, MSGS-03
+**Success Criteria** (what must be TRUE):
+  1. The messages table has a `content` column after auto-migration
+  2. User and assistant messages have their text content stored (truncated to 1000 chars)
+  3. Progress, tool_use, tool_result, and internal messages have NULL content
+  4. Re-importing populates content on existing message rows
+**Plans**: TBD
+
+Plans:
+- [ ] 26-01: Schema migration for content column and importer text extraction
+
+#### Phase 27: Messages Modal from DB
+**Goal**: The messages modal reads from the database instead of JSONL files, and can show fork-specific messages when a fork bar is selected
+**Depends on**: Phase 26 (content stored in DB)
+**Requirements**: MODL-01, MODL-02, MODL-03
+**Success Criteria** (what must be TRUE):
+  1. Messages modal shows session messages read from the DB (no JSONL file access)
+  2. When a fork bar is selected, the messages modal shows only that fork branch's messages
+  3. Messages display with role labels (user/assistant) and timestamps
+  4. The existing messages API route is updated or replaced to serve from DB
+**Plans**: TBD
+
+Plans:
+- [ ] 27-01: Messages API from DB and modal update with fork filtering
+
 ---
 
 ## Progress
@@ -173,3 +201,5 @@ Plans:
 | 23. Backend Fork Segments | v0.7.0 | 0/TBD | Not started | - |
 | 24. Gantt Fork Bar Rendering | v0.7.0 | 0/TBD | Not started | - |
 | 25. Interaction and Detail Panel | v0.7.0 | 0/TBD | Not started | - |
+| 26. Store Message Content | v0.7.0 | 0/TBD | Not started | - |
+| 27. Messages Modal from DB | v0.7.0 | 0/TBD | Not started | - |
