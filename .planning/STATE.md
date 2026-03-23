@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 25 of 25 (Interaction and Detail Panel)
+Phase: 26 of 27 (Store Message Content)
 Plan: 1 of 1 in current phase
-Status: Phase complete (pending Phase 24 integration: @select-fork binding on GanttSwimlane)
-Last activity: 2026-03-22 — Completed 25-01-PLAN.md (fork detail panel, toggle, click routing)
+Status: Phase complete
+Last activity: 2026-03-23 — Completed 26-01-PLAN.md (schema v8, content column, importer extraction)
 
-Progress: [████░░░░░░░░░░░░░░░░] ~20% (v0.7.0: 4 plans complete)
-Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped)
+Progress: [████░░░░░░░░░░░░░░░░] ~22% (v0.8.0: 5 plans complete)
+Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped); Phases 22-25 (fork viz) paused
 
 ## Performance Metrics
 
@@ -41,6 +41,14 @@ Fork data model (from research + 22-01 execution):
 - Working time policy for fork messages: must be decided and documented in Phase 23
 - Existing messages get NULL fork_branch_id until re-imported (normal, expected)
 
+Phase 26 content storage (from 26-01 execution):
+- Schema v8: `content TEXT` column on messages table; auto-migrates from v1-v7
+- Only user and assistant types get content; all others NULL
+- Truncation: >1250 chars → word-boundary cut near 1000 chars + "..."
+- `cleanUserMessage()` used for both user and assistant messages (strips slash commands, bash, skill tags)
+- ON CONFLICT DO UPDATE includes content = excluded.content for re-import idempotency
+- After migration, users must re-import to populate content on existing rows (re-import banner triggers from migrated=true)
+
 ### Pending Todos
 
 None.
@@ -54,6 +62,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:06:44Z
-Stopped at: Completed 25-01-PLAN.md (fork detail panel, show/hide toggle, click routing)
+Last session: 2026-03-23T22:58:48Z
+Stopped at: Completed 26-01-PLAN.md (schema v8 content column, importer extraction, db-writer integration)
 Resume file: None
