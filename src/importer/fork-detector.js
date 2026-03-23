@@ -51,16 +51,33 @@ export function detectForks(messages) {
 
     forkCount++;
 
-    // Classify: progress fork if all non-first children are progress/file_history_snapshot types
-    const isProgressFork = childUuids.slice(1).every(childUuid => {
-      const childMsg = msgByUuid.get(childUuid);
-      const t = childMsg?.type;
-      return t === 'progress' || t === 'file_history_snapshot';
-    });
+    // Classify: progress fork if at least one side is entirely progress/file_history_snapshot.
+    // Claude Code creates progress forks at every assistant response: assistant → [progress, user].
+    // A real user fork looks like: system → [user, system] or assistant → [user, user].
+    // Check each child: if it and ALL its descendants are progress/snapshot types, it's a progress branch.
+    function isProgressBranch(startUuid) {
+      const stack = [startUuid];
+      while (stack.length > 0) {
+        const current = stack.pop();
+        const msg = msgByUuid.get(current);
+        const t = msg?.type;
+        if (t !== 'progress' && t !== 'file_history_snapshot') return false;
+        const children = childrenMap.get(current);
+        if (children) {
+          for (const child of children) stack.push(child);
+        }
+      }
+      return true;
+    }
 
-    if (isProgressFork) continue;
+    // If removing progress-only branches leaves only 1 branch, it's a progress fork
+    const nonProgressChildren = childUuids.filter(uuid => !isProgressBranch(uuid));
+    if (nonProgressChildren.length <= 1) {
+      // All secondary branches are progress-only — not a real user fork
+      continue;
+    }
 
-    // Real fork — count descendants per branch to find primary
+    // Real fork — at least 2 non-progress branches diverge here
     realForkCount++;
 
     // Count descendants using iterative DFS (stack-based, not recursive)
@@ -80,8 +97,8 @@ export function detectForks(messages) {
       return count;
     }
 
-    // Build branch info: [uuid, descendantCount] sorted descending
-    const branchInfo = childUuids.map(uuid => [uuid, countDescendants(uuid)]);
+    // Build branch info from non-progress children only: [uuid, descendantCount] sorted descending
+    const branchInfo = nonProgressChildren.map(uuid => [uuid, countDescendants(uuid)]);
     branchInfo.sort((a, b) => b[1] - a[1]);
 
     // Mark all secondary branch descendants as fork branches.
