@@ -13,12 +13,12 @@
       />
       <template v-if="showForks" v-for="session in row" :key="'forks-' + session.sessionId">
         <GanttForkBar
-          v-for="fork in (session.forkSegments || [])"
+          v-for="(fork, forkIdx) in (session.forkSegments || [])"
           :key="fork.forkBranchId"
           :fork="fork"
           :date="date"
           :color="color"
-          :style="{ top: rowIdx * BAR_ROW_HEIGHT + 14 + 'px' }"
+          :style="{ top: rowIdx * BAR_ROW_HEIGHT + 28 + (forkIdx * FORK_BAR_HEIGHT) + 'px' }"
           @select="emit('select-fork', $event)"
         />
       </template>
@@ -69,6 +69,8 @@ const emit = defineEmits(['select', 'select-fork'])
 
 /** Bar height (28px) + gap (8px) */
 const BAR_ROW_HEIGHT = 36
+/** Fork bar height */
+const FORK_BAR_HEIGHT = 14
 
 /**
  * Assigns sessions to non-overlapping sub-rows using a greedy algorithm.
@@ -93,8 +95,25 @@ const subRows = computed(() => {
   return rows
 })
 
-/** Total height of the swim lane to accommodate all sub-rows */
-const laneHeight = computed(() => subRows.value.length * BAR_ROW_HEIGHT + 8)
+/** Max fork count across all sessions in this lane (for height calculation) */
+const maxForkCount = computed(() => {
+  if (!props.showForks) return 0
+  let max = 0
+  for (const row of subRows.value) {
+    for (const session of row) {
+      const cnt = session.forkSegments?.length ?? 0
+      if (cnt > max) max = cnt
+    }
+  }
+  return max
+})
+
+/** Total height of the swim lane to accommodate all sub-rows + fork bars */
+const laneHeight = computed(() => {
+  const baseHeight = subRows.value.length * BAR_ROW_HEIGHT + 8
+  const forkExtra = maxForkCount.value * FORK_BAR_HEIGHT
+  return baseHeight + forkExtra
+})
 </script>
 
 <style scoped>

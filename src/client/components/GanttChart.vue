@@ -278,6 +278,8 @@ watch(() => props.date, () => {
 
 /** Bar height (28px) + gap (8px) — must match GanttSwimlane.vue BAR_ROW_HEIGHT */
 const BAR_ROW_HEIGHT = 36
+/** Fork bar height — must match GanttSwimlane.vue FORK_BAR_HEIGHT */
+const FORK_BAR_HEIGHT = 14
 
 /**
  * Computes the number of non-overlapping sub-rows for a project's sessions.
@@ -304,13 +306,20 @@ function computeSubRowCount(sessions) {
 
 /**
  * Map of projectId → lane height in px.
- * Matches GanttSwimlane's laneHeight: subRowCount * BAR_ROW_HEIGHT + 8
+ * Matches GanttSwimlane's laneHeight: subRowCount * BAR_ROW_HEIGHT + 8 + forkExtra
  */
 const laneHeights = computed(() => {
   const map = {}
   for (const project of props.projects) {
     const subRowCount = computeSubRowCount(project.sessions)
-    map[project.projectId] = subRowCount * BAR_ROW_HEIGHT + 8
+    let maxForks = 0
+    if (props.showForks) {
+      for (const s of project.sessions) {
+        const cnt = s.forkSegments?.length ?? 0
+        if (cnt > maxForks) maxForks = cnt
+      }
+    }
+    map[project.projectId] = subRowCount * BAR_ROW_HEIGHT + 8 + maxForks * FORK_BAR_HEIGHT
   }
   return map
 })
