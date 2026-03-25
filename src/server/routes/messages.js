@@ -38,11 +38,14 @@ export async function messagesRoute(fastify, opts) {
     ORDER BY timestamp ASC
   `);
 
+  // Fork branch query: includes messages with NULL content (shown with placeholder).
+  // Fork branches often have only tool-use messages with no stored text content;
+  // returning them with a placeholder gives the modal something to display.
   const forkBranchStmt = db.prepare(`
     SELECT uuid, type, content, timestamp, is_fork_branch, fork_branch_id
     FROM messages
     WHERE session_id = ?
-      AND content IS NOT NULL
+      AND type IN ('user', 'assistant')
       AND fork_branch_id = ?
     ORDER BY timestamp ASC
   `);
@@ -75,11 +78,14 @@ export async function messagesRoute(fastify, opts) {
       rows = primaryBranchStmt.all(sessionId);
     }
 
-    // Map DB rows to response shape
+    // Map DB rows to response shape.
+    // For fork branch queries, content may be null (tool-use only messages);
+    // use a placeholder so the modal can display something meaningful.
+    const isForkQuery = forkBranchId && forkBranchId !== 'all'
     const allMessages = rows.map(r => ({
       uuid: r.uuid,
       role: r.type, // 'user' or 'assistant'
-      content: r.content,
+      content: r.content ?? (isForkQuery ? '(no text content)' : null),
       timestamp: r.timestamp,
       is_fork_branch: r.is_fork_branch === 1,
       fork_branch_id: r.fork_branch_id ?? null,
