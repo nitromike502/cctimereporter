@@ -74,7 +74,7 @@
 
       <!-- Column 3: Timing — uses fork times when a fork is selected -->
       <div class="detail-item">
-        <span class="detail-label">Working Time:</span>
+        <span class="detail-label">{{ fork ? 'Elapsed Time:' : 'Working Time:' }}</span>
         <span class="detail-value">
           {{ workingTimeLabel || '\u00A0' }}
           <span v-if="session && !fork && elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
@@ -143,8 +143,12 @@ function formatDuration(ms) {
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
 }
 
-/** Working time — fork doesn't have its own, show parent's */
+/** Working time — for forks, compute elapsed from start/end as approximate working time */
 const workingTimeLabel = computed(() => {
+  if (props.fork) {
+    const ms = new Date(props.fork.endTime).getTime() - new Date(props.fork.startTime).getTime()
+    return formatDuration(ms)
+  }
   if (!props.session) return ''
   return formatDuration(props.session.workingTimeMs)
 })
