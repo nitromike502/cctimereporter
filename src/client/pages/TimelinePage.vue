@@ -362,8 +362,8 @@ function onShowMessages() {
  * @param {string} forkBranchId
  */
 function onShowMessagesFork(forkBranchId) {
-  if (!selectedFork.value) return
-  messagesModalSessionId.value = selectedFork.value.sessionId
+  if (!selectedForkParentSession.value) return
+  messagesModalSessionId.value = selectedForkParentSession.value.sessionId
   messagesModalForkBranchId.value = forkBranchId
   messagesModalOpen.value = true
 }
