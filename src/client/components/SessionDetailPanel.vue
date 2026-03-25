@@ -74,10 +74,10 @@
 
       <!-- Column 3: Timing — uses fork times when a fork is selected -->
       <div class="detail-item">
-        <span class="detail-label">{{ fork ? 'Elapsed Time:' : 'Working Time:' }}</span>
+        <span class="detail-label">Working Time:</span>
         <span class="detail-value">
           {{ workingTimeLabel || '\u00A0' }}
-          <span v-if="session && !fork && elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
+          <span v-if="elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
         </span>
       </div>
       <div class="detail-item">
@@ -143,18 +143,16 @@ function formatDuration(ms) {
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
 }
 
-/** Working time — for forks, compute elapsed from start/end as approximate working time */
+/** Working time — forks now have their own workingTimeMs from the API */
 const workingTimeLabel = computed(() => {
-  if (props.fork) {
-    const ms = new Date(props.fork.endTime).getTime() - new Date(props.fork.startTime).getTime()
-    return formatDuration(ms)
-  }
+  if (props.fork) return formatDuration(props.fork.workingTimeMs)
   if (!props.session) return ''
   return formatDuration(props.session.workingTimeMs)
 })
 
 /** Elapsed wall-clock time */
 const elapsedTimeLabel = computed(() => {
+  if (props.fork?.elapsedTimeMs) return formatDuration(props.fork.elapsedTimeMs)
   if (!props.session?.elapsedTimeMs) return ''
   return formatDuration(props.session.elapsedTimeMs)
 })

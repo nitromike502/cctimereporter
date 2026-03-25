@@ -105,15 +105,29 @@ function getWorktreeParentPath(projectPath) {
  * @param {string} dayEndUTC   - ISO8601 end of day in UTC
  * @returns {{ forkBranchId: string, startTime: string, endTime: string, messageCount: number }[]}
  */
-function computeForkSegments(rows, dayStartUTC, dayEndUTC) {
+function computeForkSegments(rows, dayStartUTC, dayEndUTC, sessionId, forkTimestampsByBranch, thresholdMs) {
   return rows
     .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC && row.message_count >= 2)
-    .map(row => ({
-      forkBranchId: row.fork_branch_id,
-      startTime: row.start_time < dayStartUTC ? dayStartUTC : row.start_time,
-      endTime:   row.end_time   > dayEndUTC   ? dayEndUTC   : row.end_time,
-      messageCount: row.message_count,
-    }));
+    .map(row => {
+      const clampedStart = row.start_time < dayStartUTC ? dayStartUTC : row.start_time;
+      const clampedEnd = row.end_time > dayEndUTC ? dayEndUTC : row.end_time;
+
+      // Compute working time from individual fork message timestamps
+      const key = sessionId + ':' + row.fork_branch_id;
+      const allTs = forkTimestampsByBranch.get(key) ?? [];
+      const dayTs = allTs.filter(t => t >= dayStartUTC && t < dayEndUTC);
+      const workingTimeMs = computeWorkingTime(dayTs, thresholdMs);
+      const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
+
+      return {
+        forkBranchId: row.fork_branch_id,
+        startTime: clampedStart,
+        endTime: clampedEnd,
+        messageCount: row.message_count,
+        workingTimeMs,
+        elapsedTimeMs,
+      };
+    });
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -213,6 +227,8 @@ export async function timelineRoute(fastify, opts) {
 
     // Maps session_id → array of fork segment DB rows
     const forkRowsBySession = new Map();
+    // Maps "session_id:fork_branch_id" → sorted timestamp array (for working time)
+    const forkTimestampsByBranch = new Map();
     if (sessionIdsWithForks.length > 0) {
       const placeholders = sessionIdsWithForks.map(() => '?').join(', ');
       const forkRows = db.prepare(`
@@ -233,6 +249,25 @@ export async function timelineRoute(fastify, opts) {
           forkRowsBySession.set(forkRow.session_id, []);
         }
         forkRowsBySession.get(forkRow.session_id).push(forkRow);
+      }
+
+      // Second batch query: get individual fork message timestamps for working time computation.
+      // Key: "session_id:fork_branch_id" → sorted timestamp array
+      const forkTimestampRows = db.prepare(`
+        SELECT session_id, fork_branch_id, timestamp
+        FROM messages
+        WHERE session_id IN (${placeholders})
+          AND fork_branch_id IS NOT NULL
+          AND timestamp IS NOT NULL
+        ORDER BY timestamp ASC
+      `).all(...sessionIdsWithForks);
+
+      for (const r of forkTimestampRows) {
+        const key = r.session_id + ':' + r.fork_branch_id;
+        if (!forkTimestampsByBranch.has(key)) {
+          forkTimestampsByBranch.set(key, []);
+        }
+        forkTimestampsByBranch.get(key).push(r.timestamp);
       }
     }
 
@@ -261,7 +296,7 @@ export async function timelineRoute(fastify, opts) {
 
       // Compute fork segments (empty array for sessions with no real forks)
       const rawForkRows = forkRowsBySession.get(row.session_id) ?? [];
-      const forkSegments = computeForkSegments(rawForkRows, dayStartUTC, dayEndUTC);
+      const forkSegments = computeForkSegments(rawForkRows, dayStartUTC, dayEndUTC, row.session_id, forkTimestampsByBranch, thresholdMs);
 
       const sessionObj = {
         sessionId: row.session_id,
