@@ -1,6 +1,7 @@
 <template>
   <div
     class="gantt-fork-bar"
+    :class="{ 'gantt-fork-bar--selected': selected }"
     :style="{
       left: barLeft + '%',
       width: barWidth + '%',
@@ -45,6 +46,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 /**
@@ -81,6 +86,12 @@ const barWidth = computed(() => {
 }
 
 .gantt-fork-bar:hover {
-  opacity: 0.7;
+  opacity: 0.75;
+}
+
+.gantt-fork-bar--selected {
+  opacity: 1;
+  outline: 2px solid var(--fork-color);
+  outline-offset: 1px;
 }
 </style>
