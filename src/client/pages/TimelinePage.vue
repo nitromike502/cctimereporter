@@ -76,7 +76,7 @@
     <div v-else-if="timelineData" class="timeline-content">
       <!-- Session detail panel: always visible, populated on bar click -->
       <SessionDetailPanel
-        :session="selectedSession"
+        :session="selectedSession || selectedForkParentSession"
         :fork="selectedFork"
         :project-name="selectedProjectName"
         @show-messages="onShowMessages"
@@ -107,6 +107,7 @@
         :projects="visibleProjects"
         :date="selectedDate"
         :selected-session-id="selectedSession?.sessionId"
+        :selected-fork-branch-id="selectedFork?.forkBranchId"
         :zoom-level="zoomLevel"
         :show-forks="showForks"
         @select="onSelectSession"
@@ -183,6 +184,8 @@ const SHOW_FORKS_KEY = 'cctimereporter:showForks'
 const showForks = ref(localStorage.getItem(SHOW_FORKS_KEY) !== 'false')
 // Currently selected fork segment (mutually exclusive with selectedSession)
 const selectedFork = ref(null)
+// Parent session of the currently selected fork
+const selectedForkParentSession = ref(null)
 
 function setIdleThreshold(val) {
   idleThreshold.value = val
@@ -330,12 +333,15 @@ function onSelectSession(session) {
  * Handles clicking a fork bar. Toggles selection: clicking the same fork
  * again deselects it; clicking a different fork selects it.
  * Clears any selected session (fork and session selections are mutually exclusive).
+ * Receives { fork, parentSession } from GanttSwimlane.
  */
-function onSelectFork(fork) {
+function onSelectFork({ fork, parentSession }) {
   if (selectedFork.value?.forkBranchId === fork.forkBranchId) {
     selectedFork.value = null
+    selectedForkParentSession.value = null
   } else {
     selectedFork.value = fork
+    selectedForkParentSession.value = parentSession ?? null
     selectedSession.value = null
   }
 }
@@ -387,12 +393,14 @@ function onSessionEdited({ userLabel, userTicket }) {
 }
 
 /**
- * Finds the display name of the project that owns the currently selected session.
+ * Finds the display name of the project that owns the currently selected session or fork.
  */
 const selectedProjectName = computed(() => {
-  if (!selectedSession.value || !colorizedProjects.value.length) return ''
+  if (!colorizedProjects.value.length) return ''
+  const sessionToFind = selectedSession.value ?? selectedForkParentSession.value
+  if (!sessionToFind) return ''
   const project = colorizedProjects.value.find(p =>
-    p.sessions.some(s => s.sessionId === selectedSession.value.sessionId)
+    p.sessions.some(s => s.sessionId === sessionToFind.sessionId)
   )
   return project?.displayName ?? ''
 })
@@ -488,6 +496,7 @@ onUnmounted(() => { importEventSource.value?.close() })
 watch(() => route.query.date, () => {
   selectedSession.value = null
   selectedFork.value = null
+  selectedForkParentSession.value = null
   zoomLevel.value = 1
   fetchTimeline()
 })

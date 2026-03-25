@@ -1,48 +1,7 @@
 <template>
   <div class="session-detail-panel">
-    <!-- Fork detail view: shown when a fork bar is selected -->
-    <div v-if="fork" class="detail-grid detail-grid--fork">
-      <!-- Column 1: Fork identity -->
-      <div class="detail-item">
-        <span class="detail-label">Fork Branch:</span>
-        <span class="detail-value" :title="fork.forkBranchId">{{ forkBranchIdShort }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Parent Session:</span>
-        <span class="detail-value" :title="fork.sessionId">{{ forkParentIdShort }}</span>
-      </div>
-
-      <!-- Column 2: Timing -->
-      <div class="detail-item">
-        <span class="detail-label">Start:</span>
-        <span class="detail-value">{{ forkStartDateTime || '\u00A0' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">End:</span>
-        <span class="detail-value">{{ forkEndDateTime || '\u00A0' }}</span>
-      </div>
-
-      <!-- Column 3: Stats -->
-      <div class="detail-item">
-        <span class="detail-label">Messages:</span>
-        <span class="detail-value">
-          {{ fork.messageCount ?? '\u00A0' }}
-          <a
-            v-if="fork"
-            class="detail-link"
-            href="#"
-            @click.prevent="$emit('show-messages-fork', fork.forkBranchId)"
-          >view</a>
-        </span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Type:</span>
-        <span class="detail-value fork-type-badge">Fork Branch</span>
-      </div>
-    </div>
-
-    <!-- Session detail view: shown when a session bar is selected -->
-    <div v-else class="detail-grid">
+    <!-- Session/Fork detail view: shown when a session or fork bar is selected -->
+    <div v-if="session || fork" class="detail-grid">
       <!-- Column 1: Session identity -->
       <div class="detail-item detail-item--editable">
         <span class="detail-label">Session Name:</span>
@@ -107,22 +66,46 @@
         <span class="detail-value">{{ session?.branch || '\u00A0' }}</span>
       </div>
 
-      <!-- Column 3: Timing -->
-      <div class="detail-item">
-        <span class="detail-label">Working Time:</span>
-        <span class="detail-value">
-          {{ workingTimeLabel || '\u00A0' }}
-          <span v-if="session && elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
-        </span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Start:</span>
-        <span class="detail-value">{{ startDateTime || '\u00A0' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">End:</span>
-        <span class="detail-value">{{ endDateTime || '\u00A0' }}</span>
-      </div>
+      <!-- Column 3: Timing (session) or Fork info -->
+      <template v-if="fork">
+        <!-- Fork-specific fields replace timing column -->
+        <div class="detail-item">
+          <span class="detail-label">Fork Branch:</span>
+          <span class="detail-value" :title="fork.forkBranchId">{{ forkBranchIdShort }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Fork Start:</span>
+          <span class="detail-value">{{ forkStartDateTime || '\u00A0' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Fork Messages:</span>
+          <span class="detail-value">
+            {{ fork.messageCount ?? '\u00A0' }}
+            <a
+              class="detail-link"
+              href="#"
+              @click.prevent="$emit('show-messages-fork', fork.forkBranchId)"
+            >view</a>
+          </span>
+        </div>
+      </template>
+      <template v-else>
+        <div class="detail-item">
+          <span class="detail-label">Working Time:</span>
+          <span class="detail-value">
+            {{ workingTimeLabel || '\u00A0' }}
+            <span v-if="session && elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Start:</span>
+          <span class="detail-value">{{ startDateTime || '\u00A0' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">End:</span>
+          <span class="detail-value">{{ endDateTime || '\u00A0' }}</span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -133,14 +116,16 @@ import { computed } from 'vue'
 /**
  * SessionDetailPanel — AWS Console-style persistent detail panel.
  *
- * Shows a placeholder when no session is selected. When a session is selected,
+ * Shows nothing when no session is selected. When a session is selected,
  * renders a horizontal key-value grid with all session details.
  *
- * When a fork bar is selected (fork prop is non-null), renders a fork-specific
- * layout showing branch ID, parent session, time range, and message count.
+ * When a fork bar is selected (fork prop is non-null), the session prop
+ * carries the parent session data (project, ticket, branch, name) and the
+ * fork-specific fields (branch ID, start time, message count) replace the
+ * timing column. This keeps the panel layout consistent regardless of selection type.
  *
- * @prop {Object} session     - Session object or null
- * @prop {Object} fork        - Fork segment object or null (takes priority over session view)
+ * @prop {Object} session     - Session object or null (parent session when fork is selected)
+ * @prop {Object} fork        - Fork segment object or null
  * @prop {string} projectName - Display name of the project owning this session
  */
 defineEmits(['show-messages', 'show-messages-fork', 'edit'])
@@ -170,12 +155,6 @@ const sessionIdShort = computed(() => {
 const forkBranchIdShort = computed(() => {
   if (!props.fork?.forkBranchId) return ''
   return props.fork.forkBranchId.slice(0, 12) + '...'
-})
-
-/** Abbreviated fork parent session ID: first 12 chars + ellipsis */
-const forkParentIdShort = computed(() => {
-  if (!props.fork?.sessionId) return ''
-  return props.fork.sessionId.slice(0, 12) + '...'
 })
 
 /**
@@ -263,10 +242,6 @@ const forkEndDateTime = computed(() => {
 }
 
 /* Fork view uses 2 rows (6 items across 3 columns) */
-.detail-grid--fork {
-  grid-template-rows: repeat(2, auto);
-}
-
 .detail-item {
   display: flex;
   align-items: baseline;
@@ -346,10 +321,4 @@ const forkEndDateTime = computed(() => {
   margin-left: var(--spacing-xs);
 }
 
-.fork-type-badge {
-  font-size: var(--font-size-xs);
-  color: var(--color-muted);
-  font-weight: 400;
-  font-style: italic;
-}
 </style>

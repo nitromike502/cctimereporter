@@ -49,6 +49,7 @@
               :date="date"
               :color="project.color"
               :selected-session-id="selectedSessionId"
+              :selected-fork-branch-id="selectedForkBranchId"
               :show-forks="showForks"
               @select="onBarSelect($event)"
               @select-fork="onForkSelect($event)"
@@ -122,6 +123,10 @@ const props = defineProps({
     required: true,
   },
   selectedSessionId: {
+    type: String,
+    default: null,
+  },
+  selectedForkBranchId: {
     type: String,
     default: null,
   },

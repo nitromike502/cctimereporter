@@ -18,8 +18,9 @@
           :fork="fork"
           :date="date"
           :color="color"
+          :selected="fork.forkBranchId === selectedForkBranchId"
           :style="{ top: rowIdx * BAR_ROW_HEIGHT + 28 + (forkIdx * FORK_BAR_HEIGHT) + 'px' }"
-          @select="emit('select-fork', $event)"
+          @select="emit('select-fork', { fork: $event, parentSession: session })"
         />
       </template>
     </template>
@@ -62,6 +63,10 @@ const props = defineProps({
   showForks: {
     type: Boolean,
     default: true,
+  },
+  selectedForkBranchId: {
+    type: String,
+    default: null,
   },
 })
 
