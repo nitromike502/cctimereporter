@@ -105,6 +105,7 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 - **Claude Code /rename tracking** — investigate how repeated /rename commands affect sessions-index.json and whether re-import overwrites user_label set via the edit modal. Ensure rename history or latest-wins behavior is well-defined.
 - **Claude Desktop sessions** — import and display sessions from Claude Desktop (not just Claude Code). Investigate transcript format differences, project/conversation structure, and how to represent non-coding sessions in the timeline.
 - **Terminal-style messages modal** — restyle the messages modal to visually resemble a Claude Code terminal session (prompt/response styling, monospace, command-line aesthetic). A visual polish touch that reinforces the tool's identity.
+- **Daily time review and logging** — review working time for the whole day with a summary view suitable for time reporting. First step toward auto-logging time to Harvest and Jira. Ticket-grouped time totals, editable before submission, API integration with time tracking services.
 
 ## Constraints
 
