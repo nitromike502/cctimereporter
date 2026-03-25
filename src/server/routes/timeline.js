@@ -107,7 +107,7 @@ function getWorktreeParentPath(projectPath) {
  */
 function computeForkSegments(rows, dayStartUTC, dayEndUTC) {
   return rows
-    .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC)
+    .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC && row.message_count >= 2)
     .map(row => ({
       forkBranchId: row.fork_branch_id,
       startTime: row.start_time < dayStartUTC ? dayStartUTC : row.start_time,
