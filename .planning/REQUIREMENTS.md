@@ -77,25 +77,25 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHM-01 | Phase 22 | Implemented (unverified) |
-| SCHM-02 | Phase 22 | Implemented (unverified) |
-| SCHM-03 | Phase 22 | Implemented (unverified) |
-| FSEG-01 | Phase 23 | Implemented (unverified) |
-| FSEG-02 | Phase 23 | Implemented (unverified) |
-| FSEG-03 | Phase 23 | Implemented (unverified) |
-| GANT-01 | Phase 24 | Implemented (unverified) |
-| GANT-02 | Phase 24 | Implemented (unverified) |
-| GANT-03 | Phase 24 | Implemented (unverified) |
-| GANT-04 | Phase 24 | Implemented (unverified) |
-| INTR-01 | Phase 25 | Implemented (unverified) |
-| INTR-02 | Phase 25 | Implemented (unverified) |
-| DETL-01 | Phase 25 | Implemented (unverified) |
-| MSGS-01 | Phase 26 | Pending |
-| MSGS-02 | Phase 26 | Pending |
-| MSGS-03 | Phase 26 | Pending |
-| MODL-01 | Phase 27 | Pending |
-| MODL-02 | Phase 27 | Pending |
-| MODL-03 | Phase 27 | Pending |
+| SCHM-01 | Phase 22 | Complete |
+| SCHM-02 | Phase 22 | Complete |
+| SCHM-03 | Phase 22 | Complete |
+| FSEG-01 | Phase 23 | Complete |
+| FSEG-02 | Phase 23 | Complete |
+| FSEG-03 | Phase 23 | Complete |
+| GANT-01 | Phase 24 | Complete |
+| GANT-02 | Phase 24 | Complete |
+| GANT-03 | Phase 24 | Complete |
+| GANT-04 | Phase 24 | Complete |
+| INTR-01 | Phase 25 | Complete |
+| INTR-02 | Phase 25 | Complete |
+| DETL-01 | Phase 25 | Complete |
+| MSGS-01 | Phase 26 | Complete |
+| MSGS-02 | Phase 26 | Complete |
+| MSGS-03 | Phase 26 | Complete |
+| MODL-01 | Phase 27 | Complete |
+| MODL-02 | Phase 27 | Complete |
+| MODL-03 | Phase 27 | Complete |
 
 **Coverage:**
 - v0.7.0 requirements: 19 total

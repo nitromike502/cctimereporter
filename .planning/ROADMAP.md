@@ -197,9 +197,9 @@ Plans:
 | 19. Layout Restructure | v0.6.0 | 1/1 | Complete | 2026-03-19 |
 | 20. Core Zoom Mechanic | v0.6.0 | 2/2 | Complete | 2026-03-19 |
 | 21. Zoom Polish | v0.6.0 | 1/1 | Complete | 2026-03-19 |
-| 22. Schema and Import | v0.7.0 | 1/1 | Paused | - |
-| 23. Backend Fork Segments | v0.7.0 | 1/1 | Paused | - |
-| 24. Gantt Fork Bar Rendering | v0.7.0 | 1/1 | Paused | - |
-| 25. Interaction and Detail Panel | v0.7.0 | 1/1 | Paused | - |
-| 26. Store Message Content | v0.7.0 | 0/1 | Not started | - |
-| 27. Messages Modal from DB | v0.7.0 | 0/TBD | Not started | - |
+| 22. Schema and Import | v0.7.0 | 1/1 | Complete | 2026-03-22 |
+| 23. Backend Fork Segments | v0.7.0 | 1/1 | Complete | 2026-03-22 |
+| 24. Gantt Fork Bar Rendering | v0.7.0 | 1/1 | Complete | 2026-03-22 |
+| 25. Interaction and Detail Panel | v0.7.0 | 1/1 | Complete | 2026-03-24 |
+| 26. Store Message Content | v0.7.0 | 1/1 | Complete | 2026-03-23 |
+| 27. Messages Modal from DB | v0.7.0 | 1/1 | Complete | 2026-03-24 |
