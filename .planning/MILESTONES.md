@@ -1,5 +1,36 @@
 # Project Milestones: CC Time Reporter
 
+## v0.7.0 Fork Visualization + Stored Messages (Shipped: 2026-03-24)
+
+**Delivered:** Fork branches display as half-height sub-bars beneath parent sessions in the Gantt chart with clickable detail, and message text is stored in the DB enabling the messages modal to work without JSONL file access.
+
+**Phases completed:** 22-27 (6 plans total)
+
+**Key accomplishments:**
+
+- Schema v7+v8: fork_branch_id and content columns on messages table
+- Fork detector correctly distinguishes real user forks from progress forks
+- Fork segments computed at query time with working time, elapsed time, day boundary clamping
+- GanttForkBar component renders 50% height sub-bars with selection highlight
+- Show/hide fork toggle with localStorage persistence
+- Detail panel shows fork-specific data with parent session context
+- User/assistant message text stored in DB (1000 char truncation, XML stripped)
+- Messages modal switched from JSONL file reading to DB queries
+- Fork branch message filtering in messages modal
+
+**Stats:**
+
+- 35 files changed, 3,125 insertions
+- 7,880 lines of JS/Vue/CSS (total codebase)
+- 6 phases, 6 plans
+- 5 days (2026-03-20 → 2026-03-24)
+
+**Git range:** `v0.6.0` → `v0.7.0`
+
+**What's next:** TBD — next milestone planning
+
+---
+
 ## v0.6.0 Gantt Chart Zoom (Shipped: 2026-03-19)
 
 **Delivered:** Users can zoom the Gantt timeline 1x–4x to inspect short sessions and focus on time ranges, with scroll-wheel zoom, cursor anchoring, drag-to-pan, and adaptive tick density.

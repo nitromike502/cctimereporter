@@ -56,20 +56,17 @@ A user can run one command and immediately see a clear visual timeline of their 
 - ✓ Branch always stored in DB (including main/master), skipped in label only — v0.6.0
 - ✓ NumberStepper parseFloat for decimal step values — v0.6.0
 
+- ✓ Fork branches as 50% height sub-bars beneath parent session bars — v0.7.0
+- ✓ Fork bar click shows working time, elapsed time, start/end, messages — v0.7.0
+- ✓ Show/hide toggle for fork sub-rows (localStorage persisted) — v0.7.0
+- ✓ Progress forks filtered out — only real user forks shown — v0.7.0
+- ✓ User/assistant message text stored in DB (1000 char truncation, XML stripped) — v0.7.0
+- ✓ Messages modal reads from DB instead of JSONL files — v0.7.0
+- ✓ Fork messages viewable in messages modal (filtered by fork_branch_id) — v0.7.0
+
 ### Active
 
-**Current Milestone: v0.7.0 Fork Visualization + Stored Messages**
-
-**Goal:** Display fork branches as sub-rows in the Gantt chart, store user/assistant message text in the DB, and switch the messages modal to read from DB (enabling fork message display).
-
-- [x] Fork branches displayed as 50% height sub-rows under parent session bar
-- [x] Each fork bar starts at the fork point timestamp on the timeline
-- [x] Fork bars are visually distinct from parent (height, opacity, styling)
-- [x] Sessions without forks remain unchanged
-- [x] Progress forks filtered out — only real user forks shown
-- [ ] User + assistant message text stored in DB (truncated to 1000 chars)
-- [ ] Messages modal reads from DB instead of JSONL files
-- [ ] Fork messages viewable in messages modal (filtered by fork_branch_id)
+(No active milestone — planning next)
 
 ### Out of Scope
 
@@ -82,9 +79,9 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ## Context
 
-**Shipped v0.6.0** with ~7,246 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+**Shipped v0.7.0** with ~7,880 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
 Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, driver.js, Vite 7.
-Database: SQLite with WAL mode, schema v7, auto-migration (v1→v7).
+Database: SQLite with WAL mode, schema v8, auto-migration (v1→v8).
 Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
@@ -155,4 +152,4 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Adaptive tick density (4 tiers) | 2h/1h/30min/15min at thresholds 1/1.75/2.75/3.75x | ✓ Good |
 
 ---
-*Last updated: 2026-03-20 after v0.7.0 Fork Visualization milestone start*
+*Last updated: 2026-03-24 after v0.7.0 Fork Visualization + Stored Messages milestone complete*

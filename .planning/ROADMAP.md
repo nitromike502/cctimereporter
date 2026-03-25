@@ -8,7 +8,7 @@
 - SHIPPED **v0.4.0 Session Intelligence** — Phases 17-18 (shipped 2026-03-08)
 - SHIPPED **v0.5.0 Import Performance** — Ad-hoc (shipped 2026-03-12, no GSD phases)
 - SHIPPED **v0.6.0 Gantt Chart Zoom** — Phases 19-21 (shipped 2026-03-19)
-- IN PROGRESS **v0.7.0 Fork Visualization** — Phases 22-25
+- SHIPPED **v0.7.0 Fork Visualization + Stored Messages** — Phases 22-27 (shipped 2026-03-24)
 
 ---
 
@@ -75,100 +75,19 @@ See: `.planning/milestones/v0.6.0-ROADMAP.md` for full details.
 
 ---
 
-### v0.7.0 Fork Visualization (In Progress)
+<details>
+<summary>v0.7.0 Fork Visualization + Stored Messages (Phases 22-27) — SHIPPED 2026-03-24</summary>
 
-**Milestone Goal:** Display fork branches as 50%-height sub-bars beneath their parent session bar in the Gantt chart, each starting at the fork point timestamp. Requires a schema migration to assign stable per-branch IDs to fork messages, a new API shape for fork segments, a new frontend component, and click-through interaction to the detail panel.
+- [x] Phase 22: Schema and Import (1/1 plans) — completed 2026-03-22
+- [x] Phase 23: Backend Fork Segments (1/1 plans) — completed 2026-03-22
+- [x] Phase 24: Gantt Fork Bar Rendering (1/1 plans) — completed 2026-03-22
+- [x] Phase 25: Interaction and Detail Panel (1/1 plans) — completed 2026-03-24
+- [x] Phase 26: Store Message Content (1/1 plans) — completed 2026-03-23
+- [x] Phase 27: Messages Modal from DB (1/1 plans) — completed 2026-03-24
 
-- [ ] **Phase 22: Schema and Import** — Migrate schema to v7 with fork_branch_id; populate at import
-- [ ] **Phase 23: Backend Fork Segments** — Timeline API returns fork segment data per session
-- [ ] **Phase 24: Gantt Fork Bar Rendering** — GanttForkBar.vue component integrated into swimlanes
-- [ ] **Phase 25: Interaction and Detail Panel** — Fork bar clicks and show/hide toggle with detail view
+See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 
-#### Phase 22: Schema and Import
-**Goal**: Every fork-branch message in the database has a stable, unique fork branch ID that identifies which distinct branch it belongs to
-**Depends on**: Nothing (schema first)
-**Requirements**: SCHM-01, SCHM-02, SCHM-03
-**Success Criteria** (what must be TRUE):
-  1. The messages table has a `fork_branch_id` column after a fresh install or auto-migration from schema v6
-  2. Re-importing existing sessions populates `fork_branch_id` on all fork-branch messages without losing user edits (user_label, user_ticket)
-  3. Sessions with multiple distinct fork branches have different `fork_branch_id` values per branch (not all the same ID)
-  4. Sessions without forks have NULL `fork_branch_id` on all their messages
-**Plans**: 1 plan
-
-Plans:
-- [ ] 22-01-PLAN.md &mdash; Schema v7 migration + fork-detector branch ID assignment
-
-#### Phase 23: Backend Fork Segments
-**Goal**: The timeline API returns computed fork segment data for sessions that have real forks, usable directly by frontend components without further processing
-**Depends on**: Phase 22
-**Requirements**: FSEG-01, FSEG-02, FSEG-03
-**Success Criteria** (what must be TRUE):
-  1. `GET /api/timeline` response includes a `forkSegments` array on each session object (empty array for sessions with no real forks)
-  2. Each fork segment object contains start time, end time, and fork branch ID
-  3. Sessions with `real_fork_count = 0` skip the fork query entirely (no DB overhead for the common case)
-  4. Fork segment timestamps are clamped to day boundaries (consistent with idle gap clamping)
-**Plans**: 1 plan
-
-Plans:
-- [ ] 23-01: computeForkSegments helper and timeline route integration
-
-#### Phase 24: Gantt Fork Bar Rendering
-**Goal**: Fork branches are visible as 50%-height sub-bars beneath their parent session bar in the Gantt chart, without affecting the height or alignment of any existing row
-**Depends on**: Phase 23
-**Requirements**: GANT-01, GANT-02, GANT-03, GANT-04
-**Success Criteria** (what must be TRUE):
-  1. Sessions with real forks show one or more sub-bars rendered at 50% the height of the main bar, positioned in the lower half of the same row
-  2. Each fork sub-bar's left edge aligns with the fork's start timestamp on the timeline axis (consistent with main bar positioning)
-  3. Fork sub-bars are visually distinct from the main bar — lighter color or reduced opacity — so the hierarchy is immediately apparent
-  4. Sessions without forks render identically to before this phase; no layout shifts or empty space appears
-  5. The GanttForkBar component is listed on the /components preview page
-**Plans**: 1 plan
-
-Plans:
-- [ ] 24-01: GanttForkBar.vue component and GanttSwimlane integration
-
-#### Phase 25: Interaction and Detail Panel
-**Goal**: Users can click fork bars to inspect fork details and toggle fork sub-row visibility, with their preference persisted across sessions
-**Depends on**: Phase 24
-**Requirements**: INTR-01, INTR-02, DETL-01
-**Success Criteria** (what must be TRUE):
-  1. Clicking a fork sub-bar opens the detail panel; the panel shows the fork branch ID, time range (start and end), and message count for that branch
-  2. Panning the chart at zoom > 1x does not accidentally trigger fork bar selection (drag guard respected)
-  3. A show/hide toggle controls fork sub-row visibility; toggling hides all fork bars without affecting main bars or row heights
-  4. The show/hide preference persists across page reloads (localStorage)
-**Plans**: 1 plan
-
-Plans:
-- [ ] 25-01: Fork bar click routing and detail panel fork view
-- [ ] 25-02: Show/hide toggle with localStorage persistence
-
-#### Phase 26: Store Message Content
-**Goal**: User and assistant message text is stored in the database during import, enabling DB-based message display without re-reading JSONL files
-**Depends on**: Phase 22 (schema migration pattern)
-**Requirements**: MSGS-01, MSGS-02, MSGS-03
-**Success Criteria** (what must be TRUE):
-  1. The messages table has a `content` column after auto-migration
-  2. User and assistant messages have their text content stored (truncated to 1000 chars)
-  3. Progress, tool_use, tool_result, and internal messages have NULL content
-  4. Re-importing populates content on existing message rows
-**Plans**: 1 plan
-
-Plans:
-- [ ] 26-01-PLAN.md — Schema v8 migration + importer content extraction and storage
-
-#### Phase 27: Messages Modal from DB
-**Goal**: The messages modal reads from the database instead of JSONL files, and can show fork-specific messages when a fork bar is selected
-**Depends on**: Phase 26 (content stored in DB)
-**Requirements**: MODL-01, MODL-02, MODL-03
-**Success Criteria** (what must be TRUE):
-  1. Messages modal shows session messages read from the DB (no JSONL file access)
-  2. When a fork bar is selected, the messages modal shows only that fork branch's messages
-  3. Messages display with role labels (user/assistant) and timestamps
-  4. The existing messages API route is updated or replaced to serve from DB
-**Plans**: TBD
-
-Plans:
-- [ ] 27-01: Messages API from DB and modal update with fork filtering
+</details>
 
 ---
 

@@ -2,27 +2,27 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.7.0 Fork Visualization — Phase 25 complete, integration remaining
+**Current focus:** v0.7.0 shipped — planning next milestone
 
 ## Current Position
 
-Phase: 27 of 27 (Messages Modal from DB)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-03-23 — Completed 27-01-PLAN.md (messages API from DB, fork filtering, timestamps)
+Phase: —
+Plan: —
+Status: Milestone v0.7.0 complete, ready for next milestone
+Last activity: 2026-03-24 — v0.7.0 Fork Visualization + Stored Messages shipped
 
-Progress: [█████░░░░░░░░░░░░░░░] ~27% (v0.8.0: 6 plans complete)
-Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped); Phases 22-25 (fork viz) paused
+Progress: Milestone complete
+Overall:  Phases 1-27 complete (v1.0 through v0.7.0 shipped)
 
 ## Performance Metrics
 
-**v0.6.0 Velocity:**
-- Total plans completed: 4
-- Phases: 3 (19, 20, 21)
-- Timeline: 1 day (2026-03-19)
+**v0.7.0 Velocity:**
+- Total plans completed: 6 (Phases 22-27)
+- Phases: 6
+- Timeline: 5 days (2026-03-20 → 2026-03-24)
 
 ## Accumulated Context
 
@@ -30,45 +30,16 @@ Overall:  Phases 1-21 complete (v1.0 through v0.6.0 shipped); Phases 22-25 (fork
 
 All decisions logged in PROJECT.md Key Decisions table.
 
-Fork data model (from research + 22-01 execution):
-- `is_fork_branch` boolean exists on messages; `fork_branch_id` TEXT added in schema v7 (22-01 complete)
-- Branch ID = first child UUID of secondary branch (stable, immutable UUID from JSONL)
-- Primary branch messages have NULL fork_branch_id; only secondary branches get IDs
-- Fork bars use overlay approach: positioned in lower half of existing row; no lane height changes needed
-- `GanttChart.vue` requires no changes (overlay avoids the mirrored height-computation pitfall)
-- Fork segments computed at API query time (follows "import raw, derive at query time" philosophy)
-- Only real forks rendered (gated on `real_fork_count > 0`); progress forks excluded
-- Working time policy for fork messages: must be decided and documented in Phase 23
-- Existing messages get NULL fork_branch_id until re-imported (normal, expected)
-
-Phase 26 content storage (from 26-01 execution):
-- Schema v8: `content TEXT` column on messages table; auto-migrates from v1-v7
-- Only user and assistant types get content; all others NULL
-- Truncation: >1250 chars → word-boundary cut near 1000 chars + "..."
-- `cleanUserMessage()` used for both user and assistant messages (strips slash commands, bash, skill tags)
-- ON CONFLICT DO UPDATE includes content = excluded.content for re-import idempotency
-- After migration, users must re-import to populate content on existing rows (re-import banner triggers from migrated=true)
-
-Phase 27 messages modal from DB (from 27-01 execution):
-- Messages API reads from DB; no JSONL file access; removed fs/readline imports
-- Default (no forkBranchId) returns primary-branch messages (fork_branch_id IS NULL)
-- ?forkBranchId=X returns only that fork branch; ?forkBranchId=all reserved for future use
-- Modal title/subtitle changes when fork filtering is active
-- Fork detail panel now has "view messages" link emitting show-messages-fork(forkBranchId)
-
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-- Working time policy: RESOLVED in 23-01. Fork messages included in working time (parallel exploration counts as work). Documented with code comment.
-- Fork bar click events: RESOLVED in 25-01. `onForkSelect` routed through drag-pan guard. Pending: Phase 24 must add `@select-fork="onForkSelect"` on GanttSwimlane in GanttChart.vue.
-- Fork bar overlay positioning: top = rowIdx * 36 + 14px (places bar in lower half of 36px row). Established in 24-01.
-- Phase 24 integration TODO: GanttChart.vue line ~54 has `<!-- TODO Phase 24: add @select-fork="onForkSelect" to GanttSwimlane -->` that needs to be replaced.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:05:11Z
-Stopped at: Completed 27-01-PLAN.md (messages API from DB, fork filtering, modal timestamps)
+Last session: 2026-03-24
+Stopped at: v0.7.0 milestone complete
 Resume file: None

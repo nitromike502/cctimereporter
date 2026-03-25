@@ -4,6 +4,26 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-03-24
+
+### Added
+
+- **Fork visualization:** Session forks display as 50%-height sub-bars beneath their parent session bar in the Gantt chart. Each fork bar starts at the fork point timestamp and shows working time, elapsed time, and message count.
+- **Fork bar interaction:** Click a fork bar to see its details in the session detail panel. A "view" link opens the messages modal filtered to that fork branch's messages.
+- **Show/hide fork toggle:** Button below the chart toggles fork sub-row visibility, persisted to localStorage.
+- **Stored messages:** User and assistant message text is now stored in the database during import (truncated to 1000 chars, XML tags stripped). Enables faster message display without re-reading JSONL files.
+- **Messages modal from DB:** Messages modal now reads from the database instead of JSONL files. Supports fork branch filtering when viewing fork messages.
+
+### Changed
+
+- **Fork detection:** Progress forks (internal Claude Code bookkeeping) are now correctly filtered out. Only real user-initiated forks are displayed.
+- **Schema v8:** Two new columns on the messages table: `fork_branch_id` (TEXT) and `content` (TEXT). Auto-migrates from any previous schema version.
+
+### Fixed
+
+- **Fork segment day boundary clamping:** Fork segments from other days no longer appear with invalid time ranges.
+- **Detail panel consistency:** Clicking a fork shows the same 9-field layout as sessions, with fork-specific overrides for timing and messages.
+
 ## [0.6.0] - 2026-03-19
 
 ### Added
