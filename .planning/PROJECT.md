@@ -68,12 +68,14 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 **Current Milestone: v0.8.0 Programmatic Data Access**
 
-**Goal:** Expose the session data pipeline through MCP tools and CLI commands so external agents and scripts can pull time/session data programmatically.
+**Goal:** Expose the session data pipeline through stdio MCP server and CLI commands so Claude agents and scripts can pull time/session data programmatically.
 
 **Target features:**
+- Stdio MCP server (`npx cctimereporter --mcp`): `get_day_summary`, `get_sessions`, `get_session_messages`, `trigger_import`, `start_server`, `stop_server`
 - CLI subcommands: `summary`, `sessions`, `import` (non-interactive, JSON to stdout)
-- MCP server (HTTP transport on existing Fastify server): `get_day_summary`, `get_sessions`, `trigger_import`, `get_session_messages`
-- Shared data layer — CLI and MCP use the same query/import logic as the web UI
+- Multi-instance coordination: multiple MCP servers share one DB, single web server ownership via DB row, import lock via DB row
+- MCP process can optionally host the web server (first to claim wins, others return existing URL)
+- Shared service layer — CLI, MCP, and API routes use the same query/import logic
 
 ### Out of Scope
 
