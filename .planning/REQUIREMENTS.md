@@ -63,32 +63,32 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SVC-01 | — | Pending |
-| SVC-02 | — | Pending |
-| SVC-03 | — | Pending |
-| SVC-04 | — | Pending |
-| MCP-01 | — | Pending |
-| MCP-02 | — | Pending |
-| MCP-03 | — | Pending |
-| MCP-04 | — | Pending |
-| MCP-05 | — | Pending |
-| MCP-06 | — | Pending |
-| MCP-07 | — | Pending |
-| MCP-08 | — | Pending |
-| CLI-01 | — | Pending |
-| CLI-02 | — | Pending |
-| CLI-03 | — | Pending |
-| CLI-04 | — | Pending |
-| COORD-01 | — | Pending |
-| COORD-02 | — | Pending |
-| COORD-03 | — | Pending |
-| COORD-04 | — | Pending |
+| SVC-01 | Phase 28 | Pending |
+| SVC-02 | Phase 28 | Pending |
+| SVC-03 | Phase 29 | Pending |
+| SVC-04 | Phase 29 | Pending |
+| MCP-01 | Phase 31 | Pending |
+| MCP-02 | Phase 31 | Pending |
+| MCP-03 | Phase 31 | Pending |
+| MCP-04 | Phase 31 | Pending |
+| MCP-05 | Phase 31 | Pending |
+| MCP-06 | Phase 31 | Pending |
+| MCP-07 | Phase 31 | Pending |
+| MCP-08 | Phase 31 | Pending |
+| CLI-01 | Phase 30 | Pending |
+| CLI-02 | Phase 30 | Pending |
+| CLI-03 | Phase 30 | Pending |
+| CLI-04 | Phase 30 | Pending |
+| COORD-01 | Phase 29 | Pending |
+| COORD-02 | Phase 29 | Pending |
+| COORD-03 | Phase 29 | Pending |
+| COORD-04 | Phase 29 | Pending |
 
 **Coverage:**
 - v0.8.0 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 (pending roadmap)
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 — traceability mapped after roadmap creation*

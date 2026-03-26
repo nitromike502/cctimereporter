@@ -9,6 +9,7 @@
 - SHIPPED **v0.5.0 Import Performance** — Ad-hoc (shipped 2026-03-12, no GSD phases)
 - SHIPPED **v0.6.0 Gantt Chart Zoom** — Phases 19-21 (shipped 2026-03-19)
 - SHIPPED **v0.7.0 Fork Visualization + Stored Messages** — Phases 22-27 (shipped 2026-03-24)
+- ACTIVE **v0.8.0 Programmatic Data Access** — Phases 28-31 (in progress)
 
 ---
 
@@ -73,8 +74,6 @@ See: `.planning/milestones/v0.6.0-ROADMAP.md` for full details.
 
 </details>
 
----
-
 <details>
 <summary>v0.7.0 Fork Visualization + Stored Messages (Phases 22-27) — SHIPPED 2026-03-24</summary>
 
@@ -88,6 +87,80 @@ See: `.planning/milestones/v0.6.0-ROADMAP.md` for full details.
 See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 
 </details>
+
+---
+
+### v0.8.0 Programmatic Data Access (In Progress)
+
+**Milestone Goal:** Expose session data through a stdio MCP server and CLI subcommands so Claude agents and scripts can pull time and session data programmatically. Both surfaces are thin wrappers over a shared service layer extracted from existing route handlers.
+
+- [ ] **Phase 28: Service Layer** — Extract query and import logic into `src/services/` shared by routes, CLI, and MCP
+- [ ] **Phase 29: Multi-Instance Coordination** — DB-based locks for server ownership and import exclusivity across processes
+- [ ] **Phase 30: CLI Subcommands** — Non-interactive `summary`, `sessions`, and `import` subcommands with JSON stdout
+- [ ] **Phase 31: MCP Server** — stdio MCP server with six tools for programmatic data access and server management
+
+#### Phase 28: Service Layer
+
+**Goal:** Timeline query and import logic lives in `src/services/` modules callable by routes, CLI, and MCP — no behavior change for existing web UI
+**Depends on:** Phase 27 (complete codebase baseline)
+**Requirements:** SVC-01, SVC-02
+**Success Criteria** (what must be TRUE):
+  1. All existing API routes (`/api/timeline`, `/api/sessions/:id/messages`, `/api/import`) produce identical responses after refactoring — no regression
+  2. `src/services/timeline.js` and `src/services/sessions.js` export plain functions that accept a `db` argument and return plain JS objects
+  3. `src/services/import.js` exports a function that accepts a `db` and progress callback, callable without starting a web server
+  4. `src/services`, `src/cli`, and `src/mcp` appear in `package.json` `files` array so npx distribution is not broken
+**Plans:** TBD
+
+Plans:
+- [ ] 28-01: Extract service layer and refactor route handlers
+
+#### Phase 29: Multi-Instance Coordination
+
+**Goal:** Multiple processes (web server, CLI, MCP instances) share one SQLite database safely — only one web server runs at a time and only one import runs at a time, with automatic stale-process recovery
+**Depends on:** Phase 28 (service layer, shared import-state singleton)
+**Requirements:** SVC-03, SVC-04, COORD-01, COORD-02, COORD-03, COORD-04
+**Success Criteria** (what must be TRUE):
+  1. Running `npx cctimereporter import` while the web server is already running import does not corrupt data — the second process receives a clear "import already in progress" rejection
+  2. Starting a second web server instance returns the URL of the already-running server instead of failing or binding a second port
+  3. If the process that owned the server or import lock is no longer alive (dead PID), the next process automatically reclaims ownership without manual intervention
+  4. Multiple MCP server instances can query the database simultaneously without errors or lock timeouts
+**Plans:** TBD
+
+Plans:
+- [ ] 29-01: DB-based server ownership and import lock with stale detection
+
+#### Phase 30: CLI Subcommands
+
+**Goal:** Users and scripts can call `npx cctimereporter summary`, `sessions`, and `import` from the terminal and receive machine-readable JSON output — the default no-argument invocation continues to open the browser as before
+**Depends on:** Phase 28 (service layer), Phase 29 (coordination locks)
+**Requirements:** CLI-01, CLI-02, CLI-03, CLI-04
+**Success Criteria** (what must be TRUE):
+  1. `npx cctimereporter summary --date 2026-03-25` prints a JSON day summary to stdout and exits with code 0, nothing else on stdout
+  2. `npx cctimereporter sessions --date 2026-03-25` prints a JSON session list to stdout and exits cleanly
+  3. `npx cctimereporter import --days 7` runs import without starting a web server, prints progress to stderr, exits with code 0 on success and non-zero on failure
+  4. `npx cctimereporter` with no subcommand starts the web server and opens the browser — identical behavior to v0.7.0
+**Plans:** TBD
+
+Plans:
+- [ ] 30-01: Mode dispatch, commander integration, and CLI subcommand implementations
+
+#### Phase 31: MCP Server
+
+**Goal:** `npx cctimereporter --mcp` starts a stdio MCP server with six tools (`get_day_summary`, `get_sessions`, `get_session_messages`, `trigger_import`, `start_server`, `stop_server`, `server_status`) usable by Claude agents
+**Depends on:** Phase 28 (service layer), Phase 29 (coordination locks), Phase 30 (mode dispatch established)
+**Requirements:** MCP-01, MCP-02, MCP-03, MCP-04, MCP-05, MCP-06, MCP-07, MCP-08
+**Success Criteria** (what must be TRUE):
+  1. A Claude agent can call `get_day_summary` for a date and receive ticket-grouped working time totals in structured JSON
+  2. A Claude agent can call `trigger_import` and receive a success or "already running" result without crashing or hanging
+  3. `start_server` returns the URL of an already-running web server if one exists, or starts a new one and returns its URL — the agent never needs to check first
+  4. `stop_server` terminates the web server (including if it is owned by a different process) and clears stale ownership from the DB
+  5. Running multiple `npx cctimereporter --mcp` instances simultaneously does not produce errors — reads are concurrent-safe via WAL mode
+**Plans:** TBD
+
+Plans:
+- [ ] 31-01: MCP server setup — stdio transport, tool registration scaffold, mode dispatch
+- [ ] 31-02: Query tools — `get_day_summary`, `get_sessions`, `get_session_messages`
+- [ ] 31-03: Action tools — `trigger_import`, `start_server`, `stop_server`, `server_status`
 
 ---
 
@@ -122,3 +195,7 @@ See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 | 25. Interaction and Detail Panel | v0.7.0 | 1/1 | Complete | 2026-03-24 |
 | 26. Store Message Content | v0.7.0 | 1/1 | Complete | 2026-03-23 |
 | 27. Messages Modal from DB | v0.7.0 | 1/1 | Complete | 2026-03-24 |
+| 28. Service Layer | v0.8.0 | 0/1 | Not started | - |
+| 29. Multi-Instance Coordination | v0.8.0 | 0/1 | Not started | - |
+| 30. CLI Subcommands | v0.8.0 | 0/1 | Not started | - |
+| 31. MCP Server | v0.8.0 | 0/3 | Not started | - |
