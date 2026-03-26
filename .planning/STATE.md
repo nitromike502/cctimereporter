@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-24)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.7.0 shipped — planning next milestone
+**Current focus:** v0.8.0 Programmatic Data Access — MCP server + CLI commands
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v0.7.0 complete, ready for next milestone
-Last activity: 2026-03-24 — v0.7.0 Fork Visualization + Stored Messages shipped
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v0.8.0 started
 
-Progress: Milestone complete
+Progress: Milestone started
 Overall:  Phases 1-27 complete (v1.0 through v0.7.0 shipped)
 
 ## Performance Metrics
@@ -40,6 +40,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: v0.7.0 milestone complete
+Last session: 2026-03-25
+Stopped at: Milestone v0.8.0 requirements definition
 Resume file: None

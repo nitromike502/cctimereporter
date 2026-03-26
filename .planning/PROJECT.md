@@ -66,7 +66,14 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-(No active milestone — planning next)
+**Current Milestone: v0.8.0 Programmatic Data Access**
+
+**Goal:** Expose the session data pipeline through MCP tools and CLI commands so external agents and scripts can pull time/session data programmatically.
+
+**Target features:**
+- CLI subcommands: `summary`, `sessions`, `import` (non-interactive, JSON to stdout)
+- MCP server (HTTP transport on existing Fastify server): `get_day_summary`, `get_sessions`, `trigger_import`, `get_session_messages`
+- Shared data layer — CLI and MCP use the same query/import logic as the web UI
 
 ### Out of Scope
 
@@ -106,6 +113,7 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 - **Claude Desktop sessions** — import and display sessions from Claude Desktop (not just Claude Code). Investigate transcript format differences, project/conversation structure, and how to represent non-coding sessions in the timeline.
 - **Terminal-style messages modal** — restyle the messages modal to visually resemble a Claude Code terminal session (prompt/response styling, monospace, command-line aesthetic). A visual polish touch that reinforces the tool's identity.
 - **Daily time review and logging** — review working time for the whole day with a summary view suitable for time reporting. First step toward auto-logging time to Harvest and Jira. Ticket-grouped time totals, editable before submission, API integration with time tracking services.
+- **MCP server for programmatic access** — expose session data as MCP tools (HTTP transport) so Claude agents can pull time logs, session details, and trigger imports. Complement with CLI subcommands for scripting.
 
 ## Constraints
 
@@ -153,4 +161,4 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Adaptive tick density (4 tiers) | 2h/1h/30min/15min at thresholds 1/1.75/2.75/3.75x | ✓ Good |
 
 ---
-*Last updated: 2026-03-24 after v0.7.0 Fork Visualization + Stored Messages milestone complete*
+*Last updated: 2026-03-25 after v0.8.0 Programmatic Data Access milestone started*
