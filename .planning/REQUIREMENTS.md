@@ -63,8 +63,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SVC-01 | Phase 28 | Pending |
-| SVC-02 | Phase 28 | Pending |
+| SVC-01 | Phase 28 | Complete |
+| SVC-02 | Phase 28 | Complete |
 | SVC-03 | Phase 29 | Pending |
 | SVC-04 | Phase 29 | Pending |
 | MCP-01 | Phase 31 | Pending |
