@@ -1,9 +1,14 @@
 /**
  * PATCH /api/sessions/:id
  *
+ * Thin HTTP wrapper around the sessions service.
+ * All business logic lives in src/services/sessions.js.
+ *
  * Updates user-editable fields on a session (user_label, user_ticket).
  * These fields are preserved across re-imports since the upsert omits them.
  */
+
+import { createSessionsService } from '../../services/sessions.js';
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
@@ -12,34 +17,19 @@
 export async function sessionsRoute(fastify, opts) {
   const { db } = opts;
 
-  const updateStmt = db.prepare(`
-    UPDATE sessions
-    SET user_label = $user_label, user_ticket = $user_ticket
-    WHERE session_id = $session_id
-  `);
-
-  const findStmt = db.prepare('SELECT session_id FROM sessions WHERE session_id = ?');
+  const svc = createSessionsService(db);
 
   fastify.patch('/api/sessions/:id', async (request, reply) => {
     const sessionId = request.params.id;
     const { userLabel, userTicket } = request.body ?? {};
 
-    // Normalize empty strings to null
-    const label = userLabel || null;
-    const ticket = userTicket || null;
+    const result = svc.updateSession(sessionId, { userLabel, userTicket });
 
-    const row = findStmt.get(sessionId);
-    if (!row) {
+    if (result === null) {
       reply.code(404);
       return { error: 'Session not found' };
     }
 
-    updateStmt.run({
-      $user_label: label,
-      $user_ticket: ticket,
-      $session_id: sessionId,
-    });
-
-    return { ok: true };
+    return result;
   });
 }

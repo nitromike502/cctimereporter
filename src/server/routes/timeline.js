@@ -1,136 +1,20 @@
 /**
  * GET /api/timeline?date=YYYY-MM-DD
  *
- * Returns sessions grouped by project for the requested date (local time).
- * Each session includes working time computed using the idle-gap algorithm
- * (gaps > 10 minutes are excluded from working time).
- *
- * Timestamps in the database are UTC (ISO8601 with Z suffix). Day boundaries
- * are computed from the server's local timezone and converted to UTC for
- * accurate comparison.
+ * Thin HTTP wrapper around the timeline service.
+ * All business logic lives in src/services/timeline.js.
  *
  * Defaults to today if no date is provided.
  */
 
-const DEFAULT_IDLE_THRESHOLD_MIN = 10;
-
-/**
- * Compute working time from an array of ISO8601 timestamp strings.
- * Consecutive message gaps <= thresholdMs are counted as working time.
- * Larger gaps (idle periods, overnight, etc.) are excluded.
- *
- * @param {string[]} timestamps - ISO8601 timestamp strings
- * @param {number} thresholdMs - Idle threshold in milliseconds
- * @returns {number} Working time in milliseconds
- */
-function computeWorkingTime(timestamps, thresholdMs) {
-  if (timestamps.length < 2) return 0;
-  const parsed = timestamps.map(t => new Date(t).getTime());
-  let workingMs = 0;
-  for (let i = 1; i < parsed.length; i++) {
-    const gap = parsed[i] - parsed[i - 1];
-    if (gap <= thresholdMs) workingMs += gap;
-  }
-  return workingMs;
-}
-
-/**
- * Compute idle gap spans from an array of ISO8601 timestamp strings.
- * Returns entries for consecutive message gaps > thresholdMs.
- *
- * @param {string[]} timestamps - ISO8601 timestamp strings
- * @param {number} thresholdMs - Idle threshold in milliseconds
- * @returns {{ start: string, end: string }[]} Array of idle gap objects
- */
-function computeIdleGaps(timestamps, thresholdMs) {
-  if (timestamps.length < 2) return [];
-  const gaps = [];
-  for (let i = 1; i < timestamps.length; i++) {
-    const gap = new Date(timestamps[i]).getTime() - new Date(timestamps[i - 1]).getTime();
-    if (gap > thresholdMs) {
-      gaps.push({ start: timestamps[i - 1], end: timestamps[i] });
-    }
-  }
-  return gaps;
-}
-
-// Generic build directory names — use parent directory for display instead
-const BUILD_DIR_NAMES = new Set(['httpdocs', 'htdocs', 'public_html', 'www', 'dist', 'build']);
-
-/**
- * Derive a human-friendly display name from a project path.
- * If the last segment is a generic build directory name, use the parent instead.
- *
- * @param {string} projectPath
- * @returns {string}
- */
-function getDisplayName(projectPath) {
-  const parts = projectPath.split('/').filter(Boolean);
-  const last = parts.at(-1) ?? projectPath;
-  if (BUILD_DIR_NAMES.has(last) && parts.length >= 2) {
-    return parts.at(-2);
-  }
-  return last;
-}
-
-// Worktree path patterns:
-// Actual paths: /home/user/project/.claude/worktrees/branch-name
-// Encoded orphan dirs: -home-user-project--claude-worktrees-branch-name
-const WORKTREE_PATH_RE = /\/\.claude\/worktrees\/[^/]+$/;
-const WORKTREE_ENCODED_RE = /--claude-worktrees-[^/]+$/;
-
-/**
- * If a project path is a worktree, extract the parent project path.
- * Works for both actual paths and encoded orphan directory names.
- *
- * @param {string} projectPath
- * @returns {string|null} Parent project path, or null if not a worktree
- */
-function getWorktreeParentPath(projectPath) {
-  if (WORKTREE_PATH_RE.test(projectPath)) {
-    return projectPath.replace(/\/\.claude\/worktrees\/[^/]+$/, '');
-  }
-  if (WORKTREE_ENCODED_RE.test(projectPath)) {
-    return projectPath.replace(/--claude-worktrees-[^/]+$/, '');
-  }
-  return null;
-}
-
-/**
- * Compute fork segments for a single session from raw DB rows.
- * Clamps start/end timestamps to day boundaries (consistent with overnight session clamping).
- *
- * @param {Array<{fork_branch_id: string, start_time: string, end_time: string, message_count: number}>} rows
- * @param {string} dayStartUTC - ISO8601 start of day in UTC
- * @param {string} dayEndUTC   - ISO8601 end of day in UTC
- * @returns {{ forkBranchId: string, startTime: string, endTime: string, messageCount: number }[]}
- */
-function computeForkSegments(rows, dayStartUTC, dayEndUTC, sessionId, forkTimestampsByBranch, thresholdMs) {
-  return rows
-    .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC && row.message_count >= 2)
-    .map(row => {
-      const clampedStart = row.start_time < dayStartUTC ? dayStartUTC : row.start_time;
-      const clampedEnd = row.end_time > dayEndUTC ? dayEndUTC : row.end_time;
-
-      // Compute working time from individual fork message timestamps
-      const key = sessionId + ':' + row.fork_branch_id;
-      const allTs = forkTimestampsByBranch.get(key) ?? [];
-      const dayTs = allTs.filter(t => t >= dayStartUTC && t < dayEndUTC);
-      const workingTimeMs = computeWorkingTime(dayTs, thresholdMs);
-      const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
-
-      return {
-        forkBranchId: row.fork_branch_id,
-        startTime: clampedStart,
-        endTime: clampedEnd,
-        messageCount: row.message_count,
-        workingTimeMs,
-        elapsedTimeMs,
-      };
-    });
-}
+import { createTimelineService, DEFAULT_IDLE_THRESHOLD_MIN } from '../../services/timeline.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function getTodayString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
@@ -139,213 +23,24 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function timelineRoute(fastify, opts) {
   const { db, migrated = false } = opts;
 
-  // Sessions overlapping a UTC time range (local day converted to UTC).
-  // Excludes team-member subagents (is_subagent=1 with team_name) but
-  // includes team leaders and worktree sessions (grouped in JS below).
-  const sessionStmt = db.prepare(`
-    SELECT
-      s.session_id,
-      s.primary_ticket,
-      s.working_branch,
-      s.summary,
-      s.first_prompt,
-      s.custom_title,
-      s.user_label,
-      s.user_ticket,
-      s.first_message_at,
-      s.last_message_at,
-      s.message_count,
-      s.user_message_count,
-      s.fork_count,
-      s.real_fork_count,
-      p.project_path,
-      p.id AS project_id
-    FROM sessions s
-    JOIN projects p ON s.project_id = p.id
-    WHERE s.first_message_at < ? AND s.last_message_at >= ?
-      AND (s.is_subagent = 0 OR s.is_subagent IS NULL
-           OR (p.project_path LIKE '%/.claude/worktrees/%'
-               OR p.project_path LIKE '%--claude-worktrees-%'))
-    ORDER BY s.first_message_at
-  `);
-
-  const messageStmt = db.prepare(`
-    SELECT timestamp
-    FROM messages
-    WHERE session_id = ?
-      AND type IN ('user', 'assistant')
-      AND timestamp IS NOT NULL
-    ORDER BY timestamp
-  `);
-
-  const totalSessionsStmt = db.prepare('SELECT COUNT(*) AS cnt FROM sessions');
-  const allProjectPathsStmt = db.prepare('SELECT project_path FROM projects');
+  const svc = createTimelineService(db);
 
   fastify.get('/api/timeline', async (request, reply) => {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const date = request.query.date ?? today;
+    const date = request.query.date ?? getTodayString();
 
     if (!DATE_RE.test(date)) {
       reply.code(400);
       return { error: 'Invalid date format. Use YYYY-MM-DD.' };
     }
 
-    // Idle threshold: optional query param in minutes, default 10
+    // Idle threshold: optional query param in minutes, clamped 1-60, default 10
     const thresholdMin = Math.max(1, Math.min(60, parseInt(request.query.threshold, 10) || DEFAULT_IDLE_THRESHOLD_MIN));
-    const thresholdMs = thresholdMin * 60 * 1000;
 
-    // Convert local day boundaries to UTC for correct comparison with Z timestamps
-    const dayStartUTC = new Date(date + 'T00:00:00').toISOString();
-    const dayEndUTC   = new Date(date + 'T23:59:59.999').toISOString();
-
-    // first_message_at < dayEnd AND last_message_at >= dayStart → overlaps the day
-    const sessions = sessionStmt.all(dayEndUTC, dayStartUTC);
-
-    // Group sessions by project using a Map keyed by display project path.
-    // Worktree sessions are merged under their parent project.
-    const projectMap = new Map();
-
-    // Build lookups for worktree→parent resolution.
-    // Maps both actual paths and their encoded forms to the canonical project_path.
-    // Actual: /home/claude/cctimereporter → encoded: -home-claude-cctimereporter
-    const projectPathLookup = new Map();
-    for (const { project_path } of allProjectPathsStmt.all()) {
-      projectPathLookup.set(project_path, project_path);
-      // Also map the encoded form so orphan dirs can find their parent
-      const encoded = project_path.replace(/\//g, '-');
-      projectPathLookup.set(encoded, project_path);
-    }
-
-    // Collect session IDs that have real forks so we can batch-query fork segments.
-    // Gate on real_fork_count > 0 to avoid any DB overhead for the common (no-fork) case.
-    // Fork branch messages are intentionally included in working time — forks represent
-    // parallel exploration within the same work session.
-    const sessionIdsWithForks = sessions
-      .filter(s => s.real_fork_count > 0)
-      .map(s => s.session_id);
-
-    // Maps session_id → array of fork segment DB rows
-    const forkRowsBySession = new Map();
-    // Maps "session_id:fork_branch_id" → sorted timestamp array (for working time)
-    const forkTimestampsByBranch = new Map();
-    if (sessionIdsWithForks.length > 0) {
-      const placeholders = sessionIdsWithForks.map(() => '?').join(', ');
-      const forkRows = db.prepare(`
-        SELECT session_id, fork_branch_id,
-               MIN(timestamp) AS start_time,
-               MAX(timestamp) AS end_time,
-               COUNT(*) AS message_count
-        FROM messages
-        WHERE session_id IN (${placeholders})
-          AND fork_branch_id IS NOT NULL
-          AND type IN ('user', 'assistant')
-          AND timestamp IS NOT NULL
-        GROUP BY session_id, fork_branch_id
-      `).all(...sessionIdsWithForks);
-
-      for (const forkRow of forkRows) {
-        if (!forkRowsBySession.has(forkRow.session_id)) {
-          forkRowsBySession.set(forkRow.session_id, []);
-        }
-        forkRowsBySession.get(forkRow.session_id).push(forkRow);
-      }
-
-      // Second batch query: get individual fork message timestamps for working time computation.
-      // Key: "session_id:fork_branch_id" → sorted timestamp array
-      const forkTimestampRows = db.prepare(`
-        SELECT session_id, fork_branch_id, timestamp
-        FROM messages
-        WHERE session_id IN (${placeholders})
-          AND fork_branch_id IS NOT NULL
-          AND timestamp IS NOT NULL
-        ORDER BY timestamp ASC
-      `).all(...sessionIdsWithForks);
-
-      for (const r of forkTimestampRows) {
-        const key = r.session_id + ':' + r.fork_branch_id;
-        if (!forkTimestampsByBranch.has(key)) {
-          forkTimestampsByBranch.set(key, []);
-        }
-        forkTimestampsByBranch.get(key).push(r.timestamp);
-      }
-    }
-
-    for (const row of sessions) {
-      // Get message timestamps for working time computation
-      const msgRows = messageStmt.all(row.session_id);
-      const allTimestamps = msgRows.map(m => m.timestamp);
-
-      // Filter to only messages within the local day (UTC boundaries)
-      const clampedTimestamps = allTimestamps.filter(t => t >= dayStartUTC && t < dayEndUTC);
-      const workingTimeMs = computeWorkingTime(clampedTimestamps, thresholdMs);
-
-      // For overnight sessions, use first/last in-day message instead of midnight
-      const continuesFromPrevDay = row.first_message_at < dayStartUTC;
-      const continuesIntoNextDay = row.last_message_at  >= dayEndUTC;
-      const clampedStart = continuesFromPrevDay ? (clampedTimestamps[0] ?? dayStartUTC) : row.first_message_at;
-      const clampedEnd   = continuesIntoNextDay ? (clampedTimestamps.at(-1) ?? dayEndUTC) : row.last_message_at;
-
-      // Skip sessions with no messages on this day
-      if (clampedTimestamps.length === 0) continue;
-
-      // Compute idle gaps from clamped timestamps
-      const idleGaps = computeIdleGaps(clampedTimestamps, thresholdMs);
-
-      const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
-
-      // Compute fork segments (empty array for sessions with no real forks)
-      const rawForkRows = forkRowsBySession.get(row.session_id) ?? [];
-      const forkSegments = computeForkSegments(rawForkRows, dayStartUTC, dayEndUTC, row.session_id, forkTimestampsByBranch, thresholdMs);
-
-      const sessionObj = {
-        sessionId: row.session_id,
-        startTime: clampedStart,
-        endTime:   clampedEnd,
-        continuesFromPrevDay,
-        continuesIntoNextDay,
-        workingTimeMs,
-        elapsedTimeMs,
-        idleGaps,
-        forkSegments,
-        ticket: row.primary_ticket,
-        branch: row.working_branch,
-        summary: row.summary,
-        firstPrompt: row.first_prompt,
-        customTitle: row.custom_title,
-        userLabel: row.user_label,
-        userTicket: row.user_ticket,
-        messageCount: clampedTimestamps.length,
-        userMessageCount: row.user_message_count,
-        forkCount: row.fork_count,
-        realForkCount: row.real_fork_count,
-      };
-
-      // Resolve worktree projects to their parent for grouping.
-      // getWorktreeParentPath returns the stripped path (actual or encoded),
-      // then projectPathLookup resolves it to the canonical project_path.
-      const extractedParent = getWorktreeParentPath(row.project_path);
-      const resolvedParent = extractedParent ? projectPathLookup.get(extractedParent) : null;
-      const groupPath = resolvedParent ?? row.project_path;
-
-      if (!projectMap.has(groupPath)) {
-        projectMap.set(groupPath, {
-          projectId: row.project_id,
-          projectPath: groupPath,
-          displayName: getDisplayName(groupPath),
-          sessions: [],
-        });
-      }
-      projectMap.get(groupPath).sessions.push(sessionObj);
-    }
-
-    const { cnt: totalSessions } = totalSessionsStmt.get();
+    const result = await svc.getTimelineUI(date, { thresholdMin });
 
     return {
-      date,
-      totalSessions,
+      ...result,
       schemaMigrated: migrated,
-      projects: [...projectMap.values()],
     };
   });
 }

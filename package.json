@@ -11,6 +11,7 @@
     "src/db",
     "src/importer",
     "src/server",
+    "src/services",
     "src/utils",
     "src/version-check.js",
     "dist"
