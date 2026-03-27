@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.8.0 Programmatic Data Access — Phase 28: Service Layer
+**Current focus:** v0.8.0 Programmatic Data Access — Phase 29: Coordination Locks
 
 ## Current Position
 
-Phase: 28 of 31 (Service Layer)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-03-25 — Roadmap created for v0.8.0 (Phases 28-31)
+Phase: 28 of 31 (Service Layer) — COMPLETE
+Plan: 1 of 1 in current phase
+Status: Phase complete — ready for Phase 29
+Last activity: 2026-03-26 — Completed 28-01-PLAN.md (service layer extraction)
 
-Progress: [████████████████████████░░░░] 87% (27/31 phases complete)
-Overall:  Phases 1-27 complete (v1.0 through v0.7.0 shipped)
+Progress: [█████████████████████████░░░] 90% (28/31 phases complete)
+Overall:  Phases 1-28 complete (v1.0 through v0.7.0 shipped + service layer extracted)
 
 ## Performance Metrics
 
@@ -23,6 +23,9 @@ Overall:  Phases 1-27 complete (v1.0 through v0.7.0 shipped)
 - Total plans completed: 6 (Phases 22-27)
 - Phases: 6
 - Timeline: 5 days (2026-03-20 → 2026-03-24)
+
+**v0.8.0 Velocity (in progress):**
+- Phase 28: 1 plan in ~3 min
 
 ## Accumulated Context
 
@@ -35,6 +38,10 @@ Recent decisions affecting current work:
 - [v0.8.0 planning]: Service layer extracted first — both CLI and MCP depend on it; refactor must be isolated for regression safety
 - [v0.8.0 planning]: CLI before MCP — validates service layer with zero new dependencies before protocol complexity is added
 - [v0.8.0 planning]: Coordination locks (SVC-03, SVC-04, COORD-*) grouped in Phase 29 — DB concern, closely coupled to service singleton
+- [Phase 28]: Factory pattern for DB-bound services — createXxxService(db) called at plugin registration, DB handle bound in closure
+- [Phase 28]: Dynamic IN clause fork queries stay inside getTimelineUI() — variable placeholder count prevents pre-preparation
+- [Phase 28]: Import service uses module-level state (not factory) — concurrency guard is process-wide, not DB-bound
+- [Phase 28]: getTimelineReport uses userTicket ?? ticket as grouping key (user override preferred)
 
 ### Pending Todos
 
@@ -47,6 +54,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25
-Stopped at: Roadmap created — v0.8.0 phases 28-31 defined, ready to plan Phase 28
+Last session: 2026-03-26
+Stopped at: Completed 28-01-PLAN.md — service layer extracted, routes thinned, ready for Phase 29
 Resume file: None
