@@ -109,10 +109,10 @@ See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
   2. `src/services/timeline.js` and `src/services/sessions.js` export plain functions that accept a `db` argument and return plain JS objects
   3. `src/services/import.js` exports a function that accepts a `db` and progress callback, callable without starting a web server
   4. `src/services`, `src/cli`, and `src/mcp` appear in `package.json` `files` array so npx distribution is not broken
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 28-01: Extract service layer and refactor route handlers
+- [ ] 28-01-PLAN.md — Extract service modules, shared utilities, and thin route wrappers
 
 #### Phase 29: Multi-Instance Coordination
 
