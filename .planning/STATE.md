@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 30 of 31 (CLI Subcommands) — In progress
-Plan: 1 of 2 in current phase
-Status: In progress — 30-01 complete, ready for 30-02
-Last activity: 2026-03-28 — Completed 30-01-PLAN.md (CLI command handler modules + format utilities)
+Phase: 30 of 31 (CLI Subcommands) — Phase complete
+Plan: 2 of 2 in current phase
+Status: Phase 30 complete — ready for Phase 31 (MCP server)
+Last activity: 2026-03-28 — Completed 30-02-PLAN.md (Commander dispatch in bin/cli.js)
 
-Progress: [███████████████████████████░] 96% (30/31 phases complete... plan-level: 30 of ~33 plans)
-Overall:  Phases 1-29 complete, Phase 30 in progress
+Progress: [████████████████████████████] 98% (30/31 phases complete... plan-level: 32 of ~33 plans)
+Overall:  Phases 1-30 complete, Phase 31 pending
 
 ## Performance Metrics
 
@@ -51,6 +51,10 @@ Recent decisions affecting current work:
 - [Phase 30-01]: Dynamic import for services inside action handlers — defers module loading until command actually runs
 - [Phase 30-01]: importCommand uses instanceof ImportConflictError for exit code 2 vs general error exit code 1
 - [Phase 30-01]: Command factory pattern — xyzCommand(db) returns new Command(...) with .action() bound to db; all four leaf modules ready for Plan 02 wiring
+- [Phase 30-02]: Dynamic imports for node:fs/url/path in cli.js to avoid static import hoisting over Node version check
+- [Phase 30-02]: serve.action() loads Fastify lazily — CLI subcommands complete in ~70ms with no server overhead
+- [Phase 30-02]: serve as default command via addCommand(serve, { isDefault: true }) preserves backward-compatible no-args behavior
+- [Phase 30-02]: process.on('exit') db.close() for CLI subcommand cleanup; SIGINT/SIGTERM handlers for serve path
 
 ### Pending Todos
 
@@ -64,5 +68,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 30-01-PLAN.md — CLI command handler modules (format, summary, sessions, import) with commander@14
+Stopped at: Completed 30-02-PLAN.md — Commander dispatch in bin/cli.js; Phase 30 complete
 Resume file: None
