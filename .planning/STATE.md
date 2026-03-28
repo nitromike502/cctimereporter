@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 28 of 31 (Service Layer) — COMPLETE
-Plan: 1 of 1 in current phase
-Status: Phase complete — ready for Phase 29
-Last activity: 2026-03-26 — Completed 28-01-PLAN.md (service layer extraction)
+Phase: 29 of 31 (Multi-Instance Coordination) — In progress
+Plan: 1 of 2 in current phase
+Status: In progress — Plan 01 complete, ready for Plan 02
+Last activity: 2026-03-28 — Completed 29-01-PLAN.md (process_locks, coordination service, import DB lock)
 
-Progress: [█████████████████████████░░░] 90% (28/31 phases complete)
-Overall:  Phases 1-28 complete (v1.0 through v0.7.0 shipped + service layer extracted)
+Progress: [█████████████████████████░░░] 90% (28.5/31 phases complete)
+Overall:  Phases 1-28 complete + Phase 29 Plan 01 done
 
 ## Performance Metrics
 
@@ -42,6 +42,10 @@ Recent decisions affecting current work:
 - [Phase 28]: Dynamic IN clause fork queries stay inside getTimelineUI() — variable placeholder count prevents pre-preparation
 - [Phase 28]: Import service uses module-level state (not factory) — concurrency guard is process-wide, not DB-bound
 - [Phase 28]: getTimelineReport uses userTicket ?? ticket as grouping key (user override preferred)
+- [Phase 29-01]: busy_timeout = 5000ms placed before SCHEMA_DDL so DDL execution benefits from timeout
+- [Phase 29-01]: UNIQUE constraint race in claimLock: re-SELECT winner on conflict (no retry loop)
+- [Phase 29-01]: ImportConflictError handles both string (DB datetime) and epoch number (in-memory) startedAt formats
+- [Phase 29-01]: 409 response body uses err.message directly — detailed message flows through automatically
 
 ### Pending Todos
 
@@ -54,6 +58,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Completed 28-01-PLAN.md — service layer extracted, routes thinned, ready for Phase 29
+Last session: 2026-03-28
+Stopped at: Completed 29-01-PLAN.md — process_locks table, coordination service, import DB lock; ready for 29-02 (server ownership)
 Resume file: None
