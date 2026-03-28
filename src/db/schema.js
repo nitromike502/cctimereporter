@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -101,6 +101,14 @@ CREATE TABLE IF NOT EXISTS import_log (
   last_message_at  TEXT,
   UNIQUE(file_path)
 );
+
+CREATE TABLE IF NOT EXISTS process_locks (
+  lock_name  TEXT PRIMARY KEY,
+  pid        INTEGER NOT NULL,
+  source     TEXT NOT NULL,
+  port       INTEGER,
+  started_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 /**
@@ -164,6 +172,20 @@ ALTER TABLE messages ADD COLUMN fork_branch_id TEXT;
  */
 export const MIGRATION_V7_TO_V8 = `
 ALTER TABLE messages ADD COLUMN content TEXT;
+`;
+
+/**
+ * CREATE TABLE statement to migrate v8 → v9.
+ * Adds process_locks table for multi-instance coordination.
+ */
+export const MIGRATION_V8_TO_V9 = `
+CREATE TABLE IF NOT EXISTS process_locks (
+  lock_name  TEXT PRIMARY KEY,
+  pid        INTEGER NOT NULL,
+  source     TEXT NOT NULL,
+  port       INTEGER,
+  started_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 export const MIGRATION_V1_TO_V2 = `
