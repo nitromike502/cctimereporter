@@ -8,6 +8,7 @@
   },
   "files": [
     "bin",
+    "src/cli",
     "src/db",
     "src/importer",
     "src/server",
