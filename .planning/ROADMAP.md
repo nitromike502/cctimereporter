@@ -95,7 +95,7 @@ See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 **Milestone Goal:** Expose session data through a stdio MCP server and CLI subcommands so Claude agents and scripts can pull time and session data programmatically. Both surfaces are thin wrappers over a shared service layer extracted from existing route handlers.
 
 - [x] **Phase 28: Service Layer** — Extract query and import logic into `src/services/` shared by routes, CLI, and MCP
-- [ ] **Phase 29: Multi-Instance Coordination** — DB-based locks for server ownership and import exclusivity across processes
+- [x] **Phase 29: Multi-Instance Coordination** — DB-based locks for server ownership and import exclusivity across processes
 - [ ] **Phase 30: CLI Subcommands** — Non-interactive `summary`, `sessions`, and `import` subcommands with JSON stdout
 - [ ] **Phase 31: MCP Server** — stdio MCP server with six tools for programmatic data access and server management
 
@@ -197,6 +197,6 @@ Plans:
 | 26. Store Message Content | v0.7.0 | 1/1 | Complete | 2026-03-23 |
 | 27. Messages Modal from DB | v0.7.0 | 1/1 | Complete | 2026-03-24 |
 | 28. Service Layer | v0.8.0 | 1/1 | Complete | 2026-03-26 |
-| 29. Multi-Instance Coordination | v0.8.0 | 0/2 | Not started | - |
+| 29. Multi-Instance Coordination | v0.8.0 | 2/2 | Complete | 2026-03-27 |
 | 30. CLI Subcommands | v0.8.0 | 0/1 | Not started | - |
 | 31. MCP Server | v0.8.0 | 0/3 | Not started | - |

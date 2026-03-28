@@ -65,8 +65,8 @@
 |-------------|-------|--------|
 | SVC-01 | Phase 28 | Complete |
 | SVC-02 | Phase 28 | Complete |
-| SVC-03 | Phase 29 | Pending |
-| SVC-04 | Phase 29 | Pending |
+| SVC-03 | Phase 29 | Complete |
+| SVC-04 | Phase 29 | Complete |
 | MCP-01 | Phase 31 | Pending |
 | MCP-02 | Phase 31 | Pending |
 | MCP-03 | Phase 31 | Pending |
@@ -79,10 +79,10 @@
 | CLI-02 | Phase 30 | Pending |
 | CLI-03 | Phase 30 | Pending |
 | CLI-04 | Phase 30 | Pending |
-| COORD-01 | Phase 29 | Pending |
-| COORD-02 | Phase 29 | Pending |
-| COORD-03 | Phase 29 | Pending |
-| COORD-04 | Phase 29 | Pending |
+| COORD-01 | Phase 29 | Complete |
+| COORD-02 | Phase 29 | Complete |
+| COORD-03 | Phase 29 | Complete |
+| COORD-04 | Phase 29 | Complete |
 
 **Coverage:**
 - v0.8.0 requirements: 20 total
