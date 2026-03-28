@@ -97,7 +97,7 @@ See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 - [x] **Phase 28: Service Layer** — Extract query and import logic into `src/services/` shared by routes, CLI, and MCP
 - [x] **Phase 29: Multi-Instance Coordination** — DB-based locks for server ownership and import exclusivity across processes
 - [x] **Phase 30: CLI Subcommands** — Non-interactive `summary`, `sessions`, and `import` subcommands with JSON stdout
-- [ ] **Phase 31: MCP Server** — stdio MCP server with six tools for programmatic data access and server management
+- [ ] **Phase 31: MCP Server** — stdio MCP server with 8 tools for programmatic data access and server management
 
 #### Phase 28: Service Layer
 
@@ -148,7 +148,7 @@ Plans:
 
 #### Phase 31: MCP Server
 
-**Goal:** `npx cctimereporter --mcp` starts a stdio MCP server with six tools (`get_day_summary`, `get_sessions`, `get_session_messages`, `trigger_import`, `start_server`, `stop_server`, `server_status`) usable by Claude agents
+**Goal:** `npx cctimereporter --mcp` starts a stdio MCP server with 8 tools (`get_day_summary`, `get_sessions`, `get_session_messages`, `get_dates`, `trigger_import`, `start_server`, `stop_server`, `server_status`) usable by Claude agents
 **Depends on:** Phase 28 (service layer), Phase 29 (coordination locks), Phase 30 (mode dispatch established)
 **Requirements:** MCP-01, MCP-02, MCP-03, MCP-04, MCP-05, MCP-06, MCP-07, MCP-08
 **Success Criteria** (what must be TRUE):
@@ -157,12 +157,11 @@ Plans:
   3. `start_server` returns the URL of an already-running web server if one exists, or starts a new one and returns its URL — the agent never needs to check first
   4. `stop_server` terminates the web server (including if it is owned by a different process) and clears stale ownership from the DB
   5. Running multiple `npx cctimereporter --mcp` instances simultaneously does not produce errors — reads are concurrent-safe via WAL mode
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 31-01: MCP server setup — stdio transport, tool registration scaffold, mode dispatch
-- [ ] 31-02: Query tools — `get_day_summary`, `get_sessions`, `get_session_messages`
-- [ ] 31-03: Action tools — `trigger_import`, `start_server`, `stop_server`, `server_status`
+- [ ] 31-01-PLAN.md — MCP server scaffold with query tools (get_day_summary, get_sessions, get_session_messages, get_dates)
+- [ ] 31-02-PLAN.md — Action tools (trigger_import, start_server, stop_server, server_status)
 
 ---
 
@@ -200,4 +199,4 @@ Plans:
 | 28. Service Layer | v0.8.0 | 1/1 | Complete | 2026-03-26 |
 | 29. Multi-Instance Coordination | v0.8.0 | 2/2 | Complete | 2026-03-27 |
 | 30. CLI Subcommands | v0.8.0 | 2/2 | Complete | 2026-03-28 |
-| 31. MCP Server | v0.8.0 | 0/3 | Not started | - |
+| 31. MCP Server | v0.8.0 | 0/2 | Not started | - |
