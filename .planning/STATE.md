@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.8.0 Programmatic Data Access — Phase 29: Coordination Locks
+**Current focus:** v0.8.0 Programmatic Data Access — Phase 30: CLI Subcommands
 
 ## Current Position
 
-Phase: 29 of 31 (Multi-Instance Coordination) — Complete
-Plan: 2 of 2 in current phase (all plans complete)
-Status: Phase 29 complete — ready for Phase 30
-Last activity: 2026-03-28 — Completed 29-02-PLAN.md (server ownership lock, conflict detection, SIGINT release)
+Phase: 30 of 31 (CLI Subcommands) — In progress
+Plan: 1 of 2 in current phase
+Status: In progress — 30-01 complete, ready for 30-02
+Last activity: 2026-03-28 — Completed 30-01-PLAN.md (CLI command handler modules + format utilities)
 
-Progress: [██████████████████████████░░] 93% (29/31 phases complete)
-Overall:  Phases 1-29 complete
+Progress: [███████████████████████████░] 96% (30/31 phases complete... plan-level: 30 of ~33 plans)
+Overall:  Phases 1-29 complete, Phase 30 in progress
 
 ## Performance Metrics
 
@@ -48,6 +48,9 @@ Recent decisions affecting current work:
 - [Phase 29-01]: 409 response body uses err.message directly — detailed message flows through automatically
 - [Phase 29-02]: Lock claimed AFTER listen() — port bind determines port, DB lock determines ownership; port-fallback loop preserved for non-cctimereporter conflicts
 - [Phase 29-02]: exit(0) on server conflict — second instance detecting a live server is not an error condition
+- [Phase 30-01]: Dynamic import for services inside action handlers — defers module loading until command actually runs
+- [Phase 30-01]: importCommand uses instanceof ImportConflictError for exit code 2 vs general error exit code 1
+- [Phase 30-01]: Command factory pattern — xyzCommand(db) returns new Command(...) with .action() bound to db; all four leaf modules ready for Plan 02 wiring
 
 ### Pending Todos
 
@@ -61,5 +64,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 29-02-PLAN.md — server lock claim after listen(), conflict detection, SIGINT/SIGTERM release; Phase 29 complete
+Stopped at: Completed 30-01-PLAN.md — CLI command handler modules (format, summary, sessions, import) with commander@14
 Resume file: None
