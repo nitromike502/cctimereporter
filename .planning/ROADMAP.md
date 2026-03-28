@@ -97,7 +97,7 @@ See: `.planning/milestones/v0.7.0-ROADMAP.md` for full details.
 - [x] **Phase 28: Service Layer** — Extract query and import logic into `src/services/` shared by routes, CLI, and MCP
 - [x] **Phase 29: Multi-Instance Coordination** — DB-based locks for server ownership and import exclusivity across processes
 - [x] **Phase 30: CLI Subcommands** — Non-interactive `summary`, `sessions`, and `import` subcommands with JSON stdout
-- [ ] **Phase 31: MCP Server** — stdio MCP server with 8 tools for programmatic data access and server management
+- [x] **Phase 31: MCP Server** — stdio MCP server with 8 tools for programmatic data access and server management
 
 #### Phase 28: Service Layer
 
@@ -199,4 +199,4 @@ Plans:
 | 28. Service Layer | v0.8.0 | 1/1 | Complete | 2026-03-26 |
 | 29. Multi-Instance Coordination | v0.8.0 | 2/2 | Complete | 2026-03-27 |
 | 30. CLI Subcommands | v0.8.0 | 2/2 | Complete | 2026-03-28 |
-| 31. MCP Server | v0.8.0 | 0/2 | Not started | - |
+| 31. MCP Server | v0.8.0 | 2/2 | Complete | 2026-03-28 |
