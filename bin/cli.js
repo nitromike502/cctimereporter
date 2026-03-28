@@ -20,6 +20,7 @@ const { openDatabase } = await import('../src/db/index.js');
 const { createServer } = await import('../src/server/index.js');
 const { spawn } = await import('node:child_process');
 const { readConfig, writeConfig } = await import('../src/utils/config.js');
+const { claimLock, releaseLock } = await import('../src/services/coordination.js');
 
 // Handle --debug-import flag: on/off or show current status
 const debugImportIdx = process.argv.indexOf('--debug-import');
@@ -71,6 +72,17 @@ for (let attempt = 0; attempt < 10; attempt++) {
 }
 
 const actualPort = fastify.server.address().port;
+
+// Claim the server lock — detect if another cctimereporter instance is already running.
+const lockResult = claimLock(db, 'server', process.pid, 'web', actualPort);
+if (!lockResult.claimed) {
+  const ownerUrl = `http://127.0.0.1:${lockResult.owner.port}`;
+  process.stdout.write(`Server already running at ${ownerUrl} (PID ${lockResult.owner.pid})\n`);
+  try { await fastify.close(); } catch (_) {}
+  try { db.close(); } catch (_) {}
+  process.exit(0);
+}
+
 const url = `http://127.0.0.1:${actualPort}`;
 process.stdout.write(`cctimereporter running at ${url}\nPress Ctrl+C to stop.\n`);
 
@@ -93,6 +105,7 @@ try {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {
     process.stdout.write('\ncctimereporter stopped.\n');
+    releaseLock(db, 'server', process.pid);
     try { await fastify.close(); } catch (_) {}
     try { db.close(); } catch (_) {}
     process.exit(0);
