@@ -14,6 +14,7 @@ import { join, dirname } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerQueryTools } from './tools/query.js';
+import { registerActionTools, cleanupMcpServer } from './tools/action.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8'));
@@ -33,25 +34,22 @@ export async function startMcpServer(db) {
   // Register query tools (always available)
   registerQueryTools(server, db);
 
-  // Register action tools (Plan 02 — skip gracefully if not yet created)
-  try {
-    const { registerActionTools } = await import('./tools/action.js');
-    registerActionTools(server, db);
-  } catch (_) {
-    // action.js not yet created — continue with query tools only
-  }
+  // Register action tools
+  registerActionTools(server, db);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
   // Exit when stdin closes (MCP host disconnects)
   process.stdin.on('close', () => {
+    cleanupMcpServer(db);
     try { db.close(); } catch (_) {}
     process.exit(0);
   });
 
   // Ensure DB is closed on any exit
   process.on('exit', () => {
+    cleanupMcpServer(db);
     try { db.close(); } catch (_) {}
   });
 }
