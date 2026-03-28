@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 29 of 31 (Multi-Instance Coordination) — In progress
-Plan: 1 of 2 in current phase
-Status: In progress — Plan 01 complete, ready for Plan 02
-Last activity: 2026-03-28 — Completed 29-01-PLAN.md (process_locks, coordination service, import DB lock)
+Phase: 29 of 31 (Multi-Instance Coordination) — Complete
+Plan: 2 of 2 in current phase (all plans complete)
+Status: Phase 29 complete — ready for Phase 30
+Last activity: 2026-03-28 — Completed 29-02-PLAN.md (server ownership lock, conflict detection, SIGINT release)
 
-Progress: [█████████████████████████░░░] 90% (28.5/31 phases complete)
-Overall:  Phases 1-28 complete + Phase 29 Plan 01 done
+Progress: [██████████████████████████░░] 93% (29/31 phases complete)
+Overall:  Phases 1-29 complete
 
 ## Performance Metrics
 
@@ -46,6 +46,8 @@ Recent decisions affecting current work:
 - [Phase 29-01]: UNIQUE constraint race in claimLock: re-SELECT winner on conflict (no retry loop)
 - [Phase 29-01]: ImportConflictError handles both string (DB datetime) and epoch number (in-memory) startedAt formats
 - [Phase 29-01]: 409 response body uses err.message directly — detailed message flows through automatically
+- [Phase 29-02]: Lock claimed AFTER listen() — port bind determines port, DB lock determines ownership; port-fallback loop preserved for non-cctimereporter conflicts
+- [Phase 29-02]: exit(0) on server conflict — second instance detecting a live server is not an error condition
 
 ### Pending Todos
 
@@ -59,5 +61,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 29-01-PLAN.md — process_locks table, coordination service, import DB lock; ready for 29-02 (server ownership)
+Stopped at: Completed 29-02-PLAN.md — server lock claim after listen(), conflict detection, SIGINT/SIGTERM release; Phase 29 complete
 Resume file: None
