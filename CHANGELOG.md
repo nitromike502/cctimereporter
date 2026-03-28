@@ -4,6 +4,27 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] - 2026-03-27
+
+### Added
+
+- **Service layer (Phase 28):** Business logic extracted from Fastify route handlers into `src/services/` (timeline, sessions, import) and shared utilities in `src/utils/timeline-utils.js`. Route handlers are now thin HTTP-only wrappers. Services are reused by the web server, CLI, and MCP layers.
+- **Multi-instance coordination (Phase 29):** DB-based process locks prevent concurrent imports and detect existing server instances. Schema v9 adds a `process_locks` table. Stale locks from crashed processes are reclaimed automatically via PID liveness checks. SQLite `busy_timeout` set to 5000ms for safe concurrent access.
+- **CLI subcommands (Phase 30):** Commander-based dispatch in `bin/cli.js` with three subcommands: `summary` (day summary JSON), `sessions` (session list JSON), and `import` (trigger import). All output JSON to stdout for scripting. `--pretty` flag for human-readable output. `--date`, `--idle`, `--days`, and `--all` options. CLI commands start in ~70ms by deferring Fastify imports.
+- **MCP server (Phase 31):** stdio MCP server via `--mcp` flag for programmatic data access from AI assistants. 8 tools: `get_day_summary`, `get_sessions`, `get_session_messages`, `get_dates` (query tools), plus `trigger_import`, `start_server`, `stop_server`, `server_status` (action tools). Uses `@modelcontextprotocol/sdk` with Zod schema validation.
+
+### Changed
+
+- **Schema v9:** Adds `process_locks` table for multi-instance coordination. Auto-migrates from any previous schema version.
+- **bin/cli.js:** Refactored from monolithic entry point to Commander-based dispatch. `serve` is the default command (preserving `npx cctimereporter` behavior).
+- **Route handlers thinned:** All API route handlers now delegate to service functions, containing only HTTP concern logic (status codes, SSE framing, request parsing).
+
+### Dependencies
+
+- Added `commander` (^14.0.3) for CLI argument parsing
+- Added `@modelcontextprotocol/sdk` (^1.28.0) for MCP server protocol
+- Added `zod` (^4.3.6) for MCP tool input schema validation
+
 ## [0.7.0] - 2026-03-24
 
 ### Added

@@ -16,6 +16,15 @@ npm start
 # or
 node bin/cli.js
 
+# CLI subcommands (JSON to stdout, ~70ms startup)
+node bin/cli.js summary --date 2026-03-25 --pretty
+node bin/cli.js sessions --date 2026-03-25 --pretty
+node bin/cli.js import --days 7
+node bin/cli.js import --all
+
+# MCP server (stdio protocol, for AI assistant integrations)
+node bin/cli.js --mcp
+
 # Development: Vue dev server with hot reload
 npm run dev:client
 
@@ -39,9 +48,23 @@ python3 timeline.py 2026-02-05                     # Generate HTML timeline
 ### Node.js App (src/)
 
 ```
-bin/cli.js                     Entry point: version check, DB open, Fastify start, browser open
-src/db/schema.js               Schema DDL v6, migration constants
-src/db/index.js                openDatabase() with auto-migration (v1→v2→v3→v4→v5→v6)
+bin/cli.js                     Entry point: Commander dispatch, --mcp flag, version check
+src/services/                  Business logic layer (shared by server, CLI, MCP)
+  timeline.js                  Timeline report computation (getTimelineReport, getTimelineUI)
+  sessions.js                  Session queries and updates (getMessages, updateSession)
+  import.js                    Import orchestration with DB lock (runImport, ImportConflictError)
+  coordination.js              Process lock management (claimLock, releaseLock, isProcessAlive)
+src/cli/                       CLI subcommand handlers
+  format.js                    Output formatting (enrichWithFormattedTime, formatWorkingTime, outputJSON)
+  commands/summary.js          summary subcommand — day summary JSON
+  commands/sessions.js         sessions subcommand — session list JSON
+  commands/import.js           import subcommand — trigger import, exit code 2 on conflict
+src/mcp/                       MCP server (stdio protocol)
+  server.js                    Server factory — startMcpServer(db), registers tools, connects stdio
+  tools/query.js               4 query tools: get_day_summary, get_sessions, get_session_messages, get_dates
+  tools/action.js              4 action tools: trigger_import, start_server, stop_server, server_status
+src/db/schema.js               Schema DDL v9, migration constants
+src/db/index.js                openDatabase() with auto-migration (v1→v2→…→v9)
 src/importer/                  Import pipeline
   discovery.js                 Project discovery from ~/.claude.json + filesystem
   parser.js                    Async JSONL streaming parser
@@ -50,11 +73,12 @@ src/importer/                  Import pipeline
   db-writer.js                 SQLite upsert/insert functions
   index.js                     importAll() orchestrator
 src/server/index.js            Fastify server factory with static file serving
-src/server/routes/timeline.js  GET /api/timeline — sessions with idle gaps and working time
+src/server/routes/timeline.js  GET /api/timeline — thin wrapper, delegates to timeline service
 src/server/routes/projects.js  GET /api/projects — project list
 src/server/routes/import.js    POST /api/import + GET /api/import/progress (SSE streaming)
-src/server/routes/messages.js  GET /api/sessions/:id/messages — session message preview
-src/server/routes/sessions.js  PATCH /api/sessions/:id — user-editable session fields
+src/server/routes/messages.js  GET /api/sessions/:id/messages — delegates to sessions service
+src/server/routes/sessions.js  PATCH /api/sessions/:id — delegates to sessions service
+src/utils/timeline-utils.js    Shared pure functions (computeWorkingTime, etc.)
 src/utils/parse-command-xml.js Slash command and XML tag parser (commands, task notifications, bash, skill tags)
 src/utils/config.js            Application config (~/.cctimereporter/config.json)
 src/client/                    Vue 3 frontend
@@ -113,18 +137,54 @@ Messages are grouped by session per date. Consecutive message gaps <= idle thres
 ### Database
 
 - **Location:** `~/.cctimereporter/data.db`
-- **Schema version:** 6 (auto-migrates from v1 through v5)
-- **Core tables:** `projects`, `sessions`, `messages`, `tickets`, `import_log`
-- **Features:** WAL mode, foreign keys enabled, prepared statement caching
+- **Schema version:** 9 (auto-migrates from v1 through v8)
+- **Core tables:** `projects`, `sessions`, `messages`, `tickets`, `import_log`, `process_locks`
+- **Features:** WAL mode, foreign keys enabled, prepared statement caching, busy_timeout=5000ms
+
+### Multi-Instance Coordination
+
+The `process_locks` table (schema v9) prevents concurrent imports and detects existing server instances:
+
+- **Import lock:** Claimed before import, released after. CLI and MCP check for conflicts (exit code 2 / error response).
+- **Server lock:** Claimed on startup with PID and port. New instances detect existing servers and redirect.
+- **Stale lock reclaim:** Locks from dead processes (PID no longer alive) are automatically reclaimed.
 
 ### Frontend Component Library
 
 Custom component library with design tokens in `tokens.css`. All components live in `src/client/components/` and are previewed at `/components`. Components use Reka UI primitives for accessibility (checkbox, tooltip, progress bar) and @vuepic/vue-datepicker for the date picker.
 
+### CLI Subcommands
+
+Commander-based dispatch with three subcommands. The default command (`serve`) starts the web server. CLI subcommands defer Fastify imports for ~70ms startup.
+
+| Command | Description | Key Options |
+|---------|-------------|-------------|
+| `serve` (default) | Start web server + open browser | (none) |
+| `summary` | Day summary JSON to stdout | `--date`, `--idle`, `--pretty` |
+| `sessions` | Session list JSON to stdout | `--date`, `--idle`, `--pretty` |
+| `import` | Trigger import pipeline | `--days`, `--all`, `--pretty` |
+
+Exit codes: 0 = success, 1 = general error, 2 = import already running (conflict).
+
+### MCP Server
+
+stdio MCP server activated by `--mcp` flag. Detected before Commander parses argv. All stderr suppressed (stdio owned by MCP protocol). Process stays alive via stdin `close` listener.
+
+| Tool | Type | Description |
+|------|------|-------------|
+| `get_day_summary` | Query | Ticket-grouped working time for a date |
+| `get_sessions` | Query | Project-grouped session details for a date |
+| `get_session_messages` | Query | Messages for a specific session |
+| `get_dates` | Query | All dates that have session data |
+| `trigger_import` | Action | Run import pipeline (returns stats or conflict error) |
+| `start_server` | Action | Start web server or return URL of running instance |
+| `stop_server` | Action | Terminate running web server |
+| `server_status` | Action | Check if web server is running |
+
 ## Key Constants
 
-- `DEFAULT_IDLE_THRESHOLD_MIN`: 10 (in `src/server/routes/timeline.js`)
-- `SCHEMA_VERSION`: 6 (in `src/db/schema.js`)
+- `DEFAULT_IDLE_THRESHOLD_MIN`: 10 (in `src/services/timeline.js`)
+- `SCHEMA_VERSION`: 9 (in `src/db/schema.js`)
 - `DEFAULT_PORT`: 3847 (in `bin/cli.js`)
 - `CLAUDE_PROJECTS_DIR`: `~/.claude/projects` (in `src/importer/discovery.js`)
 - Database path: `~/.cctimereporter/data.db` (in `src/db/index.js`)
@@ -133,7 +193,7 @@ Custom component library with design tokens in `tokens.css`. All components live
 
 ## Dependencies
 
-- **Runtime:** fastify, @fastify/static, driver.js, vue, vue-router, reka-ui, @vuepic/vue-datepicker
+- **Runtime:** fastify, @fastify/static, commander, @modelcontextprotocol/sdk, zod, driver.js, vue, vue-router, reka-ui, @vuepic/vue-datepicker
 - **Dev:** vite, @vitejs/plugin-vue
 - **Built-in:** `node:sqlite` (Node 22+), `node:readline`, `node:fs`, `node:path`
 

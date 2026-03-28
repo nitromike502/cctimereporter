@@ -50,6 +50,60 @@ The import pipeline:
 4. **Scores tickets** using a multi-source system (slash commands, branch patterns, content mentions, git commits, MCP tool calls, session summaries)
 5. **Writes to SQLite** with idempotent upserts (re-importing is safe and skips unchanged files)
 
+## CLI Subcommands
+
+In addition to the default web server, cctimereporter provides CLI subcommands that output JSON to stdout for scripting and automation.
+
+```bash
+# Day summary (ticket-grouped working time)
+npx cctimereporter summary
+npx cctimereporter summary --date 2026-03-25 --pretty
+
+# Session list for a date
+npx cctimereporter sessions --date 2026-03-25 --pretty
+
+# Trigger import from CLI
+npx cctimereporter import              # 2-day rolling window (default)
+npx cctimereporter import --all        # Full history import
+npx cctimereporter import --days 7     # Custom window
+```
+
+All subcommands accept `--pretty` for human-readable JSON output and `--idle <minutes>` (where applicable) to configure the idle threshold.
+
+## MCP Server
+
+cctimereporter includes a stdio MCP server for programmatic data access from AI assistants (e.g., Claude Code).
+
+```bash
+npx cctimereporter --mcp
+```
+
+This starts a [Model Context Protocol](https://modelcontextprotocol.io/) server on stdio. Available tools:
+
+| Tool | Description |
+|------|-------------|
+| `get_day_summary` | Ticket-grouped working time for a date |
+| `get_sessions` | Project-grouped session details for a date |
+| `get_session_messages` | Messages for a specific session |
+| `get_dates` | All dates that have session data |
+| `trigger_import` | Run the import pipeline |
+| `start_server` | Start the web server (or return URL of running instance) |
+| `stop_server` | Stop a running web server |
+| `server_status` | Check if the web server is running |
+
+To use with Claude Code, add to your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "cctimereporter": {
+      "command": "npx",
+      "args": ["cctimereporter", "--mcp"]
+    }
+  }
+}
+```
+
 ## Configuration
 
 - **Database location:** `~/.cctimereporter/data.db` (created automatically)
@@ -77,11 +131,15 @@ npm start
 ### Project Structure
 
 ```
-bin/cli.js                 CLI entry point (version check, server start, browser open)
+bin/cli.js                 CLI entry point (Commander dispatch, --mcp flag)
 src/
-  db/                      SQLite database layer (schema, migrations, open/close)
+  cli/                     CLI subcommands (summary, sessions, import) + format utils
+  mcp/                     MCP server factory and tool registrations (query + action)
+  services/                Business logic (timeline, sessions, import, coordination)
+  db/                      SQLite database layer (schema v9, migrations, open/close)
   importer/                Import pipeline (parser, fork detector, ticket scorer, discovery)
-  server/                  Fastify server and API routes
+  server/                  Fastify server and API routes (thin HTTP wrappers)
+  utils/                   Shared utilities (config, XML parser, timeline computation)
   client/                  Vue 3 frontend
     components/            Reusable components (Gantt chart, toolbar, detail panel)
     pages/                 Page components (TimelinePage, ComponentsPage)
@@ -105,10 +163,12 @@ scripts/                   Python proof-of-concept (reference implementation)
 
 - **Runtime:** Node.js 22+ with built-in `node:sqlite`
 - **Server:** Fastify 5
+- **CLI:** Commander 14
+- **MCP:** @modelcontextprotocol/sdk with Zod schema validation
 - **Frontend:** Vue 3 + Vue Router + Vite
 - **UI primitives:** Reka UI (checkbox, tooltip, progress bar)
 - **Date picker:** @vuepic/vue-datepicker
-- **Database:** SQLite (WAL mode, foreign keys enabled)
+- **Database:** SQLite (WAL mode, foreign keys enabled, busy_timeout=5000)
 
 ## License
 
