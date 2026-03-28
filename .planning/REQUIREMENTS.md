@@ -75,10 +75,10 @@
 | MCP-06 | Phase 31 | Pending |
 | MCP-07 | Phase 31 | Pending |
 | MCP-08 | Phase 31 | Pending |
-| CLI-01 | Phase 30 | Pending |
-| CLI-02 | Phase 30 | Pending |
-| CLI-03 | Phase 30 | Pending |
-| CLI-04 | Phase 30 | Pending |
+| CLI-01 | Phase 30 | Complete |
+| CLI-02 | Phase 30 | Complete |
+| CLI-03 | Phase 30 | Complete |
+| CLI-04 | Phase 30 | Complete |
 | COORD-01 | Phase 29 | Complete |
 | COORD-02 | Phase 29 | Complete |
 | COORD-03 | Phase 29 | Complete |
