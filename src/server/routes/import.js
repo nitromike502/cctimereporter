@@ -27,7 +27,7 @@ export async function importRoute(fastify, opts) {
     } catch (err) {
       if (err instanceof ImportConflictError) {
         reply.code(409);
-        return { error: 'Import already in progress' };
+        return { error: err.message };
       }
       throw err;
     }
