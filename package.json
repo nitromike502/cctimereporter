@@ -9,6 +9,7 @@
   "files": [
     "bin",
     "src/cli",
+    "src/mcp",
     "src/db",
     "src/importer",
     "src/server",
@@ -28,9 +29,11 @@
   },
   "dependencies": {
     "@fastify/static": "^9.0.0",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "commander": "^14.0.3",
     "driver.js": "^1.4.0",
-    "fastify": "^5.7.4"
+    "fastify": "^5.7.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",

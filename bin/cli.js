@@ -62,6 +62,19 @@ if (debugImportIdx !== -1) {
 // Open the database (creates and migrates if needed).
 const { db, migrated } = openDatabase();
 
+// Handle --mcp flag BEFORE Commander parses argv.
+// MCP protocol owns stdio — no stderr output allowed once active.
+// server.connect() resolves immediately (non-blocking); the process stays alive
+// via the stdin 'close' listener set up in startMcpServer.
+const isMcpMode = process.argv.indexOf('--mcp') !== -1;
+
+if (isMcpMode) {
+  const { startMcpServer } = await import('../src/mcp/server.js');
+  await startMcpServer(db);
+  // Do NOT call process.exit() here — startMcpServer registers a stdin 'close'
+  // listener that keeps the event loop alive until the MCP host disconnects.
+} else {
+
 // Ensure DB is closed on normal process exit (CLI subcommands exit naturally
 // after their action completes; signal handlers in serve command handle SIGINT/SIGTERM).
 process.on('exit', () => { try { db.close(); } catch (_) {} });
@@ -73,9 +86,10 @@ program
   .description('Visual timeline of Claude Code sessions')
   .version(pkg.version);
 
-// Register --debug-import as a program-level option so Commander does not
-// error when it appears in argv (actual handling is done above, before parseAsync).
+// Register --debug-import and --mcp as program-level options so Commander does
+// not error when they appear in argv (actual handling is done above, before parseAsync).
 program.option('--debug-import [on_off]', 'Enable/disable import debug logging');
+program.option('--mcp', 'Start stdio MCP server for programmatic data access');
 
 // Register CLI subcommands.
 program.addCommand(summaryCommand(db));
@@ -158,3 +172,5 @@ serve.action(async () => {
 program.addCommand(serve, { isDefault: true });
 
 await program.parseAsync(process.argv);
+
+} // end else (!isMcpMode)
