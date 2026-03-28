@@ -140,10 +140,11 @@ Plans:
   2. `npx cctimereporter sessions --date 2026-03-25` prints a JSON session list to stdout and exits cleanly
   3. `npx cctimereporter import --days 7` runs import without starting a web server, prints progress to stderr, exits with code 0 on success and non-zero on failure
   4. `npx cctimereporter` with no subcommand starts the web server and opens the browser — identical behavior to v0.7.0
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 30-01: Mode dispatch, commander integration, and CLI subcommand implementations
+- [ ] 30-01-PLAN.md — Format utility and command handler modules (summary, sessions, import)
+- [ ] 30-02-PLAN.md — Commander integration in bin/cli.js and package.json updates
 
 #### Phase 31: MCP Server
 
@@ -198,5 +199,5 @@ Plans:
 | 27. Messages Modal from DB | v0.7.0 | 1/1 | Complete | 2026-03-24 |
 | 28. Service Layer | v0.8.0 | 1/1 | Complete | 2026-03-26 |
 | 29. Multi-Instance Coordination | v0.8.0 | 2/2 | Complete | 2026-03-27 |
-| 30. CLI Subcommands | v0.8.0 | 0/1 | Not started | - |
+| 30. CLI Subcommands | v0.8.0 | 0/2 | Not started | - |
 | 31. MCP Server | v0.8.0 | 0/3 | Not started | - |
