@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 31 of 31 (MCP Server — FINAL PHASE)
-Plan: 1 of 2 in current phase
-Status: In progress — Plan 01 complete, Plan 02 (action tools + import trigger) pending
-Last activity: 2026-03-28 — Completed 31-01-PLAN.md (MCP server factory + 4 query tools)
+Plan: 2 of 2 in current phase
+Status: PHASE COMPLETE — all plans done, v0.8.0 feature work complete
+Last activity: 2026-03-28 — Completed 31-02-PLAN.md (4 MCP action tools, exit cleanup)
 
-Progress: [█████████████████████████████] 99% (plan-level: 33 of ~34 plans)
-Overall:  Phases 1-30 complete, Phase 31 Plan 01 complete
+Progress: [██████████████████████████████] 100% (plan-level: 34 of ~34 plans)
+Overall:  Phases 1-31 complete — ready for v0.8.0 release
 
 ## Performance Metrics
 
@@ -59,6 +59,9 @@ Recent decisions affecting current work:
 - [Phase 31-01]: isMcpMode else-branch wraps entire Commander section — MCP mode skips Commander setup entirely
 - [Phase 31-01]: registerTool inputSchema is ZodRawShape (plain object of zod schemas) NOT z.object()
 - [Phase 31-01]: registerActionTools wrapped in try/catch dynamic import in server.js — Plan 01 works standalone before Plan 02 creates action.js
+- [Phase 31-02]: Direct static import of action.js in server.js — Plan 02 completes scaffold, conditional fallback no longer needed
+- [Phase 31-02]: stop_server sends SIGTERM then waits 300ms before releasing lock — allows graceful shutdown without confirming process is dead
+- [Phase 31-02]: cleanupMcpServer uses _fastifyInstance.server.close() synchronously — process.on('exit') handlers cannot be async
 
 ### Pending Todos
 
@@ -72,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 31-01-PLAN.md — MCP server factory + 4 query tools; Phase 31 Plan 01 complete
+Stopped at: Completed 31-02-PLAN.md — 4 MCP action tools, exit cleanup; Phase 31 COMPLETE
 Resume file: None
