@@ -124,10 +124,11 @@ Plans:
   2. Starting a second web server instance returns the URL of the already-running server instead of failing or binding a second port
   3. If the process that owned the server or import lock is no longer alive (dead PID), the next process automatically reclaims ownership without manual intervention
   4. Multiple MCP server instances can query the database simultaneously without errors or lock timeouts
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 29-01: DB-based server ownership and import lock with stale detection
+- [ ] 29-01-PLAN.md — Schema migration, coordination service, and import lock integration
+- [ ] 29-02-PLAN.md — Server ownership claim and conflict detection in CLI
 
 #### Phase 30: CLI Subcommands
 
@@ -196,6 +197,6 @@ Plans:
 | 26. Store Message Content | v0.7.0 | 1/1 | Complete | 2026-03-23 |
 | 27. Messages Modal from DB | v0.7.0 | 1/1 | Complete | 2026-03-24 |
 | 28. Service Layer | v0.8.0 | 1/1 | Complete | 2026-03-26 |
-| 29. Multi-Instance Coordination | v0.8.0 | 0/1 | Not started | - |
+| 29. Multi-Instance Coordination | v0.8.0 | 0/2 | Not started | - |
 | 30. CLI Subcommands | v0.8.0 | 0/1 | Not started | - |
 | 31. MCP Server | v0.8.0 | 0/3 | Not started | - |
