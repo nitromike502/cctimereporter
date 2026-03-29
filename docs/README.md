@@ -9,7 +9,7 @@ documentation following the [Diataxis framework](https://diataxis.fr/).
 
 | Document | Description |
 |----------|-------------|
-| *Coming soon* | Quick-start tutorial, setup guide |
+| [Quick-start tutorial](getting-started/QUICK-START.md) | First-time setup, import, and UI walkthrough (5-10 min) |
 
 Directory: [`getting-started/`](getting-started/)
 
@@ -37,19 +37,30 @@ Directory: [`guides/developer/`](guides/developer/)
 
 *Information-oriented documentation for lookup.*
 
+| Document | Description |
+|----------|-------------|
+| [CLI Commands](reference/CLI-COMMANDS.md) | All CLI subcommands, options, output schemas, and exit codes |
+| [MCP Tools](reference/MCP-TOOLS.md) | All 8 MCP tools: input parameters, return formats, and usage examples |
+
 ### API reference
 
 | Document | Description |
 |----------|-------------|
-| *Coming soon* | API endpoint reference |
+| [API endpoints](reference/api/ENDPOINTS.md) | Complete REST API reference with request/response schemas |
 
 Directory: [`reference/api/`](reference/api/)
+
+### Configuration
+
+| Document | Description |
+|----------|-------------|
+| [Configuration](reference/CONFIGURATION.md) | Config file, CLI flags, database, server, and import settings |
 
 ### Technical specifications
 
 | Document | Description |
 |----------|-------------|
-| *Coming soon* | Data models, database schema |
+| [Database Schema](technical/DATABASE-SCHEMA.md) | All tables, columns, constraints, indexes, and migration history |
 
 Directory: [`technical/`](technical/)
 
@@ -59,7 +70,7 @@ Directory: [`technical/`](technical/)
 
 | Document | Description |
 |----------|-------------|
-| *Coming soon* | System overview, design decisions |
+| [Architecture Overview](architecture/OVERVIEW.md) | System purpose, components, data flow, import pipeline, ticket scoring, and design principles |
 
 Directory: [`architecture/`](architecture/)
 
