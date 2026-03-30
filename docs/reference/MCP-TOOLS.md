@@ -1,7 +1,7 @@
 # MCP tools reference
 
-*Last updated: 2026-03-27*
-*Version: 0.7.0*
+*Last updated: 2026-03-29*
+*Version: 0.8.0*
 
 ## Overview
 

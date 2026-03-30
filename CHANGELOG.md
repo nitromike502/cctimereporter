@@ -13,6 +13,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **CLI subcommands (Phase 30):** Commander-based dispatch in `bin/cli.js` with three subcommands: `summary` (day summary JSON), `sessions` (session list JSON), and `import` (trigger import). All output JSON to stdout for scripting. `--pretty` flag for human-readable output. `--date`, `--idle`, `--days`, and `--all` options. CLI commands start in ~70ms by deferring Fastify imports.
 - **MCP server (Phase 31):** stdio MCP server via `--mcp` flag for programmatic data access from AI assistants. 8 tools: `get_day_summary`, `get_sessions`, `get_session_messages`, `get_dates` (query tools), plus `trigger_import`, `start_server`, `stop_server`, `server_status` (action tools). Uses `@modelcontextprotocol/sdk` with Zod schema validation.
 
+### Fixed
+
+- **CLI date validation:** The `summary` and `sessions` subcommands now validate the `--date` argument against `YYYY-MM-DD` format. Invalid dates return `{ "error": "Invalid date format. Use YYYY-MM-DD." }` on stdout and exit code 1.
+- **CLI default date uses local time:** The `summary` and `sessions` subcommands now default to the local calendar date instead of UTC, preventing off-by-one errors for users in negative UTC offsets.
+- **SQLite experimental warning suppressed:** `process.removeAllListeners('warning')` runs before any imports in `bin/cli.js`, preventing the `node:sqlite` experimental feature warning from appearing on stderr.
+- **Import progress phase names:** CLI import progress now correctly matches the phase names `'discovering'` and `'importing'` emitted by the import pipeline (previously mismatched as `'discovery'` and `'import'`).
+
 ### Changed
 
 - **Schema v9:** Adds `process_locks` table for multi-instance coordination. Auto-migrates from any previous schema version.

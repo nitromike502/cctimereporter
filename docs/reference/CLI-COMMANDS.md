@@ -1,7 +1,7 @@
 # CLI commands reference
 
-*Last updated: 2026-03-27*
-*Version: 0.7.0*
+*Last updated: 2026-03-29*
+*Version: 0.8.0*
 
 ## Overview
 
@@ -71,9 +71,22 @@ cctimereporter summary [options]
 
 | Option | Argument | Default | Description |
 |--------|----------|---------|-------------|
-| `--date` | `YYYY-MM-DD` | Today | Date to summarize |
+| `--date` | `YYYY-MM-DD` | Today (local time) | Date to summarize |
 | `--idle` | Minutes (integer) | `10` | Idle gap threshold in minutes |
 | `--pretty` | *(none)* | Off | Pretty-print JSON with 2-space indentation |
+
+When `--date` is omitted, the default is the current local calendar date (not UTC).
+
+#### Date validation
+
+If `--date` is provided but doesn't match the `YYYY-MM-DD` format, the command
+outputs an error JSON object to stdout and exits with code 1:
+
+```json
+{
+  "error": "Invalid date format. Use YYYY-MM-DD."
+}
+```
 
 #### Output schema
 
@@ -203,9 +216,22 @@ cctimereporter sessions [options]
 
 | Option | Argument | Default | Description |
 |--------|----------|---------|-------------|
-| `--date` | `YYYY-MM-DD` | Today | Date to list sessions for |
+| `--date` | `YYYY-MM-DD` | Today (local time) | Date to list sessions for |
 | `--idle` | Minutes (integer) | `10` | Idle gap threshold in minutes |
 | `--pretty` | *(none)* | Off | Pretty-print JSON with 2-space indentation |
+
+When `--date` is omitted, the default is the current local calendar date (not UTC).
+
+#### Date validation
+
+If `--date` is provided but doesn't match the `YYYY-MM-DD` format, the command
+outputs an error JSON object to stdout and exits with code 1:
+
+```json
+{
+  "error": "Invalid date format. Use YYYY-MM-DD."
+}
+```
 
 #### Output schema
 
@@ -334,7 +360,7 @@ echo "$result" | jq '.filesProcessed'
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | General error (invalid arguments, runtime failure, Node.js version too low) |
+| `1` | General error (invalid date format, runtime failure, Node.js version too low) |
 | `2` | Import conflict (another import is already running) |
 
 The `serve` command exits with code 0 on SIGINT/SIGTERM or when another instance is already running.

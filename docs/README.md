@@ -29,7 +29,11 @@ Directory: [`guides/user/`](guides/user/)
 
 | Document | Description |
 |----------|-------------|
-| [Testing v0.8.0 Programmatic Access](guides/developer/TESTING-V080-PROGRAMMATIC-ACCESS.md) | How to test CLI subcommands, MCP server, multi-instance coordination, and web UI regression |
+| [Testing v0.8.0 Programmatic Access](guides/developer/TESTING-V080-PROGRAMMATIC-ACCESS.md) | Overview and index for all v0.8.0 test guides |
+| [Test: CLI Subcommands](guides/developer/TEST-CLI-SUBCOMMANDS.md) | Test cases for summary, sessions, and import CLI commands |
+| [Test: MCP Server](guides/developer/TEST-MCP-SERVER.md) | Test cases for MCP query and action tools |
+| [Test: Multi-Instance Coordination](guides/developer/TEST-MULTI-INSTANCE.md) | Test cases for process locks, concurrent imports, and server detection |
+| [Test: Service Regression](guides/developer/TEST-SERVICE-REGRESSION.md) | Regression test cases for web UI and API backward compatibility |
 
 Directory: [`guides/developer/`](guides/developer/)
 
