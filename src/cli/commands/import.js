@@ -33,12 +33,12 @@ export function importCommand(db) {
       let discoveryWritten = false;
 
       const onProgress = ({ phase, processed, total }) => {
-        if (phase === 'discovery') {
+        if (phase === 'discovering') {
           if (!discoveryWritten) {
             process.stderr.write('Discovering files...\n');
             discoveryWritten = true;
           }
-        } else if (phase === 'import') {
+        } else if (phase === 'importing') {
           process.stderr.write(`Importing: ${processed}/${total}...${sep}`);
           // On final call in TTY mode, write newline to clear the \r line
           if (process.stderr.isTTY && processed === total) {
