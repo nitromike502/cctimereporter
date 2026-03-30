@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// Suppress Node.js experimental warnings (e.g. node:sqlite) on stderr.
+// Must run before any imports that trigger warnings.
+process.removeAllListeners('warning');
+
 // Version check MUST run before any node:sqlite imports.
 // ESM static imports are hoisted, so we do the version check inline here
 // using only process.versions.node (no import needed), then use dynamic
