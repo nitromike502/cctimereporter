@@ -27,11 +27,12 @@ const distPath = join(__dirname, '../../dist');
  */
 export function createServer(db, options = {}) {
   const { migrated = false } = options;
+  const serverState = { migrated };
   const app = Fastify({ logger: false });
 
-  app.register(timelineRoute, { db, migrated });
+  app.register(timelineRoute, { db, serverState });
   app.register(projectsRoute, { db });
-  app.register(importRoute, { db });
+  app.register(importRoute, { db, serverState });
   app.register(messagesRoute, { db });
   app.register(sessionsRoute, { db });
 

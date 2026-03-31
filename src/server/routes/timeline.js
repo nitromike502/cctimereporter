@@ -8,6 +8,7 @@
  */
 
 import { createTimelineService, DEFAULT_IDLE_THRESHOLD_MIN } from '../../services/timeline.js';
+import { SCHEMA_VERSION } from '../../db/schema.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -18,10 +19,10 @@ function getTodayString() {
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
- * @param {{ db: import('node:sqlite').DatabaseSync, migrated?: boolean }} opts
+ * @param {{ db: import('node:sqlite').DatabaseSync, serverState: { migrated: boolean } }} opts
  */
 export async function timelineRoute(fastify, opts) {
-  const { db, migrated = false } = opts;
+  const { db, serverState } = opts;
 
   const svc = createTimelineService(db);
 
@@ -40,7 +41,8 @@ export async function timelineRoute(fastify, opts) {
 
     return {
       ...result,
-      schemaMigrated: migrated,
+      schemaMigrated: serverState.migrated,
+      schemaVersion: SCHEMA_VERSION,
     };
   });
 }

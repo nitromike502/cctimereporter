@@ -12,10 +12,10 @@ import { runImport, ImportConflictError } from '../../services/import.js';
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
- * @param {{ db: import('node:sqlite').DatabaseSync }} opts
+ * @param {{ db: import('node:sqlite').DatabaseSync, serverState: { migrated: boolean } }} opts
  */
 export async function importRoute(fastify, opts) {
-  const { db } = opts;
+  const { db, serverState } = opts;
 
   fastify.post('/api/import', async (request, reply) => {
     const parsed = parseInt(request.body?.maxAgeDays, 10);
@@ -23,6 +23,7 @@ export async function importRoute(fastify, opts) {
 
     try {
       const result = await runImport(db, { maxAgeDays });
+      serverState.migrated = false;
       return { ok: true, ...result };
     } catch (err) {
       if (err instanceof ImportConflictError) {
@@ -65,6 +66,7 @@ export async function importRoute(fastify, opts) {
         },
       });
 
+      serverState.migrated = false;
       sendEvent('complete', result);
     } catch (err) {
       if (err instanceof ImportConflictError) {
