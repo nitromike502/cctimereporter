@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: —
 Plan: —
 Status: Milestone v0.8.0 complete, ready for next milestone
-Last activity: 2026-03-30 — v0.8.0 Programmatic Data Access shipped
+Last activity: 2026-03-30 — Quick fix 002: schema migration banner stuck
 
 Progress: Milestone complete
 Overall:  Phases 1-31 complete (v1.0 through v0.8.0 shipped)
@@ -41,5 +41,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-30
-Stopped at: v0.8.0 milestone complete
+Stopped at: Completed quick-002 (fix schema migration banner stuck)
 Resume file: None
