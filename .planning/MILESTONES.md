@@ -1,5 +1,32 @@
 # Project Milestones: CC Time Reporter
 
+## v0.8.0 Programmatic Data Access (Shipped: 2026-03-30)
+
+**Delivered:** Session data exposed through a stdio MCP server (8 tools) and CLI subcommands (summary, sessions, import) with multi-instance coordination via DB-based locks — enabling Claude agents to pull time logs programmatically.
+
+**Phases completed:** 28-31 (7 plans total)
+
+**Key accomplishments:**
+
+- Extracted service layer (timeline, sessions, import) shared by web routes, CLI, and MCP
+- Built multi-instance coordination: process_locks table, server ownership, import lock with stale PID reclaim
+- Added Commander-based CLI dispatch with `summary`, `sessions`, `import` subcommands (~70ms startup)
+- Built stdio MCP server with 8 tools: 4 query (get_day_summary, get_sessions, get_session_messages, get_dates) + 4 action (trigger_import, start_server, stop_server, server_status)
+- Full documentation: 8 reference docs, test guide with 36 test cases across 4 files
+
+**Stats:**
+
+- 74 files changed, 10,239 insertions
+- 9,078 lines of JS/Vue/CSS (total codebase)
+- 4 phases, 7 plans
+- 4 days (2026-03-26 → 2026-03-30)
+
+**Git range:** `v0.7.0` → `v0.8.0`
+
+**What's next:** Bug fixes (migration banner, empty fork sessions), Agent Teams subagent reporting
+
+---
+
 ## v0.7.0 Fork Visualization + Stored Messages (Shipped: 2026-03-24)
 
 **Delivered:** Fork branches display as half-height sub-bars beneath parent sessions in the Gantt chart with clickable detail, and message text is stored in the DB enabling the messages modal to work without JSONL file access.

@@ -64,18 +64,16 @@ A user can run one command and immediately see a clear visual timeline of their 
 - ✓ Messages modal reads from DB instead of JSONL files — v0.7.0
 - ✓ Fork messages viewable in messages modal (filtered by fork_branch_id) — v0.7.0
 
+- ✓ Service layer extracted: timeline, sessions, import services shared by routes, CLI, MCP — v0.8.0
+- ✓ Multi-instance coordination: DB-based process locks, server ownership, import lock with stale PID reclaim — v0.8.0
+- ✓ CLI subcommands: `summary`, `sessions`, `import` via Commander with JSON stdout (~70ms startup) — v0.8.0
+- ✓ Stdio MCP server with 8 tools (4 query + 4 action) for programmatic data access — v0.8.0
+- ✓ `get_dates` tool for discovering available session dates — v0.8.0
+- ✓ `start_server`/`stop_server`/`server_status` MCP tools for web server lifecycle management — v0.8.0
+
 ### Active
 
-**Current Milestone: v0.8.0 Programmatic Data Access**
-
-**Goal:** Expose the session data pipeline through stdio MCP server and CLI commands so Claude agents and scripts can pull time/session data programmatically.
-
-**Target features:**
-- Stdio MCP server (`npx cctimereporter --mcp`): `get_day_summary`, `get_sessions`, `get_session_messages`, `trigger_import`, `start_server`, `stop_server`
-- CLI subcommands: `summary`, `sessions`, `import` (non-interactive, JSON to stdout)
-- Multi-instance coordination: multiple MCP servers share one DB, single web server ownership via DB row, import lock via DB row
-- MCP process can optionally host the web server (first to claim wins, others return existing URL)
-- Shared service layer — CLI, MCP, and API routes use the same query/import logic
+(No active milestone — planning next)
 
 ### Out of Scope
 
@@ -88,34 +86,38 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ## Context
 
-**Shipped v0.7.0** with ~7,880 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
-Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Reka UI, driver.js, Vite 7.
-Database: SQLite with WAL mode, schema v8, auto-migration (v1→v8).
+**Shipped v0.8.0** with ~9,078 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Commander 14, @modelcontextprotocol/sdk 1.28, Reka UI, driver.js, Vite 7.
+Database: SQLite with WAL mode, busy_timeout=5000ms, schema v9, auto-migration (v1→v9).
 Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
 
-**Known tech debt (v0.6.0):**
+**Known tech debt (v0.8.0):**
 - GET /api/projects route registered but unused by frontend
 - AppTooltip and AppBadge components exist in library but are not used in production UI
 - SessionDetailPanel has dead `.detail-placeholder` CSS class
-- Subagent working time not attributed to parent session
 - tool_use_count on sessions: computed at import, never queried or displayed
+- start_server TOCTOU race: claimLock return not checked after listen() — orphaned Fastify possible
+- maxAgeDays defaults inconsistent: web API 30 days, CLI/MCP 2 days
+
+**Known bugs (post-v0.8.0):**
+- Schema migration banner stuck after reimport (dismissal doesn't persist across refresh)
+- Empty fork sessions with ~4 messages but 0 minutes still visible (filter threshold too permissive)
+- Agent Teams subagent reporting needs review (complex orchestrator patterns)
 
 **Deferred features (candidates for future milestones):**
-- Fork visualization as sub-rows
 - Keyboard shortcuts for date navigation
 - Arbitrary date range picker
 - Ticket-based cross-day view
 - Static HTML export
 - UI for reviewing/correcting ticket assignments via bulk DB updates
 - Subagent working time attribution to parent session
-- **Store all text messages in DB** — capture full user/assistant message text (excluding tool_use/tool_result payloads) in the messages table. Enables richer search, per-segment ticket scoring, and message preview without re-reading JSONL files from disk. Size impact should be manageable if internal/tool messages are excluded.
-- **Claude Code /rename tracking** — investigate how repeated /rename commands affect sessions-index.json and whether re-import overwrites user_label set via the edit modal. Ensure rename history or latest-wins behavior is well-defined.
-- **Claude Desktop sessions** — import and display sessions from Claude Desktop (not just Claude Code). Investigate transcript format differences, project/conversation structure, and how to represent non-coding sessions in the timeline.
-- **Terminal-style messages modal** — restyle the messages modal to visually resemble a Claude Code terminal session (prompt/response styling, monospace, command-line aesthetic). A visual polish touch that reinforces the tool's identity.
-- **Daily time review and logging** — review working time for the whole day with a summary view suitable for time reporting. First step toward auto-logging time to Harvest and Jira. Ticket-grouped time totals, editable before submission, API integration with time tracking services.
-- **MCP server for programmatic access** — expose session data as MCP tools (HTTP transport) so Claude agents can pull time logs, session details, and trigger imports. Complement with CLI subcommands for scripting.
+- **Claude Desktop sessions** — import and display sessions from Claude Desktop (not just Claude Code)
+- **Terminal-style messages modal** — restyle to resemble a Claude Code terminal session
+- **Daily time review and logging** — ticket-grouped totals, editable before submission, API integration with Harvest/Jira
+- **Claude Code plugin** — `.mcp.json` auto-registration + skill for agent context
+- **Extended MCP tools** — get_date_range_summary, search_sessions
 
 ## Constraints
 
@@ -161,6 +163,13 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Zoom controls below chart (not toolbar) | User preference; keeps toolbar focused on navigation | ✓ Good |
 | Branch always stored (including defaults) | Detail panel always shows branch; label skips defaults | ✓ Good |
 | Adaptive tick density (4 tiers) | 2h/1h/30min/15min at thresholds 1/1.75/2.75/3.75x | ✓ Good |
+| Stdio MCP transport (not HTTP) | Standard for npx-launched MCP servers, simpler than HTTP | ✓ Good |
+| Service layer extraction before CLI/MCP | Isolated refactor ensures no regression before adding consumers | ✓ Good |
+| Factory pattern for DB-bound services | createXxxService(db) called once, statements prepared at construction | ✓ Good |
+| DB-based process locks (not file locks) | Atomic, ACID, already have SQLite | ✓ Good |
+| Commander.js for CLI dispatch | Positional subcommands, automatic --help, serve as default | ✓ Good |
+| PID liveness via process.kill(pid, 0) | Cross-platform, one-line, no /proc parsing | ✓ Good |
+| Import raw, derive at query time | Kept from v0.7.0 — minimizes import-time transformations | ✓ Good |
 
 ---
-*Last updated: 2026-03-25 after v0.8.0 Programmatic Data Access milestone started*
+*Last updated: 2026-03-30 after v0.8.0 Programmatic Data Access milestone complete*
