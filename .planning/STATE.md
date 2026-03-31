@@ -38,6 +38,12 @@ None.
 
 None.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 002 | Fix schema migration banner stuck after reimport | 2026-03-30 | 3454d51 | [002-fix-schema-migration-banner-stuck](./quick/002-fix-schema-migration-banner-stuck/) |
+
 ## Session Continuity
 
 Last session: 2026-03-30
