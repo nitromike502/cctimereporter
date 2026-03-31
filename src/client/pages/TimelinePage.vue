@@ -40,7 +40,7 @@
       <AppButton variant="primary" size="sm" @click="triggerImport({ full: true })">
         Re-import Now
       </AppButton>
-      <AppButton variant="ghost" size="sm" @click="migrationDismissed = true">
+      <AppButton variant="ghost" size="sm" @click="dismissMigrationBanner">
         Dismiss
       </AppButton>
     </div>
@@ -165,7 +165,9 @@ const importRunning = ref(false)
 const importProgress = ref({ phase: null, processed: 0, total: 0, skipped: 0, discovered: 0 })
 const importEventSource = ref(null)
 const schemaMigrated = ref(false)
+const MIGRATION_DISMISSED_KEY = 'cctimereporter:migrationDismissed'
 const migrationDismissed = ref(false)
+const schemaVersion = ref(null)
 // Set of hidden projectIds. Persists across date changes. All visible by default.
 const hiddenProjects = ref(new Set())
 // Currently selected session (click-to-select from GanttBar)
@@ -292,6 +294,14 @@ async function fetchTimeline() {
     const data = await res.json()
     timelineData.value = data
     schemaMigrated.value = data.schemaMigrated || false
+    schemaVersion.value = data.schemaVersion ?? null
+    // Check if user already dismissed the banner for this exact schema version
+    if (schemaMigrated.value && schemaVersion.value != null) {
+      const dismissed = localStorage.getItem(MIGRATION_DISMISSED_KEY)
+      if (dismissed === String(schemaVersion.value)) {
+        migrationDismissed.value = true
+      }
+    }
     // Re-sync selected session with fresh data (e.g. after threshold change)
     if (selectedSession.value) {
       const id = selectedSession.value.sessionId
@@ -452,6 +462,13 @@ const legendItems = computed(() =>
 
 // --- Import ---
 
+function dismissMigrationBanner() {
+  migrationDismissed.value = true
+  if (schemaVersion.value != null) {
+    localStorage.setItem(MIGRATION_DISMISSED_KEY, String(schemaVersion.value))
+  }
+}
+
 function triggerImport({ full = false } = {}) {
   if (importRunning.value) return
   importRunning.value = true
@@ -470,6 +487,10 @@ function triggerImport({ full = false } = {}) {
     importEventSource.value = null
     importRunning.value = false
     schemaMigrated.value = false
+    // Persist dismissal so banner stays gone after page refresh
+    if (schemaVersion.value != null) {
+      localStorage.setItem(MIGRATION_DISMISSED_KEY, String(schemaVersion.value))
+    }
     fetchTimeline()
   })
 
