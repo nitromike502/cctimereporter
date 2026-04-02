@@ -4,6 +4,13 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.1] - 2026-04-01
+
+### Fixed
+
+- **Schema migration banner stuck after reimport:** The "reimport needed" banner now properly clears after a successful import. Server-side `migrated` flag is reset on import completion (was stuck as a closure boolean). Frontend dismissal persists in localStorage keyed to schema version, surviving page refreshes.
+- **Schema version exposed in API:** `/api/timeline` response now includes `schemaVersion` for frontend cache-keying.
+
 ## [0.8.0] - 2026-03-27
 
 ### Added
