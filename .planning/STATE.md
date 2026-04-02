@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: —
 Plan: —
 Status: Milestone v0.8.0 complete, ready for next milestone
-Last activity: 2026-03-30 — Quick fix 002: schema migration banner stuck
+Last activity: 2026-03-30 — Quick fix 003: fix fork display bugs
 
 Progress: Milestone complete
 Overall:  Phases 1-31 complete (v1.0 through v0.8.0 shipped)
@@ -43,6 +43,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 002 | Fix schema migration banner stuck after reimport | 2026-03-30 | 3454d51 | [002-fix-schema-migration-banner-stuck](./quick/002-fix-schema-migration-banner-stuck/) |
+| 003 | Fix fork display bugs (empty forks + overnight bleed) | 2026-03-30 | f6ddb8d | [003-fix-fork-display-bugs](./quick/003-fix-fork-display-bugs/) |
 
 ## Session Continuity
 
