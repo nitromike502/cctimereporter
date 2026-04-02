@@ -36,25 +36,34 @@ export const DEFAULT_IDLE_THRESHOLD_MIN = 10;
 function computeForkSegments(rows, dayStartUTC, dayEndUTC, sessionId, forkTimestampsByBranch, thresholdMs) {
   return rows
     .filter(row => row.end_time >= dayStartUTC && row.start_time < dayEndUTC && row.message_count >= 2)
-    .map(row => {
-      const clampedStart = row.start_time < dayStartUTC ? dayStartUTC : row.start_time;
-      const clampedEnd = row.end_time > dayEndUTC ? dayEndUTC : row.end_time;
-
+    .flatMap(row => {
       // Compute working time from individual fork message timestamps
       const key = sessionId + ':' + row.fork_branch_id;
       const allTs = forkTimestampsByBranch.get(key) ?? [];
       const dayTs = allTs.filter(t => t >= dayStartUTC && t < dayEndUTC);
+
+      // Skip forks with no messages on this day
+      if (dayTs.length === 0) return [];
+
       const workingTimeMs = computeWorkingTime(dayTs, thresholdMs);
+
+      // Filter out forks with zero working time (all gaps exceed idle threshold)
+      if (workingTimeMs === 0) return [];
+
+      // For overnight forks, use first/last in-day message instead of midnight
+      // (consistent with main session clamping at lines 211-214)
+      const clampedStart = row.start_time < dayStartUTC ? dayTs[0] : row.start_time;
+      const clampedEnd = row.end_time > dayEndUTC ? dayTs.at(-1) : row.end_time;
       const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
 
-      return {
+      return [{
         forkBranchId: row.fork_branch_id,
         startTime: clampedStart,
         endTime: clampedEnd,
         messageCount: row.message_count,
         workingTimeMs,
         elapsedTimeMs,
-      };
+      }];
     });
 }
 

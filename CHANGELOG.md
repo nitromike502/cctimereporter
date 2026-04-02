@@ -4,6 +4,13 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.2] - 2026-03-30
+
+### Fixed
+
+- **Empty fork sessions visible:** Fork sub-bars with messages but zero working time (all gaps exceeded idle threshold) are now filtered out of the timeline. Changed `computeForkSegments` from `.filter().map()` to `.flatMap()` with early-exit on `workingTimeMs === 0`.
+- **Fork sessions bleeding past midnight:** Overnight fork segments now clip to their last in-day message timestamp instead of stretching to day boundary (23:59:59). Consistent with how main sessions already handle overnight clamping.
+
 ## [0.8.1] - 2026-04-01
 
 ### Fixed
