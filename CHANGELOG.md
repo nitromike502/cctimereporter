@@ -4,6 +4,12 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.3] - 2026-04-03
+
+### Fixed
+
+- **MCP missing session name:** The `get_day_summary` MCP tool now includes `customTitle` (the session name from `/rename`) in session data. Previously only `userLabel` (UI-set name) was returned.
+
 ## [0.8.2] - 2026-03-30
 
 ### Fixed

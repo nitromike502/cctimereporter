@@ -352,6 +352,7 @@ export function createTimelineService(db) {
         branch:       session.branch,
         workingTimeMs: session.workingTimeMs,
         summary:      session.summary,
+        customTitle:  session.customTitle,
         startTime:    session.startTime,
         endTime:      session.endTime,
         userLabel:    session.userLabel,

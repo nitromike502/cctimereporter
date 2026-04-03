@@ -1,6 +1,6 @@
 {
   "name": "cctimereporter",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Visual timeline of Claude Code sessions",
   "type": "module",
   "bin": {
