@@ -37,14 +37,13 @@ export function createSessionsService(db) {
     ORDER BY timestamp ASC
   `);
 
-  // Fork branch query: includes messages with NULL content (shown with placeholder).
-  // Fork branches often have only tool-use messages with no stored text content;
-  // returning them with a placeholder gives the modal something to display.
+  // Fork branch query: only messages with stored text content.
+  // Context zones (session start + pre-fork) ensure the modal always has something to show.
   const forkBranchStmt = db.prepare(`
     SELECT uuid, type, content, timestamp, is_fork_branch, fork_branch_id
     FROM messages
     WHERE session_id = ?
-      AND type IN ('user', 'assistant')
+      AND content IS NOT NULL
       AND fork_branch_id = ?
     ORDER BY timestamp ASC
   `);
@@ -95,13 +94,11 @@ export function createSessionsService(db) {
     }
 
     // Map DB rows to response shape.
-    // For fork branch queries, content may be null (tool-use only messages);
-    // use a placeholder so the modal can display something meaningful.
     const isForkQuery = forkBranchId && forkBranchId !== 'all';
     const mapRow = (r) => ({
       uuid: r.uuid,
       role: r.type, // 'user' or 'assistant'
-      content: r.content ?? (isForkQuery ? '(no text content)' : null),
+      content: r.content,
       timestamp: r.timestamp,
       is_fork_branch: r.is_fork_branch === 1,
       fork_branch_id: r.fork_branch_id ?? null,
