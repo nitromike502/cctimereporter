@@ -21,6 +21,45 @@
         <div v-if="loading" class="modal-loading">Loading messages&hellip;</div>
         <div v-else-if="error" class="modal-error">{{ error }}</div>
         <div v-else-if="messages.length === 0" class="modal-empty">No messages found.</div>
+
+        <!-- Zone-aware fork context layout -->
+        <div v-else-if="hasForkContext" class="modal-messages">
+          <template v-for="(msg, i) in messages" :key="msg.uuid || i">
+            <!-- Skip divider between context-start and context-prefork -->
+            <div v-if="isZoneTransition(i, 'context-start', 'context-prefork') && skipped > 0"
+                 class="message-divider">
+              <span class="divider-text">{{ skipped }} earlier messages</span>
+            </div>
+
+            <!-- Fork point divider before first fork message -->
+            <div v-if="msg.zone === 'fork' && i > 0 && messages[i-1]?.zone !== 'fork'"
+                 class="message-divider message-divider--fork">
+              <span class="divider-text divider-text--fork">fork point</span>
+            </div>
+
+            <div
+              class="message-item"
+              :class="[`message-item--${msg.role}`, { 'message-item--context': msg.zone?.startsWith('context') }]"
+            >
+              <span class="message-role">
+                {{ msg.role === 'user' ? 'User' : 'Assistant' }}
+                <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+              </span>
+              <pre
+                :ref="setContentRef('zone-' + i)"
+                class="message-content"
+                :class="{ 'message-content--collapsed': !expandedMessages['zone-' + i] }"
+              >{{ truncateContent(formatContent(msg), expandedMessages['zone-' + i]) }}</pre>
+              <button
+                v-if="isOverflow('zone-' + i, formatContent(msg))"
+                class="message-expand"
+                @click="expandedMessages['zone-' + i] = !expandedMessages['zone-' + i]"
+              >{{ expandedMessages['zone-' + i] ? 'Show less' : 'Show more' }}</button>
+            </div>
+          </template>
+        </div>
+
+        <!-- Standard head/tail layout (primary branch, all branches) -->
         <div v-else class="modal-messages">
           <div
             v-for="(msg, i) in firstMessages"
@@ -98,6 +137,7 @@ defineEmits(['update:open'])
 const messages = ref([])
 const totalCount = ref(0)
 const skipped = ref(0)
+const hasForkContext = ref(false)
 const loading = ref(false)
 const error = ref(null)
 
@@ -167,6 +207,17 @@ function truncateContent(text, expanded) {
   return text.slice(0, MAX_COLLAPSED_CHARS) + '...'
 }
 
+/**
+ * Check if message at index i represents a zone transition from prevZone to nextZone.
+ * Used to insert dividers between context zones in fork modal.
+ */
+function isZoneTransition(i, fromZone, toZone) {
+  if (i === 0) return false
+  const curr = messages.value[i]
+  const prev = messages.value[i - 1]
+  return prev?.zone === fromZone && curr?.zone === toZone
+}
+
 watch(
   () => [props.open, props.sessionId, props.forkBranchId],
   async ([isOpen, id]) => {
@@ -176,6 +227,7 @@ watch(
     messages.value = []
     totalCount.value = 0
     skipped.value = 0
+    hasForkContext.value = false
     Object.keys(expandedMessages).forEach(k => delete expandedMessages[k])
     Object.keys(overflowMessages).forEach(k => delete overflowMessages[k])
     contentRefs.value = {}
@@ -190,6 +242,7 @@ watch(
       messages.value = data.messages
       totalCount.value = data.totalCount ?? data.messages.length
       skipped.value = data.skipped ?? 0
+      hasForkContext.value = data.hasForkContext ?? false
       detectOverflows()
     } catch (e) {
       error.value = e.message
@@ -390,5 +443,30 @@ watch(
   border-bottom: 1px solid var(--color-border);
   width: 100%;
   text-align: center;
+}
+
+.message-item--context {
+  opacity: 0.55;
+  border-color: var(--color-border);
+}
+
+.message-item--context .message-content {
+  color: var(--color-muted);
+}
+
+.message-item--context .message-role {
+  color: var(--color-muted);
+}
+
+.message-divider--fork {
+  margin: var(--spacing-sm) 0;
+}
+
+.divider-text--fork {
+  font-weight: 600;
+  color: var(--color-warning, var(--color-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-xs);
 }
 </style>
