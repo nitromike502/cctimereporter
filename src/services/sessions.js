@@ -49,9 +49,9 @@ export function createSessionsService(db) {
     ORDER BY timestamp ASC
   `);
 
-  // Find the parent_uuid of the first message in a fork branch (the fork point).
-  const forkPointStmt = db.prepare(`
-    SELECT parent_uuid FROM messages
+  // Find the timestamp of the first message in a fork branch (used to locate the fork point).
+  const forkFirstTimestampStmt = db.prepare(`
+    SELECT timestamp FROM messages
     WHERE session_id = ? AND fork_branch_id = ?
     ORDER BY timestamp ASC LIMIT 1
   `);
@@ -167,12 +167,15 @@ export function createSessionsService(db) {
   function buildForkContextResponse(sessionId, forkBranchId, forkRows, mapRow) {
     const forkMessages = forkRows.map(r => ({ ...mapRow(r), zone: 'fork' }));
 
-    // Find the fork point: parent_uuid of the first fork branch message
-    const forkPointRow = forkPointStmt.get(sessionId, forkBranchId);
-    const parentUuid = forkPointRow?.parent_uuid;
+    // Find the fork point by timestamp: get the first fork branch message's timestamp,
+    // then find the last primary branch message before that time.
+    // Using timestamps rather than parent_uuid because the fork point's parent is often
+    // a system message with no content, which doesn't appear in the primary branch results.
+    const forkFirstRow = forkFirstTimestampStmt.get(sessionId, forkBranchId);
+    const forkTimestamp = forkFirstRow?.timestamp;
 
-    // If no parent_uuid, can't build context — return fork messages only
-    if (!parentUuid) {
+    // If no timestamp, can't build context — return fork messages only
+    if (!forkTimestamp) {
       return {
         messages: forkMessages,
         totalCount: forkMessages.length,
@@ -185,10 +188,16 @@ export function createSessionsService(db) {
     const primaryRows = primaryBranchStmt.all(sessionId);
     const primaryMessages = primaryRows.map(mapRow);
 
-    // Find fork point index in primary branch
-    const forkPointIdx = primaryMessages.findIndex(m => m.uuid === parentUuid);
+    // Find fork point: last primary message at or before the fork timestamp
+    let forkPointIdx = -1;
+    for (let i = primaryMessages.length - 1; i >= 0; i--) {
+      if (primaryMessages[i].timestamp <= forkTimestamp) {
+        forkPointIdx = i;
+        break;
+      }
+    }
     if (forkPointIdx === -1) {
-      // Edge case: parent_uuid not found in primary branch — return fork only
+      // Fork happened before any primary branch content — return fork only
       return {
         messages: forkMessages,
         totalCount: forkMessages.length,
