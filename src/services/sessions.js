@@ -49,6 +49,13 @@ export function createSessionsService(db) {
     ORDER BY timestamp ASC
   `);
 
+  // Find the parent_uuid of the first message in a fork branch (the fork point).
+  const forkPointStmt = db.prepare(`
+    SELECT parent_uuid FROM messages
+    WHERE session_id = ? AND fork_branch_id = ?
+    ORDER BY timestamp ASC LIMIT 1
+  `);
+
   const allBranchesStmt = db.prepare(`
     SELECT uuid, type, content, timestamp, is_fork_branch, fork_branch_id
     FROM messages
@@ -91,15 +98,21 @@ export function createSessionsService(db) {
     // For fork branch queries, content may be null (tool-use only messages);
     // use a placeholder so the modal can display something meaningful.
     const isForkQuery = forkBranchId && forkBranchId !== 'all';
-    const allMessages = rows.map(r => ({
+    const mapRow = (r) => ({
       uuid: r.uuid,
       role: r.type, // 'user' or 'assistant'
       content: r.content ?? (isForkQuery ? '(no text content)' : null),
       timestamp: r.timestamp,
       is_fork_branch: r.is_fork_branch === 1,
       fork_branch_id: r.fork_branch_id ?? null,
-    }));
+    });
 
+    // For fork branch queries, build zone-annotated response with primary branch context
+    if (isForkQuery) {
+      return buildForkContextResponse(sessionId, forkBranchId, rows, mapRow);
+    }
+
+    const allMessages = rows.map(mapRow);
     const total = allMessages.length;
 
     // If 20 or fewer, return all as a single list (no split needed)
@@ -138,6 +151,85 @@ export function createSessionsService(db) {
     });
 
     return { ok: true };
+  }
+
+  /**
+   * Build a zone-annotated response for fork branch message queries.
+   * Returns session-start context, pre-fork context, and fork branch messages
+   * with zone labels so the UI can render them with appropriate styling.
+   *
+   * @param {string} sessionId
+   * @param {string} forkBranchId
+   * @param {object[]} forkRows - Raw DB rows for the fork branch
+   * @param {Function} mapRow - Row mapper function
+   * @returns {{ messages: object[], totalCount: number, skipped: number, hasForkContext: boolean }}
+   */
+  function buildForkContextResponse(sessionId, forkBranchId, forkRows, mapRow) {
+    const forkMessages = forkRows.map(r => ({ ...mapRow(r), zone: 'fork' }));
+
+    // Find the fork point: parent_uuid of the first fork branch message
+    const forkPointRow = forkPointStmt.get(sessionId, forkBranchId);
+    const parentUuid = forkPointRow?.parent_uuid;
+
+    // If no parent_uuid, can't build context — return fork messages only
+    if (!parentUuid) {
+      return {
+        messages: forkMessages,
+        totalCount: forkMessages.length,
+        skipped: 0,
+        hasForkContext: false,
+      };
+    }
+
+    // Get all primary branch messages with content
+    const primaryRows = primaryBranchStmt.all(sessionId);
+    const primaryMessages = primaryRows.map(mapRow);
+
+    // Find fork point index in primary branch
+    const forkPointIdx = primaryMessages.findIndex(m => m.uuid === parentUuid);
+    if (forkPointIdx === -1) {
+      // Edge case: parent_uuid not found in primary branch — return fork only
+      return {
+        messages: forkMessages,
+        totalCount: forkMessages.length,
+        skipped: 0,
+        hasForkContext: false,
+      };
+    }
+
+    // Build context zones
+    const SESSION_START_COUNT = 2;
+    const PRE_FORK_COUNT = 3;
+
+    // Session start: first 2 primary messages
+    const sessionStartEnd = Math.min(SESSION_START_COUNT, primaryMessages.length);
+    const sessionStartMsgs = primaryMessages.slice(0, sessionStartEnd)
+      .map(m => ({ ...m, zone: 'context-start' }));
+
+    // Pre-fork context: last 3 messages at or before the fork point
+    const preForkStart = Math.max(0, forkPointIdx - PRE_FORK_COUNT + 1);
+    const preForkEnd = forkPointIdx + 1;
+    // Only include pre-fork messages that don't overlap with session start
+    const preForkMsgs = primaryMessages.slice(preForkStart, preForkEnd)
+      .filter((_, i) => (preForkStart + i) >= sessionStartEnd)
+      .map(m => ({ ...m, zone: 'context-prefork' }));
+
+    // Calculate skipped count: primary messages between session start and pre-fork
+    const firstGapStart = sessionStartEnd;
+    const firstGapEnd = preForkMsgs.length > 0
+      ? preForkStart + (preForkEnd - preForkStart - preForkMsgs.length)  // adjusted for dedup
+      : preForkEnd;
+    // Simpler: count messages not included in either zone
+    const includedContextCount = sessionStartMsgs.length + preForkMsgs.length;
+    const totalContextAvailable = forkPointIdx + 1; // messages up to and including fork point
+    const skippedCount = Math.max(0, totalContextAvailable - includedContextCount);
+
+    return {
+      messages: [...sessionStartMsgs, ...preForkMsgs, ...forkMessages],
+      totalCount: forkMessages.length,
+      skipped: skippedCount,
+      hasForkContext: true,
+    };
   }
 
   return { getMessages, updateSession };
