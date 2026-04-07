@@ -73,7 +73,16 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ### Active
 
-(No active milestone — planning next)
+**Current Milestone: v1.1.0 Token Usage Tracking & Visualization**
+
+**Goal:** Store token usage data from JSONL transcripts and visualize consumption patterns with interactive charts.
+
+**Target features:**
+- Store all `usage` fields from assistant messages in the DB (schema v10 migration)
+- New `/tokens` page with line chart (cumulative + per-message toggle)
+- One line per session + aggregate "all sessions" line, x-axis is time of day
+- Per-session token totals in session detail panel and day summary
+- Token stats exposed in CLI `summary`/`sessions` commands and MCP tools
 
 ### Out of Scope
 
@@ -172,4 +181,4 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Import raw, derive at query time | Kept from v0.7.0 — minimizes import-time transformations | ✓ Good |
 
 ---
-*Last updated: 2026-03-30 after v0.8.0 Programmatic Data Access milestone complete*
+*Last updated: 2026-04-06 after v1.1.0 Token Usage milestone started*

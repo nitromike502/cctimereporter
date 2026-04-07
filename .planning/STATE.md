@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A user runs one command and immediately see a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v0.8.0 shipped — planning next milestone
+**Current focus:** v1.1.0 Token Usage Tracking & Visualization
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v0.8.0 complete, ready for next milestone
-Last activity: 2026-04-06 — Quick fix 004: fork message modal context zones
+Status: Defining requirements
+Last activity: 2026-04-06 — Milestone v1.1.0 started
 
 Progress: Milestone complete
 Overall:  Phases 1-31 complete (v1.0 through v0.8.0 shipped)
