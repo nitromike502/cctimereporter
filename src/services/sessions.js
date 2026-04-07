@@ -230,10 +230,24 @@ export function createSessionsService(db) {
     const totalContextAvailable = forkPointIdx + 1; // messages up to and including fork point
     const skippedCount = Math.max(0, totalContextAvailable - includedContextCount);
 
+    // Apply head/tail truncation to fork messages (same limits as primary branch)
+    const forkTotal = forkMessages.length;
+    let displayedForkMsgs;
+    let forkSkipped = 0;
+    if (forkTotal <= HEAD_COUNT + TAIL_COUNT) {
+      displayedForkMsgs = forkMessages;
+    } else {
+      const head = forkMessages.slice(0, HEAD_COUNT);
+      const tail = forkMessages.slice(-TAIL_COUNT);
+      forkSkipped = forkTotal - HEAD_COUNT - TAIL_COUNT;
+      displayedForkMsgs = [...head, ...tail];
+    }
+
     return {
-      messages: [...sessionStartMsgs, ...preForkMsgs, ...forkMessages],
-      totalCount: forkMessages.length,
+      messages: [...sessionStartMsgs, ...preForkMsgs, ...displayedForkMsgs],
+      totalCount: forkTotal,
       skipped: skippedCount,
+      forkSkipped,
       hasForkContext: true,
     };
   }

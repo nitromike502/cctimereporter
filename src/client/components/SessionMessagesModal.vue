@@ -37,6 +37,12 @@
               <span class="divider-text divider-text--fork">fork point</span>
             </div>
 
+            <!-- Skip divider within fork messages (head/tail truncation) -->
+            <div v-if="forkSkipped > 0 && msg.zone === 'fork' && isForkTailStart(i)"
+                 class="message-divider">
+              <span class="divider-text">{{ forkSkipped }} fork messages skipped</span>
+            </div>
+
             <div
               class="message-item"
               :class="[`message-item--${msg.role}`, { 'message-item--context': msg.zone?.startsWith('context') }]"
@@ -137,6 +143,7 @@ defineEmits(['update:open'])
 const messages = ref([])
 const totalCount = ref(0)
 const skipped = ref(0)
+const forkSkipped = ref(0)
 const hasForkContext = ref(false)
 const loading = ref(false)
 const error = ref(null)
@@ -218,6 +225,16 @@ function isZoneTransition(i, fromZone, toZone) {
   return prev?.zone === fromZone && curr?.zone === toZone
 }
 
+/**
+ * Detect where the fork tail starts (after head/tail truncation gap).
+ * The fork head is the first HEAD_COUNT fork messages; the tail starts at HEAD_COUNT + contextCount.
+ */
+function isForkTailStart(i) {
+  // Count context messages (before fork zone)
+  const contextCount = messages.value.filter(m => m.zone?.startsWith('context')).length
+  return i === contextCount + HEAD_COUNT
+}
+
 watch(
   () => [props.open, props.sessionId, props.forkBranchId],
   async ([isOpen, id]) => {
@@ -227,6 +244,7 @@ watch(
     messages.value = []
     totalCount.value = 0
     skipped.value = 0
+    forkSkipped.value = 0
     hasForkContext.value = false
     Object.keys(expandedMessages).forEach(k => delete expandedMessages[k])
     Object.keys(overflowMessages).forEach(k => delete overflowMessages[k])
@@ -242,6 +260,7 @@ watch(
       messages.value = data.messages
       totalCount.value = data.totalCount ?? data.messages.length
       skipped.value = data.skipped ?? 0
+      forkSkipped.value = data.forkSkipped ?? 0
       hasForkContext.value = data.hasForkContext ?? false
       detectOverflows()
     } catch (e) {
