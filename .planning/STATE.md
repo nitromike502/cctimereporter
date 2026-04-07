@@ -44,7 +44,7 @@ None.
 |---|-------------|------|--------|-----------|
 | 002 | Fix schema migration banner stuck after reimport | 2026-03-30 | 3454d51 | [002-fix-schema-migration-banner-stuck](./quick/002-fix-schema-migration-banner-stuck/) |
 | 003 | Fix fork display bugs (empty forks + overnight bleed) | 2026-03-30 | f6ddb8d | [003-fix-fork-display-bugs](./quick/003-fix-fork-display-bugs/) |
-| 004 | Fork message modal context zones | 2026-04-06 | 0a7c6d7 | [004-fork-message-modal-context-zones](./quick/004-fork-message-modal-context-zones/) |
+| 004 | Fork message modal context zones | 2026-04-06 | 993fc2c | [004-fork-message-modal-context-zones](./quick/004-fork-message-modal-context-zones/) |
 
 ## Session Continuity
 
