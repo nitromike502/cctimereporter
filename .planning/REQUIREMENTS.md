@@ -33,7 +33,6 @@ Requirements for token usage tracking and visualization. Each maps to roadmap ph
 - [ ] **CHART-04**: Aggregate "all sessions" combined line on the chart
 - [ ] **CHART-05**: Toggle between cumulative and per-message chart views
 - [ ] **CHART-06**: User can show/hide individual session lines
-- [ ] **CHART-07**: Compaction event markers displayed as vertical indicators on the chart
 
 ## Future Requirements
 
@@ -82,11 +81,10 @@ Deferred to later milestones. Tracked but not in current roadmap.
 | CHART-04 | Phase 35 | Pending |
 | CHART-05 | Phase 35 | Pending |
 | CHART-06 | Phase 35 | Pending |
-| CHART-07 | Phase 35 | Pending |
 
 **Coverage:**
-- v1.1.0 requirements: 17 total
-- Mapped to phases: 17
+- v1.1.0 requirements: 16 total
+- Mapped to phases: 16
 - Unmapped: 0
 
 ---
