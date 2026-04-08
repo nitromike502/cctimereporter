@@ -64,31 +64,31 @@ Deferred to later milestones. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| DATA-05 | TBD | Pending |
-| DISP-01 | TBD | Pending |
-| DISP-02 | TBD | Pending |
-| DISP-03 | TBD | Pending |
-| DISP-04 | TBD | Pending |
-| DISP-05 | TBD | Pending |
-| DISP-06 | TBD | Pending |
-| DISP-07 | TBD | Pending |
-| CHART-01 | TBD | Pending |
-| CHART-02 | TBD | Pending |
-| CHART-03 | TBD | Pending |
-| CHART-04 | TBD | Pending |
-| CHART-05 | TBD | Pending |
-| CHART-06 | TBD | Pending |
-| CHART-07 | TBD | Pending |
+| DATA-01 | Phase 32 | Pending |
+| DATA-02 | Phase 32 | Pending |
+| DATA-03 | Phase 32 | Pending |
+| DATA-04 | Phase 32 | Pending |
+| DATA-05 | Phase 32 | Pending |
+| DISP-01 | Phase 33 | Pending |
+| DISP-02 | Phase 33 | Pending |
+| DISP-03 | Phase 33 | Pending |
+| DISP-04 | Phase 34 | Pending |
+| DISP-05 | Phase 34 | Pending |
+| DISP-06 | Phase 34 | Pending |
+| DISP-07 | Phase 34 | Pending |
+| CHART-01 | Phase 35 | Pending |
+| CHART-02 | Phase 35 | Pending |
+| CHART-03 | Phase 35 | Pending |
+| CHART-04 | Phase 35 | Pending |
+| CHART-05 | Phase 35 | Pending |
+| CHART-06 | Phase 35 | Pending |
+| CHART-07 | Phase 35 | Pending |
 
 **Coverage:**
 - v1.1.0 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-07*
-*Last updated: 2026-04-07 after initial definition*
+*Last updated: 2026-04-06 — traceability filled in after roadmap creation*

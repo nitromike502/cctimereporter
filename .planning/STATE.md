@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 32 — Data Foundation
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-06 — Milestone v1.1.0 started
+Status: Ready to plan
+Last activity: 2026-04-06 — Roadmap created for v1.1.0
 
-Progress: Milestone complete
-Overall:  Phases 1-31 complete (v1.0 through v0.8.0 shipped)
+Progress: v1.1.0 in progress
+Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phases 32-35 planned.
 
 ## Performance Metrics
 
@@ -29,6 +29,14 @@ Overall:  Phases 1-31 complete (v1.0 through v0.8.0 shipped)
 ### Decisions
 
 All decisions logged in PROJECT.md Key Decisions table.
+
+**v1.1.0 Key Decisions:**
+- Token columns on messages table (not sessions) — import raw, derive at query time; avoids repeating the dead tool_use_count mistake
+- chart.js 4.5.1 + vue-chartjs 5.3.3 as devDependencies only — bundled by Vite, not runtime npm deps; avoids inflating CLI node_modules
+- Sidechain exclusion (is_sidechain=0) as default for all token aggregates — parent-only totals prevent 2-5x double-count for subagent users
+- Fork branch exclusion (is_fork_branch=0) for "actual spend" totals — abandoned branches had real API calls but should not count as user spend
+- Re-import via import_log deletion for last 30 days during v10 migration — automatic backfill without blocking startup or forcing --all on heavy users
+- Numeric message index as x-axis (not time-based) — avoids chartjs-adapter-date-fns dependency for initial implementation
 
 ### Pending Todos
 
@@ -49,5 +57,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-06
-Stopped at: Completed quick-004 (fork message modal context zones)
+Stopped at: Roadmap created for v1.1.0; Phase 32 ready to plan
 Resume file: None
