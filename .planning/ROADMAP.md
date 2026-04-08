@@ -47,7 +47,7 @@ Phases 28-31 delivered: service layer extraction, Commander CLI, MCP server (8 t
   3. Non-assistant messages (type='human', type='tool_result') have NULL in all token columns — no zeros written for messages that carry no usage data.
   4. The model name column contains a non-NULL string (e.g. "claude-opus-4-5") for assistant messages after re-import.
   5. Existing non-token data (session names, tickets, fork detection) is unchanged after the migration and re-import.
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 32-01: Schema v10 migration (7 new columns on messages) and importer extraction (three-place update: schema.js, db-writer.js, importer/index.js)
