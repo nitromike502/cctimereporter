@@ -1,409 +1,430 @@
-# Architecture Patterns: MCP Server + CLI Subcommands
+# Architecture Patterns: Token Usage Integration
 
-**Domain:** Adding MCP server and CLI subcommands to existing Node.js/Fastify/SQLite app
-**Researched:** 2026-03-25
-**Confidence:** HIGH (codebase read directly, MCP SDK patterns verified via official docs)
-
----
-
-## Existing Architecture (as-is)
-
-```
-bin/cli.js
-  ├── version check (inline, before any imports)
-  ├── --debug-import flag handler → exit
-  ├── openDatabase()
-  ├── createServer(db, { migrated })      ← Fastify factory
-  ├── fastify.listen(port)
-  ├── spawn browser
-  └── SIGINT/SIGTERM handlers
-
-src/server/index.js  (createServer)
-  ├── registers timelineRoute(db)
-  ├── registers projectsRoute(db)
-  ├── registers importRoute(db)
-  ├── registers messagesRoute(db)
-  ├── registers sessionsRoute(db)
-  └── registers @fastify/static (dist/) + catch-all
-
-src/importer/index.js  (importAll)
-  └── standalone async function, db + options → stats object
-      supports onProgress callback (currently used by SSE route)
-```
-
-All query logic currently lives inline inside Fastify route functions. No shared service layer exists yet — routes prepare statements directly against `db` and compute results in-place.
+**Domain:** Adding token usage tracking to an existing Node.js/Vue 3/SQLite CLI app
+**Researched:** 2026-04-06
+**Based on:** Direct codebase inspection (HIGH confidence — read actual source files)
 
 ---
 
-## Target Architecture (to-be)
+## Existing Architecture Summary
 
-Three execution modes share one codebase, one database, and one set of query logic:
+The app follows a clean layered pattern:
 
 ```
-bin/cli.js
-  ├── version check (unchanged)
-  ├── parseArgs() — dispatch to mode
-  │
-  ├── MODE: web server (default, no subcommand)
-  │     openDatabase() → createServer(db) → listen → open browser
-  │
-  ├── MODE: cli subcommand (summary | sessions | import)
-  │     openDatabase() → runCommand(subcommand, db, args) → print JSON → exit
-  │
-  └── MODE: mcp server (--mcp or mcp subcommand)
-        openDatabase() → createServer(db, { mcp: true }) → listen
-        (no browser, prints mcp endpoint URL)
+JSONL files → importer/ → SQLite DB → services/ → routes/ + CLI + MCP → Vue frontend
 ```
+
+Each layer has a single responsibility and a clear handoff point. Services are the primary integration seam: routes, CLI commands, and MCP tools all call the same service functions, so adding capabilities to a service propagates everywhere.
+
+### Key Structural Facts (verified by source inspection)
+
+**Parser** (`src/importer/parser.js`): Already attaches `rawMessage: msg` to each parsed message. The usage object lives at `msg.rawMessage.message.usage` for assistant messages. It is present in memory during import but is never extracted or stored.
+
+**DB writer** (`src/importer/db-writer.js`): `insertMessages()` currently inserts 12 columns. Adding token columns means updating the INSERT statement and the `ON CONFLICT DO UPDATE SET` clause — a mechanical change following the established pattern.
+
+**Schema migration** (`src/db/index.js`): Auto-migrates v1→v9 via a chained if-else ladder. Each new version adds one `else if (existingVersion === N)` branch and one `MIGRATION_VN_TO_VN+1` constant in `schema.js`.
+
+**Service pattern** (`src/services/timeline.js`, `src/services/sessions.js`): Factory functions (`createXService(db)`) return closures with prepared statements created once at factory time and reused across calls. A new service file follows this identical pattern.
+
+**Route pattern** (`src/server/routes/timeline.js`): Thin HTTP wrappers — validate input, call service, return result. No business logic in routes.
+
+**MCP tools** (`src/mcp/tools/query.js`): Call the same services as routes. A new MCP tool for token data follows `registerQueryTools()` pattern exactly, calling `createTokensService(db)` the same way existing tools call `createTimelineService(db)`.
+
+**Vue router** (`src/client/router/index.js`): Three routes currently. Adding `/tokens` requires one import and one route object.
 
 ---
 
-## Component Breakdown
+## Recommended Architecture for Token Integration
 
-### 1. bin/cli.js — Mode Dispatch
+### 1. Schema Migration: v9 → v10
 
-**Status:** Modified (significantly)
+**Decision: Add four INTEGER columns to the `messages` table. No separate table.**
 
-The current flat structure expands into a dispatcher that reads `process.argv` before any server/DB work. The version check stays at the top (before imports). After that, a mode selector runs:
+Token data is 1:1 with assistant messages. A separate table would require a JOIN for every token query and adds schema complexity with no benefit at this scale. Storing on `messages` keeps the "import raw data" philosophy — raw values land in the same row as the message they describe.
 
+Session-level token aggregates (totals per session, totals per day) must NOT be computed at import time and stored on the sessions table. The existing `tool_use_count` column on sessions is explicitly acknowledged in the codebase memory as dead data — "computed at import, never queried by server or displayed in frontend." Token aggregates stored on sessions would repeat this mistake. Keep aggregates in the service layer as SQL `SUM()` queries.
+
+The four columns to add:
+
+```sql
+-- MIGRATION_V9_TO_V10
+ALTER TABLE messages ADD COLUMN input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN output_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN cache_creation_input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN cache_read_input_tokens INTEGER;
 ```
-const args = parseArgs(process.argv.slice(2))
-// args.subcommand: undefined | 'summary' | 'sessions' | 'import' | 'mcp'
-// args.flags: { date, format, maxAgeDays, port, debug, ... }
-```
 
-Three branches follow:
-- `if (args.subcommand is CLI command)` → CLI mode
-- `if (args.subcommand === 'mcp')` → MCP server mode
-- `else` → web server mode (current behavior)
+All four default to NULL. Only assistant messages with a `usage` block will have non-NULL values. User messages, system messages, and tool_result messages remain NULL — no special handling needed. The migration is additive and safe on existing databases.
 
-**Design note:** Avoid pulling in a CLI framework (commander, yargs) as a runtime dependency. The current codebase uses `process.argv.indexOf()` inline, which scales fine for a small fixed set of subcommands. A hand-rolled parser or a thin wrapper stays zero-dependency. If the command surface grows beyond ~8 subcommands, revisit commander (lightweight, ESM-compatible, zero deps of its own in v12+).
+**The `cache_creation` subobject** (contains `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`) should not be stored as structured columns in the first pass. It is rarely needed for day-to-day reporting. If needed later, a JSON TEXT column for the raw subobject can be added in a future migration without blocking the initial feature.
+
+**Migration wiring:**
+
+- Add `MIGRATION_V9_TO_V10` export to `src/db/schema.js`
+- Bump `SCHEMA_VERSION` from 9 to 10
+- Add `migrateV9toV10()` function in `src/db/index.js`
+- Add `else if (existingVersion === 9)` branch calling `migrateV9toV10(db)` before setting `PRAGMA user_version = 10`
+- Extend all older migration paths (v1 through v8) to also call `migrateV9toV10(db)` — follows the established chained ladder
 
 ---
 
-### 2. src/services/ — Data Service Layer (NEW)
+### 2. Parser Changes: Extract Usage at Import Time
 
-**Status:** New directory
+**Location:** `src/importer/index.js` — `importFile()` function, specifically the `messagesForDb` mapping (line 361 in current source).
 
-The key architectural insight: route handlers, CLI commands, and MCP tools all need the same queries. Instead of duplicating SQL or coupling MCP tools to Fastify internals, extract query logic into plain functions that accept `db` and return plain JS objects.
-
-```
-src/services/
-  timeline.js      getTimeline(db, { date, idleThresholdMin }) → { projects, workingTimeMs, ... }
-  projects.js      getProjects(db) → [{ projectId, projectPath, displayName, lastImportAt }]
-  sessions.js      getSession(db, sessionId) → session | null
-                   getSessionMessages(db, sessionId) → messages[]
-                   updateSession(db, sessionId, { userLabel, userTicket }) → ok
-  import.js        runImport(db, { maxAgeDays, onProgress }) → stats
-```
-
-These services extract the existing SQL and computation from the Fastify route files. The route files become thin wrappers:
+The `rawMessage` reference is already present on each parsed message. No changes are needed in `src/importer/parser.js`. The extraction is additive to the existing mapping:
 
 ```js
-// Before: inline in timelineRoute handler
-fastify.get('/api/timeline', async (request, reply) => {
-  const stmt = db.prepare(`SELECT ...`);
-  // 200 lines of SQL + computation
-});
-
-// After: route delegates to service
-fastify.get('/api/timeline', async (request, reply) => {
-  return getTimeline(db, { date: request.query.date, idleThresholdMin: ... });
-});
+// Inside the messagesForDb.map() — extract usage from assistant messages
+const usage = msg.rawMessage?.message?.usage ?? null;
+// Add to the mapped object:
+input_tokens:                  usage?.input_tokens                 ?? null,
+output_tokens:                 usage?.output_tokens                ?? null,
+cache_creation_input_tokens:   usage?.cache_creation_input_tokens  ?? null,
+cache_read_input_tokens:       usage?.cache_read_input_tokens      ?? null,
 ```
 
-**Why this order matters:** Extract services BEFORE building CLI commands or MCP tools. Both depend on services. Building services first prevents the CLI and MCP layers from reimplementing queries independently.
+**Agent files** (the `agentMessages` mapping around line 579): Agent sidechain messages can also have usage data. Apply identical extraction. Currently agent messages set `content: null` explicitly — apply the same null-for-non-assistant pattern for token columns.
 
-The existing `computeWorkingTime`, `computeIdleGaps`, `computeForkSegments`, and the large SQL query in `timeline.js` migrate to `src/services/timeline.js`. The existing Fastify route files are refactored to call the services.
+**`insertMessages()` in `src/importer/db-writer.js`**: Add the four columns to the INSERT column list, VALUES list, and ON CONFLICT DO UPDATE SET clause. This is a mechanical copy of how `content` was added in the v7→v8 migration — same structure, four more rows.
 
 ---
 
-### 3. src/cli/ — CLI Subcommands (NEW)
+### 3. New Service: Token Query Service
 
-**Status:** New directory
+**Location:** `src/services/tokens.js` (new file)
 
-```
-src/cli/
-  index.js         runCommand(subcommand, db, args) → void (writes to stdout, exits)
-  commands/
-    summary.js     formatSummary(data) — human or JSON output
-    sessions.js    formatSessions(data) — human or JSON output
-    import.js      runImportCommand(db, args) — progress to stderr, result to stdout
-```
+**Decision: New dedicated service, not an extension of `timeline.js` or `sessions.js`.**
 
-Each command:
-1. Calls the appropriate service function
-2. Formats output (default: JSON to stdout; optionally human-readable with `--format=human`)
-3. Exits cleanly with code 0 (or 1 on error)
+Token queries aggregate differently than timeline queries. Timeline groups by project/ticket and computes working time from message timestamps. Token queries aggregate sums by date, project, or session — different groupings, different SQL, different projection shapes. Adding them to `timeline.js` would bloat a file that is already large (389 lines) for a distinct concern.
 
-No long-running process. No Fastify. No browser.
-
-Example invocation patterns:
-```
-cctimereporter summary --date 2026-03-25
-cctimereporter sessions --date 2026-03-25 --format json
-cctimereporter import --max-age-days 7
-```
-
----
-
-### 4. src/mcp/ — MCP Server (NEW)
-
-**Status:** New directory
-
-```
-src/mcp/
-  index.js         createMcpServer(db) → McpServer instance with tools registered
-  tools/
-    get-timeline.js
-    get-projects.js
-    run-import.js
-    get-session.js
-```
-
-Each tool calls a service function. The MCP server is created separately from Fastify and registered as an endpoint on the Fastify instance.
-
----
-
-### 5. src/server/index.js — MCP Endpoint Registration (Modified)
-
-**Status:** Modified
-
-The Fastify server factory gains an `mcp` option. When enabled, it registers the MCP HTTP endpoint alongside existing API routes:
+Service factory pattern is unchanged from existing services:
 
 ```js
-export function createServer(db, options = {}) {
-  const { migrated = false, mcp = false } = options;
-  const app = Fastify({ logger: false });
-
-  // existing routes (unchanged)
-  app.register(timelineRoute, { db, migrated });
-  // ...
-
-  if (mcp) {
-    app.register(mcpPlugin, { db });
-  }
-
-  // static serving only in web mode
-  if (!options.noStatic) {
-    app.register(fastifyStatic, { root: distPath, wildcard: false });
-    app.setNotFoundHandler(...);
-  }
-
-  return app;
+export function createTokensService(db) {
+  // Prepared statements at factory time (where possible)
+  // Return { getDaySummary, getSessionTokens, getDateRangeTotals }
 }
 ```
 
-The MCP plugin (`src/mcp/fastify-plugin.js`) registers a POST + GET + DELETE route at `/mcp`:
+**Core SQL queries the service needs:**
 
-```js
-// src/mcp/fastify-plugin.js
-export async function mcpPlugin(fastify, { db }) {
-  const mcpServer = createMcpServer(db);
-  const transports = new Map(); // sessionId → StreamableHTTPServerTransport
+Daily totals across all sessions on a date:
+```sql
+SELECT
+  SUM(m.input_tokens)                AS total_input,
+  SUM(m.output_tokens)               AS total_output,
+  SUM(m.cache_creation_input_tokens) AS total_cache_write,
+  SUM(m.cache_read_input_tokens)     AS total_cache_read
+FROM messages m
+WHERE m.timestamp >= ? AND m.timestamp < ?
+  AND m.type = 'assistant'
+  AND m.input_tokens IS NOT NULL;
+```
 
-  fastify.post('/mcp', async (request, reply) => {
-    // create or retrieve transport by mcp-session-id header
-    // call reply.hijack() then transport.handleRequest(request.raw, reply.raw, request.body)
-    reply.hijack();
-    // ... transport setup and handleRequest
-  });
+Per-session breakdown for a date (for the detail table):
+```sql
+SELECT
+  m.session_id,
+  SUM(m.input_tokens)                AS input_tokens,
+  SUM(m.output_tokens)               AS output_tokens,
+  SUM(m.cache_creation_input_tokens) AS cache_write_tokens,
+  SUM(m.cache_read_input_tokens)     AS cache_read_tokens,
+  p.project_path
+FROM messages m
+JOIN sessions s ON m.session_id = s.session_id
+JOIN projects p ON s.project_id = p.id
+WHERE m.timestamp >= ? AND m.timestamp < ?
+  AND m.type = 'assistant'
+GROUP BY m.session_id
+ORDER BY (input_tokens + output_tokens) DESC;
+```
 
-  fastify.get('/mcp', async (request, reply) => {
-    // SSE stream from server to client
-    reply.hijack();
-    const transport = transports.get(request.headers['mcp-session-id']);
-    await transport?.handleRequest(request.raw, reply.raw);
-  });
+Multi-date range for trend charts:
+```sql
+SELECT
+  DATE(m.timestamp) AS date,
+  SUM(m.input_tokens)                AS total_input,
+  SUM(m.output_tokens)               AS total_output,
+  SUM(m.cache_creation_input_tokens) AS total_cache_write,
+  SUM(m.cache_read_input_tokens)     AS total_cache_read
+FROM messages m
+WHERE m.timestamp >= ? AND m.timestamp < ?
+  AND m.type = 'assistant'
+  AND m.input_tokens IS NOT NULL
+GROUP BY DATE(m.timestamp)
+ORDER BY date ASC;
+```
 
-  fastify.delete('/mcp', async (request, reply) => {
-    // Session teardown
-    const transport = transports.get(request.headers['mcp-session-id']);
-    await transport?.close();
-    transports.delete(request.headers['mcp-session-id']);
-    reply.send({ ok: true });
-  });
+Single-session token total (for session detail enrichment):
+```sql
+SELECT
+  SUM(input_tokens) AS input_tokens,
+  SUM(output_tokens) AS output_tokens,
+  SUM(cache_creation_input_tokens) AS cache_write_tokens,
+  SUM(cache_read_input_tokens) AS cache_read_tokens
+FROM messages
+WHERE session_id = ?
+  AND type = 'assistant';
+```
+
+---
+
+### 4. New API Route: GET /api/tokens
+
+**Location:** `src/server/routes/tokens.js` (new file)
+
+Pattern is identical to `src/server/routes/timeline.js` — thin wrapper, delegates to the tokens service.
+
+**Endpoints:**
+
+```
+GET /api/tokens?date=YYYY-MM-DD
+```
+Returns single-day token summary with per-session breakdown.
+
+```
+GET /api/tokens?from=YYYY-MM-DD&to=YYYY-MM-DD
+```
+Returns multi-day totals array for the trend chart.
+
+**Response shape for date query:**
+
+```json
+{
+  "date": "2026-04-06",
+  "totals": {
+    "inputTokens": 125000,
+    "outputTokens": 18000,
+    "cacheWriteTokens": 95000,
+    "cacheReadTokens": 210000
+  },
+  "bySessions": [
+    {
+      "sessionId": "...",
+      "projectPath": "...",
+      "inputTokens": 5000,
+      "outputTokens": 800,
+      "cacheWriteTokens": 3000,
+      "cacheReadTokens": 12000
+    }
+  ]
 }
 ```
 
-**Note on reply.hijack():** Fastify's `reply.hijack()` is already used in the existing SSE import progress route (`src/server/routes/import.js`). It gives direct control of `reply.raw` (Node.js ServerResponse). The MCP SDK's `transport.handleRequest(req.raw, res.raw, body)` follows the same pattern — it expects Node.js `IncomingMessage` and `ServerResponse`, not Fastify's wrapped objects. The existing codebase already demonstrates this technique correctly.
+**Registration:** `src/server/index.js` registers routes by importing and calling each route plugin. Add the `tokensRoute` import and registration alongside `timelineRoute` — one import, one `fastify.register()` call.
 
 ---
 
-## MCP SDK Integration
+### 5. New Vue Page: /tokens Route
 
-**Package:** `@modelcontextprotocol/sdk` (stable v1.x as of research date; v2 is pre-alpha)
-**Import path for HTTP transport:** `@modelcontextprotocol/sdk/server/streamableHttp.js`
-**Import path for server:** `@modelcontextprotocol/sdk/server/mcp.js`
-**Import path for type guards:** `@modelcontextprotocol/sdk/types.js`
-
-Tool registration pattern (MEDIUM confidence — verified from course material and search results, not from running install):
-
+**Router change** (`src/client/router/index.js`): One new import, one new route object:
 ```js
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
-
-const server = new McpServer({ name: 'cctimereporter', version: '0.7.0' });
-
-server.registerTool('get-timeline', {
-  description: 'Get sessions grouped by project for a date',
-  inputSchema: z.object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
-    idleThresholdMin: z.number().optional(),
-  }),
-}, async ({ date, idleThresholdMin }) => {
-  const result = await getTimeline(db, { date, idleThresholdMin });
-  return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-});
+{ path: '/tokens', component: TokensPage }
 ```
 
-**zod dependency:** The MCP SDK requires zod for inputSchema definitions. Add `zod` explicitly to `package.json` dependencies. Zod v3.x is the expected version range for MCP SDK v1.x.
+**New page:** `src/client/pages/TokensPage.vue`
 
-**DNS rebinding protection:** The MCP SDK has an `enableDnsRebindingProtection` transport option. Since cctimereporter already binds exclusively to `127.0.0.1` (enforced in the existing `fastify.listen` call), the risk is mitigated at the network level. Match the current web server posture and document it.
+**New components** in `src/client/components/`:
 
-**Stateless vs stateful sessions:** For read-only tools (get-timeline, get-projects, get-session), stateless mode (`sessionIdGenerator: undefined`) is simpler. For run-import (which has progress), stateful sessions with a `sessionIdGenerator: () => randomUUID()` allow the client to receive streamed progress updates via the GET SSE channel. Implement stateful as the baseline to support both patterns.
+| Component | Responsibility | Notes |
+|-----------|---------------|-------|
+| `TokenSummaryCard.vue` | Display a single token category total (label + large number) | Stateless display; 4 instances for input/output/cache-write/cache-read |
+| `TokenBreakdownTable.vue` | Per-session token table for the selected date | Shows project, session, and per-category counts |
+| `TokenTrendChart.vue` | Multi-day bar chart showing token usage over N days | SVG-based; no external chart library |
+
+**No new external dependencies.** The existing design token system in `tokens.css` provides all CSS custom properties needed. Charts can be implemented as SVG templates — at the scale of one chart showing 7-30 data points, a charting library adds bundle weight without proportional value. A 30-line SVG `<rect>` bar chart is sufficient and consistent with the app's zero-extra-dependency posture.
+
+**Page structure:**
+
+```
+TokensPage.vue
+  TimelineToolbar.vue (reuse — date navigation already implemented)
+  <div class="token-summary-cards">
+    TokenSummaryCard.vue  (input)
+    TokenSummaryCard.vue  (output)
+    TokenSummaryCard.vue  (cache write)
+    TokenSummaryCard.vue  (cache read)
+  </div>
+  TokenTrendChart.vue  (N-day trend, fetches from /api/tokens?from=&to=)
+  TokenBreakdownTable.vue  (per-session detail, fetches from /api/tokens?date=)
+```
+
+The toolbar reuse is important: date navigation, date-picker, and keyboard shortcuts are already implemented in `TimelineToolbar.vue`. The tokens page needs the same date selection behavior. Use the existing `@navigate` event and `selectedDate` state pattern from `TimelinePage.vue`.
 
 ---
 
-## File Layout After Migration
+### 6. Extending Existing Outputs
 
-```
-bin/cli.js                           MODIFIED: mode dispatch added
-src/
-  db/                                UNCHANGED
-  importer/                          UNCHANGED
-  utils/                             UNCHANGED
-  server/
-    index.js                         MODIFIED: mcp option, conditional static serving
-    routes/
-      timeline.js                    MODIFIED: delegates computation to service
-      projects.js                    MODIFIED: delegates to service
-      import.js                      MODIFIED: delegates to service
-      messages.js                    MODIFIED: delegates to service
-      sessions.js                    MODIFIED: delegates to service
-  services/                          NEW
-    timeline.js                      extracted from routes/timeline.js
-    projects.js                      extracted from routes/projects.js
-    sessions.js                      extracted from routes/sessions.js + messages.js
-    import.js                        thin wrapper around importer/index.js importAll
-  cli/                               NEW
-    index.js                         runCommand dispatcher
-    commands/
-      summary.js
-      sessions.js
-      import.js
-  mcp/                               NEW
-    index.js                         createMcpServer(db)
-    fastify-plugin.js                Fastify route registration for /mcp
-    tools/
-      get-timeline.js
-      get-projects.js
-      run-import.js
-      get-session.js
-  client/                            UNCHANGED
+**Session Detail Panel** (`src/client/components/SessionDetailPanel.vue`):
+
+The panel shows session metadata when a Gantt bar is clicked. Token totals per session can be added as a secondary stat section below the existing working time display. Options:
+
+Option A: Tokens service query embedded in the timeline route response — include per-session token totals in the existing `/api/timeline` payload. Avoids a second API call from the panel.
+
+Option B: Panel fetches `/api/tokens?session=ID` on demand when a session is selected — clean separation, no payload bloat, slight latency for the detail view.
+
+Recommendation: Option B. The timeline response is already moderately large (sessions array for each project on the selected date). Adding token fields there bloats every timeline load, even for users browsing the Gantt without caring about tokens. Fetch on-demand when the detail panel opens.
+
+**Day Summary CLI/MCP** (`src/cli/commands/summary.js`, `src/mcp/tools/query.js`):
+
+The existing `get_day_summary` MCP tool and `summary` CLI command return ticket-grouped working time. Token totals can be added as an optional top-level field:
+
+```json
+{
+  "date": "2026-04-06",
+  "workingTimeMs": 14400000,
+  "tokenTotals": {
+    "inputTokens": 125000,
+    "outputTokens": 18000,
+    "cacheWriteTokens": 95000,
+    "cacheReadTokens": 210000
+  },
+  "byTicket": [...]
+}
 ```
 
-**package.json changes:**
-- Add `@modelcontextprotocol/sdk` to `dependencies`
-- Add `zod` to `dependencies`
-- Add `src/services`, `src/cli`, and `src/mcp` to the `files` array (existing gotcha: forgetting `files` causes npm publish to omit new directories)
+This is additive — existing consumers see a new field and can ignore it. The tokens service is called alongside the timeline service in the CLI/MCP handler and the result is merged into the response object.
+
+**New MCP tool** in `src/mcp/tools/query.js`: Add `get_token_summary` to `registerQueryTools()`. Follows the identical pattern to existing tools — call `createTokensService(db)`, return JSON string. This is the primary surface for AI assistants querying token cost data.
 
 ---
 
-## Build Order
+## Component Interaction Map
 
-Build in this sequence to avoid blocked dependencies:
+```
+MODIFIED FILES
+─────────────
+src/db/schema.js
+  + SCHEMA_VERSION: 10
+  + MIGRATION_V9_TO_V10 (4 ALTER TABLE statements)
 
-**Phase A: Service Layer Extraction**
-- Extract `src/services/timeline.js` from `src/server/routes/timeline.js`
-- Extract `src/services/projects.js` from `src/server/routes/projects.js`
-- Extract `src/services/sessions.js` from `src/server/routes/sessions.js` + `messages.js`
-- Refactor route handlers to call services
-- All existing API behavior unchanged — this is a pure refactor
+src/db/index.js
+  + migrateV9toV10() function
+  + else-if branch for version 9
+  + migrateV9toV10() call added to all older migration paths
 
-Rationale: Both CLI commands and MCP tools depend on services. Building services first means neither the CLI nor MCP phases are blocked on shared query logic. The route refactor is the highest-risk step (touching existing working code) and should happen first, making it easy to isolate any regressions.
+src/importer/db-writer.js
+  + 4 token columns in INSERT column list
+  + 4 token columns in VALUES list
+  + 4 token columns in ON CONFLICT DO UPDATE SET
 
-**Phase B: CLI Subcommands**
-- Hand-rolled arg parser in `bin/cli.js` (extend existing `process.argv` scanning pattern)
-- `src/cli/index.js` dispatcher
-- Individual command modules calling services
-- Zero new runtime dependencies
+src/importer/index.js
+  + usage extraction in messagesForDb mapping (4 lines)
+  + usage extraction in agentMessages mapping (4 lines)
 
-Rationale: CLI mode has no external dependencies and validates that the service layer works correctly as a standalone query interface. Easily tested by running the binary directly.
+src/server/index.js
+  + import tokensRoute
+  + fastify.register(tokensRoute, { db })
 
-**Phase C: MCP Server**
-- Add `@modelcontextprotocol/sdk` + `zod` to package.json
-- `src/mcp/index.js` with tool registrations
-- `src/mcp/fastify-plugin.js` with HTTP transport routing
-- Extend `createServer()` with `mcp` option
-- Add `mcp` mode dispatch to `bin/cli.js`
+src/mcp/tools/query.js
+  + get_token_summary tool registration
 
-Rationale: MCP is the most complex phase (new dependency, HTTP transport plumbing, session management). Building it after services and CLI means tool implementations are thin wrappers over already-validated service functions.
+src/client/router/index.js
+  + import TokensPage
+  + { path: '/tokens', component: TokensPage }
+
+NEW FILES
+─────────
+src/services/tokens.js
+  createTokensService(db)
+  → getDaySummary(date) → { totals, bySessions }
+  → getSessionTokens(sessionId) → { inputTokens, ... }
+  → getDateRangeTotals(from, to) → [{ date, totals }, ...]
+
+src/server/routes/tokens.js
+  GET /api/tokens?date=YYYY-MM-DD
+  GET /api/tokens?from=YYYY-MM-DD&to=YYYY-MM-DD
+
+src/client/pages/TokensPage.vue
+src/client/components/TokenSummaryCard.vue
+src/client/components/TokenBreakdownTable.vue
+src/client/components/TokenTrendChart.vue
+```
+
+---
+
+## Build Order (Dependency Graph)
+
+Build in this sequence to avoid blocked dependencies and allow early validation at each layer.
+
+**Phase 1 — Data foundation**
+
+1. Schema migration v9→v10 (`schema.js` + `db/index.js`)
+2. DB writer update in `db-writer.js` (add 4 token columns)
+3. Usage extraction in `importer/index.js`
+4. Trigger re-import, verify via SQL: `SELECT SUM(input_tokens) FROM messages WHERE type='assistant'`
+
+This phase has no UI and no service. If something is wrong, it is visible immediately via SQL query without needing to run any service or frontend code. Self-contained and verifiable in isolation.
+
+**Phase 2 — Service and API**
+
+5. `src/services/tokens.js` — token query service
+6. `src/server/routes/tokens.js` — HTTP endpoint
+7. Register in `src/server/index.js`
+8. Verify via curl: `curl "localhost:3847/api/tokens?date=2026-04-06"`
+
+Phase 2 depends on Phase 1 data being present. It does not depend on any frontend work.
+
+**Phase 3 — CLI and MCP extension**
+
+9. Add `get_token_summary` MCP tool in `src/mcp/tools/query.js`
+10. Extend `summary` CLI output in `src/cli/commands/summary.js`
+
+Phase 3 is additive to existing CLI/MCP outputs. It will not break existing consumers.
+
+**Phase 4 — Vue frontend**
+
+11. `TokenSummaryCard.vue` — stateless display component, no API calls
+12. `TokenBreakdownTable.vue` — stateless display component, no API calls
+13. `TokenTrendChart.vue` — SVG chart component, accepts data as props
+14. `TokensPage.vue` — wires components, makes API calls, handles loading/error state
+15. Router update in `src/client/router/index.js`
+
+Phase 4 depends on Phase 2 for API data. Components 11-13 can be built and previewed on `/components` before the page exists.
+
+Each phase is independently releasable. Phase 1+2 is a complete backend feature. Phase 3 extends the AI interface. Phase 4 adds the visual interface. A milestone could ship Phase 1+2 first and follow with Phase 3+4.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-**Do not put SQL in MCP tool handlers or CLI commands.** All data access goes through `src/services/`. If a new query is needed for MCP or CLI, the service layer gains a new function.
+**Do not add token aggregate columns to the sessions table.** The existing `tool_use_count` is already acknowledged dead data. Token aggregates stored at import time would repeat this mistake and require re-import to update when counting logic changes. Keep aggregates as `SUM()` queries in the service layer.
 
-**Do not share Fastify route plugins with MCP.** The existing API routes serve the web UI. MCP tools expose a different surface (tools, not HTTP endpoints). Reuse the service layer, not the route registration functions.
+**Do not bloat the timeline API response with token data.** The timeline response serves Gantt chart rendering. Adding token fields there inflates every timeline load for all users, including those who never open the tokens page. Token data has its own endpoint.
 
-**Do not use `reply.raw` outside of `reply.hijack()`.** The existing import SSE route demonstrates the correct pattern: call `reply.hijack()` first, then write directly to `reply.raw`. The MCP transport plugin must follow the same pattern.
+**Do not add a charting library.** The app distributes via `npx` and bundle size matters. A simple SVG bar chart (20-40 lines of template code) is sufficient for showing N-day token trends. If a library becomes necessary later, it can be added in a follow-on milestone.
 
-**Do not run a separate HTTP server for MCP.** The MCP endpoint runs on the same Fastify instance as the API routes. This avoids managing two HTTP servers and two ports.
+**Do not store the `cache_creation` ephemeral breakdown as structured columns yet.** The `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` split is not useful for day-to-day reporting. Store the four top-level integers. If the breakdown is ever needed, add a JSON TEXT column in a future migration.
 
-**Do not add commander or yargs as a runtime dependency** for a small fixed CLI surface. The current `process.argv.indexOf()` pattern is already established in this codebase and scales to a handful of subcommands without external deps.
+**Do not fetch token data eagerly in the session detail panel.** Fetch on demand when a session bar is clicked, not as part of the timeline load. The detail panel is only open for one session at a time; eager fetching for all sessions would be wasteful.
 
 ---
 
-## Data Flow
+## Scalability Notes
 
-```
-process.argv → parseArgs()
-                   │
-          ┌────────┴──────────┬──────────────────┐
-          │                   │                  │
-    web mode             cli mode           mcp mode
-          │                   │                  │
-    openDatabase()      openDatabase()      openDatabase()
-          │                   │                  │
-    createServer(db)   runCommand(db, args)  createServer(db, {mcp:true})
-          │                   │                  │
-    fastify.listen()   services/            fastify.listen()
-          │             return data              │
-    /api/* routes            │             /api/* routes
-    + Vue SPA           stdout JSON         + /mcp endpoint
-                             │
-                           exit(0)
+Token data grows linearly with messages. At current app scale (local SQLite, single user), all `SUM()` queries across the messages table are fast without additional indexes. One partial index may help the date-range trend query if session counts grow large:
 
-All three modes share:
-  src/services/ ← routes/      (web: HTTP triggers service)
-  src/services/ ← commands/    (cli: direct call → stdout)
-  src/services/ ← mcp/tools/   (mcp: tool call triggers service)
+```sql
+CREATE INDEX IF NOT EXISTS idx_messages_tokens
+  ON messages(timestamp, type)
+  WHERE input_tokens IS NOT NULL;
 ```
+
+This is optional and can be added to the migration DDL as a safeguard or deferred until performance is observed to be an issue.
 
 ---
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Existing architecture | HIGH | Source read directly |
-| Service layer extraction | HIGH | Standard refactor, codebase is clean and well-structured |
-| CLI mode dispatch | HIGH | Trivial extension of existing argv scanning pattern |
-| MCP SDK HTTP transport API | MEDIUM | handleRequest signature and route pattern verified via course material and GitHub search; import paths consistent across sources but not verified by installing the package |
-| zod as MCP SDK dependency | MEDIUM | Consistently referenced in SDK docs and examples; exact version constraint not verified |
-| reply.hijack() for MCP | HIGH | Pattern already demonstrated in this codebase's import SSE route |
-| MCP session management | MEDIUM | Stateful vs stateless trade-off understood; specific API details may need adjustment on SDK install |
-
----
-
-## Sources
-
-- Codebase read directly: `bin/cli.js`, `src/server/index.js`, `src/server/routes/*.js`, `src/importer/index.js`, `package.json`
-- [MCP TypeScript SDK — GitHub](https://github.com/modelcontextprotocol/typescript-sdk) — StreamableHTTPServerTransport exists at `@modelcontextprotocol/sdk/server/streamableHttp.js`
-- [MCP Streamable HTTP transport course example](https://mcp.holt.courses/lessons/sses-and-streaming-html/streamable-http) — verified handleRequest(req, res, body) signature, POST/GET/DELETE route pattern, mcp-session-id header, session management map pattern
-- [MCP transport specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports) — Streamable HTTP introduced 2025-03-26, replaces SSE transport
-- [fastify-mcp plugin](https://github.com/haroldadmin/fastify-mcp) — reviewed for patterns but not recommended for adoption (thin wrapper around same SDK, less control)
+| Area | Confidence | Source |
+|------|------------|--------|
+| Schema migration pattern | HIGH | Read `src/db/schema.js` and `src/db/index.js` directly |
+| `rawMessage` structure | HIGH | Read `src/importer/parser.js` directly — `rawMessage: msg` confirmed present |
+| DB writer INSERT pattern | HIGH | Read `src/importer/db-writer.js` directly |
+| Service factory pattern | HIGH | Read `src/services/timeline.js` and `sessions.js` directly |
+| Route thin-wrapper pattern | HIGH | Read `src/server/routes/timeline.js` directly |
+| MCP tool registration | HIGH | Read `src/mcp/tools/query.js` directly |
+| Vue router structure | HIGH | Read `src/client/router/index.js` directly |
+| Usage object field names | HIGH | Provided in project context, consistent with Claude API docs |
+| Chart implementation (SVG) | MEDIUM | No charting library investigated — SVG recommendation is judgment call; will need prototyping |

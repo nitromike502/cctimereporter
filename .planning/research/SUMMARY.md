@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** CC Time Reporter v0.8.0 — Programmatic Data Access (MCP Server + CLI Subcommands)
-**Domain:** Adding programmatic access layer to an existing Node.js/Fastify/SQLite npx CLI tool
-**Researched:** 2026-03-25
+**Project:** CC Time Reporter — v1.1.0 Token Usage Tracking & Visualization
+**Domain:** Token usage analytics integrated into an existing local-first session timeline tool
+**Researched:** 2026-04-06
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone adds two parallel programmatic access surfaces to CC Time Reporter: an MCP server (via Streamable HTTP transport mounted on the existing Fastify instance) and CLI subcommands that output machine-readable JSON. Both surfaces are thin wrappers over the same query logic that already powers the web UI. The driving workflow is a Claude agent that calls `get_day_summary`, reads ticket-grouped time totals, and logs them to Harvest or Jira via other MCP tools — no new data is computed, only the same data the UI shows is exposed in a structured, stable format.
+CC Time Reporter is an existing, well-structured Node.js/Vue 3/SQLite tool that visualizes Claude Code sessions as Gantt charts. The v1.1.0 milestone adds token usage tracking as a first-class feature: store per-message usage fields from JSONL, expose them in the session detail panel, day summary, CLI, MCP outputs, and a new `/tokens` visualization page. The architecture is a clean layered pipeline (JSONL → importer → SQLite → services → routes/CLI/MCP → Vue), and token data slots into every layer with minimal disruption. Every layer has a defined, mechanical extension point, and build order is strictly dictated by data dependencies: schema first, then importer, then service, then API, then frontend.
 
-The recommended implementation order is: (1) extract a `src/services/` layer from the existing Fastify route handlers, (2) build CLI subcommands as thin service wrappers with clean stdout discipline, (3) add the MCP server on top of the validated service layer. This sequence is critical — both CLI commands and MCP tools depend on the service layer, and the service extraction is a refactor of existing working code that must be validated before new surfaces are built on top of it. Two new runtime dependencies are required: `@modelcontextprotocol/sdk@1.28.0` (pin the version) and `zod` (MCP SDK peer dependency), plus `commander` for CLI subcommand parsing.
+The recommended stack addition is **chart.js 4.5.1 + vue-chartjs 5.3.3** (~68KB gzipped total), added as `devDependencies` and bundled by Vite into `dist/` at build time — not installed as runtime npm dependencies. This is a meaningful first charting dependency for the project but appropriate for a dedicated visualization page. The architecture research initially suggested SVG-only to avoid the dependency; the stack research overrides this with a concrete library recommendation. chart.js wins on Vue 3 integration quality, built-in dataset visibility toggle API, and ecosystem adoption (35M downloads/month, 67K GitHub stars) at a bundle size that is well-understood and measurable.
 
-The primary risks are: MCP session state management (the SDK does not handle it — you must maintain a `Map<sessionId, transport>` yourself), stdout pollution corrupting JSON output in the CLI layer (requires strict stderr-only diagnostics from day one), and a cross-process import concurrency gap when both the web server and CLI run simultaneously (addressed with `PRAGMA busy_timeout = 5000` and a shared import-state singleton). None of these risks are blocking — they are well-understood and have clear preventions that must be baked in during phase setup, not retrofitted.
+The two most critical risks are: (1) **silent NULL token history** after schema migration — existing sessions have no token data until re-imported, and SQLite shows no error; and (2) **double-counting subagent tokens** — sidechain messages (`is_sidechain = 1`) must be excluded from parent session totals or numbers inflate 2–5x for heavy subagent users. Both risks are preventable with explicit filtering in aggregation queries and a documented re-import step. Neither requires architectural redesign — they require defensive coding at precisely identified locations in the existing codebase.
 
 ---
 
@@ -19,111 +19,169 @@ The primary risks are: MCP session state management (the SDK does not handle it 
 
 ### Recommended Stack
 
-The existing stack requires no changes. Two runtime dependencies are added for MCP: `@modelcontextprotocol/sdk@1.28.0` (MCP server implementation and Streamable HTTP transport) and `zod` (required peer dependency for tool input schema validation). One additional runtime dependency is added for CLI: `commander@14.0.3` (subcommand parsing, help generation, argument type coercion). Both new package versions were verified against the live npm registry on 2026-03-25.
+The existing stack (Node.js 22+, Fastify, Vue 3, Vite, Reka UI, node:sqlite) is not changing. Two new packages are required: `chart.js` and `vue-chartjs`. Both go into `devDependencies` — Vite bundles them into `dist/assets/` at build time. Users who `npx cctimereporter` download the pre-built bundle; the chart library is never installed as a runtime npm dependency. This keeps the CLI/MCP startup path free of chart library cost and avoids the Pitfall 13 trap of inflating `node_modules` for CLI-only workflows.
 
-Do not use the `fastify-mcp` community plugin — direct use of `StreamableHTTPServerTransport` with `request.raw`/`reply.raw` is 10 lines and sufficient for this use case. The pattern is already demonstrated in the existing SSE import progress route (`reply.hijack()` is used there today). Avoid `yargs` (overcapacity) and hand-rolled argv parsing for subcommands (does not scale to help output or argument types). See [STACK.md](STACK.md) for full rationale.
+If a time-based x-axis is used on the line chart, `chartjs-adapter-date-fns` + `date-fns` are also required. The alternative — using numeric message indices as the x-axis with manually formatted labels — avoids this dependency entirely and is recommended for the initial implementation to minimize bundle weight. The `chartjs-plugin-zoom` package (zoom/pan) should be deferred until multi-session or multi-day views are added.
 
-**Core technologies:**
-- `@modelcontextprotocol/sdk` v1.28.0: MCP server + Streamable HTTP transport — only stable production-ready SDK, ESM-compatible, pin exact version (API still evolving toward v2)
-- `zod` v3.x: Tool input schema validation — required peer dep for SDK, add explicitly to avoid version mismatch errors at runtime
-- `commander` v14.0.3: CLI subcommand parsing — purpose-built for Git/npm-style CLIs, zero dependencies, ESM-compatible via `./esm.mjs` export
+**Core technology additions:**
+
+- **chart.js 4.5.1**: Canvas-based charting engine — dominant ecosystem choice (35M downloads/month, 67K GitHub stars), ~65KB gzipped, built-in dataset visibility toggle via `setDatasetVisibility()`, actively maintained (last commit 2026-04-07)
+- **vue-chartjs 5.3.3**: Thin Vue 3 wrapper — provides reactive `<Line>` component, exposes raw chart instance via `ref`, watches `data` and `options` reactively for automatic re-render on theme change, ~3KB additional gzip cost
+- **devDependencies only**: Both packages bundled by Vite at build time; absent from the published runtime package
+
+**Rejected alternatives:**
+
+- ECharts: 150–200KB gzipped even with tree-shaking — 2–3x heavier than chart.js, overkill for a single chart page
+- ApexCharts: ~90–100KB, no tree-shaking path
+- lightweight-charts: Smallest bundle (~35KB) but financial OHLC API, no Vue 3 wrapper, wrong domain fit
+- D3.js: Requires building chart primitives from scratch
+- uPlot: Smaller bundle but no Vue integration, legend toggle requires manual implementation
 
 ### Expected Features
 
-The milestone implements four MCP tools and three CLI subcommands. The tools expose exactly what the web UI computes — no new data model, no new computations, just reshaping existing query output for agent consumption. See [FEATURES.md](FEATURES.md) for full I/O contract specifications.
+The entire feature set is gated on the schema migration (v9→v10) and import pipeline changes. No token feature ships without that foundation. Per-message storage (not session-level aggregates) is required so the line chart has the granularity it needs without re-processing JSONL later.
 
 **Must have (table stakes):**
-- `get_day_summary` MCP tool — ticket-grouped time totals for a date; the primary tool for a logging agent
-- `get_sessions` MCP tool — per-session detail when summary is insufficient for logging decisions
-- `trigger_import` MCP tool — agent must be able to refresh stale data before querying
-- `npx cctimereporter summary --date YYYY-MM-DD` — scripting/piping equivalent of `get_day_summary`
-- `npx cctimereporter sessions --date YYYY-MM-DD` — scripting equivalent of `get_sessions`
-- `npx cctimereporter import [--days N]` — non-interactive import trigger
+
+- Input / output / cache-read / cache-write breakdown per session in the session detail panel — users expect the split; all comparable tools (ccusage, Console) surface it
+- Cache hit rate ratio per session — primary optimization signal for Claude Code users; computable from stored fields at no additional storage cost
+- Day total token summary in the UI — parallel to the existing working-time day summary
+- Token counts in `summary` and `sessions` CLI subcommand output — CLI already outputs structured JSON; tokens belong there
+- Token counts in `get_day_summary` and `get_sessions` MCP tool responses — completeness for AI assistants querying usage data
+- `/tokens` page with line chart — cumulative vs per-message toggle, one line per session plus an aggregate line
 
 **Should have (differentiators):**
-- `get_session_messages` MCP tool — lets agent inspect message content for ambiguous sessions
-- `idleThresholdMin` parameter on all tools — produces numbers consistent with user's UI configuration
-- `userTicket`/`userLabel` fields in session output — surfaces high-confidence manually-set values
-- `alreadyRunning` flag on import error — agent can distinguish "busy" from other failures
-- Origin header validation on `/mcp` route — prevents DNS rebinding attacks (required by MCP spec)
 
-**Defer to v0.9.0+:**
-- Date range queries — requires UI date range picker first for consistency
-- Session mutation via MCP — read-only tools only in this milestone; editing stays UI-only
-- SSE streaming for import progress via MCP — synchronous result is sufficient for agent workflow
+- Cache efficiency ratio with plain-language label ("Great / OK / Poor") — few tools interpret the ratio; most show raw counts without context
+- Compaction event markers on the line chart — compaction boundaries already parsed by the importer; marking them on the chart shows context resets in relation to token growth curves
+- Subagent / worktree token rollup — extends existing worktree query-time grouping to the token dimension
+
+**Defer to v1.2+:**
+
+- Ephemeral cache tier breakdown (5m vs 1h) — low user awareness of distinction currently; the flat `cache_creation_input_tokens` field captures the total; nested breakdown is a future migration
+- Cost estimation in USD — Max subscribers pay a flat subscription, so API-rate cost estimates are misleading for the majority of likely users; requires pricing table maintenance and explicit disclaimer infrastructure
+- Token overlay on Gantt bars — high implementation cost relative to marginal gain; validate the `/tokens` page before modifying the Gantt component
+- Session-level model breakdown — requires storing `model` per assistant message; lower priority than usage counts
+
+**Anti-features (deliberately not built):**
+
+- Real-time / live token counter — CC Time Reporter is a retrospective analytics tool; live monitoring competes with Claude Code's own `/cost` command and the Claude Code Usage Monitor
+- Dollar cost as primary metric — misleading for Max subscribers; tokens are the correct primary metric
+- Budget alerts / spend caps — requires persistent background monitoring and notification infrastructure, far outside scope
+- Per-tool-call token attribution — usage field is per assistant message (not per tool_use block); attribution would require unreliable heuristics
 
 ### Architecture Approach
 
-The architecture adds a `src/services/` layer that extracts query logic from the existing Fastify route handlers. This shared layer is the foundation both CLI commands and MCP tools call — route handlers become thin adapters. Three new directories are added: `src/services/` (extracted query logic), `src/cli/` (subcommand implementations), and `src/mcp/` (MCP server, Fastify plugin, tool definitions). The `bin/cli.js` entry point gains mode dispatch at the very top, before any database or server initialization. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and data flow diagram.
+Token data is 1:1 with `assistant` messages and belongs on the `messages` table — no separate table, no denormalized session-level aggregates. The project's stated philosophy is "import raw data, derive at query time," and token aggregates are `SUM()` queries in the service layer. This is the direct lesson from the existing dead `tool_use_count` column on `sessions` (computed at import time, never queried — explicitly acknowledged in codebase memory). Token aggregates stored at import time would repeat that mistake and become stale after fork reclassification or import logic changes.
 
-**Major components:**
-1. `src/services/` (NEW) — `getTimeline()`, `getSessions()`, `getSessionMessages()`, `runImport()` as plain functions accepting `db` and returning plain JS objects; shared by all three surfaces
-2. `src/cli/` (NEW) — `runCommand()` dispatcher + per-subcommand modules; call services, write JSON to stdout, exit via `process.exitCode` not `process.exit()`
-3. `src/mcp/` (NEW) — `createMcpServer(db)` with tool registrations + `fastify-plugin.js` registering POST/GET/DELETE on `/mcp` with a session `Map<sessionId, transport>`
-4. `bin/cli.js` (MODIFIED) — mode detection first (web server / CLI subcommand / MCP server), then branch to the appropriate path; mode determined before `openDatabase()` or `createServer()` are called
-5. `src/server/routes/*.js` (MODIFIED) — refactored to delegate to services; all existing API behavior unchanged
+Every integration point was verified by direct codebase inspection. The `rawMessage: msg` reference is already attached to each parsed message in `parser.js` — the usage object is present in memory during import, it is simply never extracted or stored today. Adding token storage is a mechanical extension at each layer.
+
+**New and modified components:**
+
+1. **Schema v9→v10** (`src/db/schema.js`, `src/db/index.js`) — four `ALTER TABLE messages ADD COLUMN` INTEGER statements for the four flat usage fields; additive and safe on existing databases
+2. **Import pipeline** (`src/importer/db-writer.js`, `src/importer/index.js`) — extract usage from `msg.rawMessage?.message?.usage` in both the `messagesForDb` and `agentMessages` mappings; guard with `type === 'assistant'`; write NULL for all other message types (never write `0`)
+3. **Token service** (`src/services/tokens.js`) — new dedicated service; factory pattern identical to existing services (`createTokensService(db)`); four query functions: day summary, per-session, date-range trend, single-session detail; all queries filter `type = 'assistant' AND is_sidechain = 0 AND is_fork_branch = 0` for accurate "actual spend" totals
+4. **API route** (`src/server/routes/tokens.js`) — `GET /api/tokens?date=YYYY-MM-DD` and `GET /api/tokens?from=&to=`; thin wrapper, delegates to service; registered in `src/server/index.js`
+5. **MCP tool** (`src/mcp/tools/query.js`) — add `get_token_summary` to `registerQueryTools()`; calls tokens service; follows identical pattern to existing tools
+6. **Vue page + components** (`src/client/pages/TokensPage.vue`, three new components) — reuses `TimelineToolbar.vue` for date navigation; fetches from `/api/tokens`; token detail panel fetched on-demand when session bar is clicked (not eagerly on timeline load)
+
+**Build order is strictly layered:** schema → importer → service → API → CLI/MCP → Vue. Each layer is independently verifiable (SQL query, curl, JSON output) before the next layer is built.
 
 ### Critical Pitfalls
 
-See [PITFALLS.md](PITFALLS.md) for full analysis, detection signs, and phase-specific warnings.
+1. **Silent NULL token history after migration** — `ALTER TABLE ADD COLUMN` leaves all existing rows as NULL. Historical sessions show zero tokens with no error. The schema migration completes cleanly; the import skip logic (size-based) will skip unchanged files on next normal import, leaving those rows permanently NULL. Prevention: delete import_log entries for the last 30 days during the v10 migration so the next normal import re-processes them; document in CHANGELOG; do NOT silently force `--all` import on startup (can take minutes for heavy users).
 
-1. **MCP session state not managed by SDK** — implement `Map<sessionId, StreamableHTTPServerTransport>` before writing any tool definitions; create new transport only when `mcp-session-id` header is absent; destroy on DELETE; skip this and clients get "not initialized" errors on every tool call
+2. **Double-counting subagent tokens** — Sidechain messages (`is_sidechain = 1`) are merged into the parent session for timeline display but carry their own usage data from separate Anthropic API calls. Summing all messages without filtering inflates parent session totals 2–5x for heavy agent team users. Prevention: filter `WHERE is_sidechain = 0` in all aggregation queries for parent-only totals; subagent tokens are correctly attributable to their own sessions separately.
 
-2. **stdout pollution corrupts JSON CLI output** — establish a `CLI_MODE` flag at startup before any subcommand code runs; all diagnostics go to stderr exclusively; use `process.exitCode = 0` not `process.exit()` — stdout writes are buffered in pipes and `process.exit()` truncates them before flush
+3. **Fork branch tokens counted for abandoned work** — Messages from abandoned fork branches (`is_fork_branch = 1`) have valid usage data from API calls made during discarded conversation branches. Prevention: filter `WHERE is_fork_branch = 0` for "actual spend" totals; decide the default view before any UI numbers are shown (changing it later creates a confusing UX shift for users who have built mental models around the numbers).
 
-3. **`importRunning` guard is process-scoped, not machine-scoped** — extract to a shared singleton `src/server/import-state.js` so both the REST route and MCP import tool share one flag; add `PRAGMA busy_timeout = 5000` to `openDatabase()` to handle the CLI-vs-server cross-process case gracefully
+4. **Three-place update trap** — Adding token columns requires synchronized changes in three files: `schema.js` (DDL), `db-writer.js` (INSERT statement), and `importer/index.js` (field mapping). Missing any one means data is parsed but silently not persisted — all token queries return NULL with no error because the upsert's `ON CONFLICT DO UPDATE SET` clause silently ignores missing fields. Prevention: update all three in a single commit; verify immediately with `SELECT input_tokens FROM messages WHERE type='assistant' LIMIT 5` after import.
 
-4. **MCP DELETE handler missing causes SPA catch-all to return HTML** — register an explicit DELETE handler on `/mcp` for session termination; also guard the SPA catch-all to return JSON error for requests with `Accept: application/json` or `Accept: text/event-stream` headers
-
-5. **`package.json` files array must include new source directories** — add `src/services`, `src/cli`, `src/mcp` to `files` in the same commit that creates each directory; omitting this breaks `npx` for all published users (this is a documented gotcha from v0.5.0+)
+5. **Chart dark mode incompatibility** — chart.js renders to `<canvas>`, so CSS custom properties from `tokens.css` do not apply to chart elements (grid lines, axis labels, tooltip backgrounds). Hardcoded hex colors will be invisible or fail contrast in dark mode. Prevention: read `document.documentElement.dataset.theme` via a computed Vue property or MutationObserver; pass theme-appropriate color values in reactive `chartOptions`; test dark mode rendering on `/components` preview page before wiring real data.
 
 ---
 
 ## Implications for Roadmap
 
-Based on research, the implementation has clear hard dependencies that dictate phase order: services must exist before CLI or MCP can be built; CLI validates services before MCP adds protocol complexity. Suggested three-phase structure:
+Based on the dependency graph in ARCHITECTURE.md and the phase-specific pitfall warnings in PITFALLS.md, four phases are recommended. Each phase is independently verifiable and releasable. A milestone could ship Phase 1+2 as a complete backend feature before Phase 3+4 are built.
 
-### Phase 1: Service Layer Extraction
+### Phase 1: Data Foundation (Schema + Importer)
 
-**Rationale:** Both CLI commands and MCP tools depend on shared query functions. This refactor must come first to unblock all downstream phases. It is also the highest-risk step (modifying existing working code) and benefits from being isolated so any regressions are easy to identify before new features are layered on.
-**Delivers:** `src/services/timeline.js`, `src/services/sessions.js`, `src/services/import.js`; refactored route handlers that delegate to services; all existing API behavior unchanged — purely structural
-**Addresses:** Architecture's service layer dependency; prevents SQL duplication across MCP and CLI
-**Avoids:** Pitfall 10 (import concurrency) — extract import-state singleton here; Pitfall 12 (files array) — add `src/services` to `files` immediately in this phase
-**Research flag:** Standard refactor pattern, no additional research needed.
+**Rationale:** Every downstream feature is blocked on this. No token UI, no CLI output, no MCP tool can ship without token data in the database. Isolating this phase also surfaces the NULL-history pitfall immediately — in isolation, before any UI exists to display misleading zeros.
 
-### Phase 2: CLI Subcommands
+**Delivers:** Token data stored per-message in SQLite for all newly imported sessions, with correct NULL handling for non-assistant messages. Verified via SQL: `SELECT SUM(input_tokens) FROM messages WHERE type='assistant'`.
 
-**Rationale:** CLI commands have no new external dependencies and validate that the service layer works correctly as a standalone query interface. They are testable by running the binary directly. Establishing stdout discipline and mode dispatch here prevents pollution issues from bleeding into the MCP phase.
-**Delivers:** `npx cctimereporter summary`, `npx cctimereporter sessions`, `npx cctimereporter import`; mode dispatch in `bin/cli.js`; commander integration migrating the existing `--debug-import` flag
-**Uses:** `commander` (new dependency); `src/services/` from Phase 1
-**Implements:** `src/cli/` directory; headless execution path in `bin/cli.js`
-**Avoids:** Pitfall 3 (stdout pollution) — stdout discipline established here; Pitfall 8 (server starts in CLI mode) — mode dispatch before DB open; Pitfall 11 (process.exit truncates) — use `process.exitCode` pattern from day one; Pitfall 14 (date validation) — validate before querying
-**Research flag:** Standard CLI patterns, no additional research needed.
+**Addresses:** Schema migration v9→v10; `db-writer.js` INSERT update (three-place update done atomically); `importer/index.js` usage extraction for both main and agent message paths.
 
-### Phase 3: MCP Server
+**Must avoid:** Silent NULL history (document re-import path and add CHANGELOG note); writing `0` instead of NULL for non-assistant messages; double-counting nested `cache_creation` subobject against flat `cache_creation_input_tokens` field (use flat field only).
 
-**Rationale:** MCP is the highest-complexity phase (new dependency, HTTP transport plumbing, session state management). Building it after services and CLI means tool implementations are thin wrappers over already-validated service functions. Most MCP pitfalls must be addressed in setup, before tools are defined.
-**Delivers:** `/mcp` HTTP endpoint on the existing Fastify server; `get_day_summary`, `get_sessions`, `trigger_import`, `get_session_messages` tools; `mcp` mode in `bin/cli.js`
-**Uses:** `@modelcontextprotocol/sdk@1.28.0` + `zod` (new dependencies); `src/services/` from Phase 1
-**Implements:** `src/mcp/` directory; `mcpPlugin` Fastify registration; `Map<sessionId, transport>` session management; Origin header validation
-**Avoids:** Pitfall 2 (SDK doesn't manage sessions) — implement session Map upfront; Pitfall 4 (zod version mismatch) — pin SDK version, add zod explicitly; Pitfall 5 (DELETE handler missing) — register all three HTTP methods; Pitfall 6 (SPA catch-all returns HTML) — guard by Accept header; Pitfall 9 (Origin validation) — add preHandler on `/mcp`; Pitfall 13 (SDK import paths) — pin version
-**Research flag:** MCP SDK HTTP transport details are MEDIUM confidence — the `handleRequest(req.raw, res.raw, body)` signature and session Map pattern are verified from third-party sources but not from a live SDK install. Build time to verify and adjust the actual SDK API before writing tool definitions.
+**Research flag:** Standard patterns — the migration ladder pattern is verbatim in this codebase. No additional research needed.
+
+---
+
+### Phase 2: Service + API
+
+**Rationale:** Backend-complete before any frontend work. The API is independently testable with curl. This phase also resolves the subagent and fork-branch filtering decisions at the SQL level — before any UI display format commits to what "total tokens" means.
+
+**Delivers:** `GET /api/tokens?date=` and `GET /api/tokens?from=&to=` endpoints returning correct, filtered token aggregates. Verified via `curl "localhost:3847/api/tokens?date=2026-04-06"`.
+
+**Uses:** `src/services/tokens.js` (new, follows `createXService(db)` factory pattern identical to `sessions.js` and `timeline.js`); `src/server/routes/tokens.js` (thin wrapper, follows `timeline.js` pattern); registration in `src/server/index.js`.
+
+**Must avoid:** Denormalizing totals to `sessions` table (repeats the `tool_use_count` dead-data mistake); bloating the timeline API response with token data (separate endpoint); subagent and fork-branch double-counting in SQL aggregation queries.
+
+**Research flag:** Standard patterns — service factory and route thin-wrapper patterns are identical to existing code. SQL queries are provided in ARCHITECTURE.md. No additional research needed.
+
+---
+
+### Phase 3: CLI + MCP Extension
+
+**Rationale:** Additive to existing outputs. No breaking changes. Extends the AI assistant interface before building the visual interface, so token data is queryable via MCP tools during frontend development — useful for self-testing and for existing MCP consumers.
+
+**Delivers:** Token totals in `summary` CLI output; `get_token_summary` MCP tool; token fields added to `get_day_summary` and `get_sessions` MCP responses.
+
+**Uses:** Updates to `src/cli/commands/summary.js`; additions to `src/mcp/tools/query.js` (follows `registerQueryTools()` pattern exactly). All changes are additive — existing consumers receive new fields and can ignore them.
+
+**Must avoid:** Breaking existing CLI/MCP consumers; `tokenTotals` as a separate top-level object in existing tool responses (additive, not replacement).
+
+**Research flag:** Standard patterns — identical to existing CLI and MCP handler patterns. No additional research needed.
+
+---
+
+### Phase 4: Vue Frontend (/tokens page + session detail)
+
+**Rationale:** Final layer; depends on Phase 2 API. Components built bottom-up — stateless display components first, previewed on `/components`, then page-level wiring with API calls.
+
+**Delivers:** `/tokens` page with line chart (cumulative/per-message toggle, per-session lines + aggregate); token summary in session detail panel (on-demand fetch when session bar is clicked, not eager on timeline load); `TokenSummaryCard.vue` summary cards; `TokenBreakdownTable.vue` per-session table; router update.
+
+**Uses:** chart.js 4.5.1 + vue-chartjs 5.3.3 (added as `devDependencies`, bundled by Vite); `TimelineToolbar.vue` reused for date navigation (existing component, same `@navigate` event and `selectedDate` state pattern as `TimelinePage.vue`).
+
+**Must avoid:**
+- Adding chart.js to `dependencies` instead of `devDependencies` (inflates CLI `node_modules` for all users)
+- Hardcoded chart colors that break dark mode (use reactive `chartOptions` computed from theme state)
+- Fetching token data eagerly for all sessions on timeline load (fetch on-demand in detail panel)
+- Too many data points in a single chart render (default to session or daily aggregates for the trend view; per-message granularity only for single-session drill-down)
+- Separate `/tokens` page disconnected from session context (link from chart back to session detail panel)
+
+**Research flag:** chart.js dark mode integration (~20-line reactive options pattern) and dataset toggle API are fully documented in STACK.md. No additional research needed. Chart.js `setDatasetVisibility(index, bool)` + `chart.update()` is confirmed in chart.js 4 official docs.
+
+---
 
 ### Phase Ordering Rationale
 
-- Services before CLI and MCP: both phases depend on service functions; building out of order forces duplication or rework
-- CLI before MCP: CLI validates the service interface with no external dependencies before MCP protocol complexity is added
-- Route refactor in Phase 1, not "later": the service extraction modifies existing working code; doing it first makes regression isolation clean
-- MCP setup tasks (session Map, Origin validation, DELETE handler) are Phase 3 prerequisites, not optional — do them before writing the first tool definition
+- Phases 1→2→3→4 follow strict data dependencies: you cannot query what is not stored; you cannot display what is not queryable.
+- Phase 1 is verifiable in isolation via SQL query — no service, no frontend, no curl needed.
+- Phase 2 resolves the subagent and fork-branch filtering decisions at the SQL level before any UI commits to a display format that implies those decisions. Changing "what total tokens means" after the UI ships creates a confusing UX shift.
+- Phase 3 (CLI/MCP) before Phase 4 (Vue) makes token data queryable via AI assistants during frontend development — useful for self-testing with `get_token_summary` during Phase 4 work.
+- Phase 2 is fully complete before Phase 4 starts, so the frontend always has a real API to call during development — no mocking needed.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (MCP Server):** MCP SDK transport API is MEDIUM confidence — `handleRequest` signature, session Map lifecycle, and the exact Zod version required by SDK v1.28.0 should be verified against the actual package at install time; allow iteration time in phase planning
+All phases use standard, well-documented patterns from the existing codebase or official library docs. No phase requires `/gsd:research-phase`.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Service Extraction):** Pure in-codebase refactor, no external API surface
-- **Phase 2 (CLI Subcommands):** commander is well-documented; stdout/stderr discipline is established Node.js convention
+- **Phase 1:** Schema migration ladder is verbatim in `src/db/index.js`; three-place update locations are explicitly identified in PITFALLS.md.
+- **Phase 2:** Service factory and route thin-wrapper patterns are direct copies of existing files. SQL queries are provided in full in ARCHITECTURE.md.
+- **Phase 3:** CLI and MCP extension patterns are identical to `src/cli/commands/summary.js` and `src/mcp/tools/query.js`.
+- **Phase 4:** chart.js integration pattern — including dark mode composable, dataset toggle, and multi-series setup — is fully specified in STACK.md with working code examples.
 
 ---
 
@@ -131,41 +189,56 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Both new package versions verified against live npm registry 2026-03-25; ESM compatibility confirmed via package exports inspection |
-| Features | HIGH | Based on direct codebase analysis of existing routes + official MCP tool specification; I/O contracts derived from what the web UI already computes |
-| Architecture | HIGH | Existing codebase read directly; service extraction is a well-understood refactor; MCP integration pattern verified via fastify-mcp source and course material; `reply.hijack()` pattern already in codebase |
-| Pitfalls | HIGH | Critical pitfalls sourced from official SQLite docs, official MCP spec, and direct codebase reading; session management and SDK transport API details rated MEDIUM |
+| Stack | HIGH | chart.js 4.5.1 and vue-chartjs 5.3.3 verified against npm registry 2026-04-06; bundle size from Bundlephobia (chart.js) and official TradingView blog (lightweight-charts); adoption data from npm downloads API and GitHub API; all five candidate libraries evaluated |
+| Features | HIGH | Table stakes verified against ccusage, Claude Code Usage Monitor, Anthropic Console, and Langfuse; JSONL usage object field names confirmed in `references/claude-transcript-schema.md`; token cost multipliers from official Anthropic pricing docs |
+| Architecture | HIGH | All integration points verified by direct source inspection of actual codebase files: `parser.js`, `db-writer.js`, `importer/index.js`, `schema.js`, `db/index.js`, `timeline.js`, `sessions.js`, `routes/timeline.js`, `mcp/tools/query.js`, `client/router/index.js` |
+| Pitfalls | HIGH | Critical pitfalls sourced from direct codebase inspection + SQLite official docs + Claude Code GitHub issues on subagent token reporting; one LOW confidence note on ApexCharts gzip size (rejected library, not relevant to implementation) |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **MCP SDK exact Zod peer dep version:** SDK v1.28.0 requires `zod >= 3.25 || ^4.0` but the import path for Zod v4 changed between versions. Verify with `npm install` output before writing tool schemas — resolve during Phase 3 dependency setup, not during planning.
-- **Stateless vs stateful transport baseline:** STACK.md recommends stateless (simpler, no session cleanup); ARCHITECTURE.md recommends stateful as baseline (enables import progress streaming). Resolution: start stateless, upgrade to stateful only if `trigger_import` needs progress streaming. Per FEATURES.md, the agent workflow does not require streaming — synchronous result is sufficient.
-- **`reply.hijack()` interaction with Fastify 5 on GET (SSE channel):** The existing import route uses hijack on POST correctly. MCP adds GET and DELETE to the same path. Verify that hijacking GET for SSE does not conflict with Fastify 5's response lifecycle during Phase 3 implementation.
-- **MCP subcommand transport type (stdio vs HTTP):** FEATURES.md recommends stdio first for simplicity; STACK.md and ARCHITECTURE.md assume HTTP on Fastify. The right call for this codebase is HTTP (no separate process, works alongside running web server), but confirm the `mcp` subcommand UX during Phase 3 planning — specifically whether it starts the full Fastify server or a standalone stdio listener.
+- **Chart x-axis strategy**: ARCHITECTURE.md recommends SVG-only (no chart library) while STACK.md recommends chart.js. Resolution: **chart.js wins.** The SVG recommendation was a conservative default; the stack research evaluated five alternatives with concrete bundle size and API data. The conflict is resolved in this summary — chart.js at ~65KB gzipped is the correct call.
+
+- **Re-import mechanism for NULL history**: PITFALLS.md identifies three options for handling existing rows with NULL token data: (a) delete import_log entries for a window, (b) expose a UI prompt, or (c) document and let users run `--all`. The recommended approach is (a): delete import_log entries for the last 30 days during the v10 migration so the next normal import re-processes them automatically without blocking startup. Exact implementation decision for Phase 1.
+
+- **Subagent "inclusive" view toggle**: PITFALLS.md recommends `is_sidechain = 0` (parent-only) as the default for token totals. Whether a toggle for "including subagents" is exposed in the UI is a UX decision for Phase 4. The service layer should support both query modes; the UI defaults to parent-only with the option deferred.
+
+- **ApexCharts gzip estimate LOW confidence**: The ~90–100KB figure cited in STACK.md was derived from unpackedSize ratio, not a direct measurement. Irrelevant since ApexCharts is rejected, but noted for completeness.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- npm registry — `npm view @modelcontextprotocol/sdk version` → 1.28.0; `npm view commander version` → 14.0.3 (live, 2026-03-25)
-- MCP Specification (Streamable HTTP transport, 2025-03-26) — official spec for POST/GET/DELETE route pattern, Origin validation requirement, `mcp-session-id` header semantics
-- MCP TypeScript SDK GitHub docs — `McpServer`, `StreamableHTTPServerTransport`, `registerTool()` API
-- SQLite WAL + `busy_timeout` documentation — concurrent write behavior, PRAGMA recommendations
-- Direct codebase read — `bin/cli.js`, `src/server/index.js`, `src/server/routes/*.js`, `src/importer/index.js`, `src/db/index.js`, `package.json`
+
+- Direct codebase inspection: `src/importer/parser.js`, `src/importer/db-writer.js`, `src/importer/index.js`, `src/db/schema.js`, `src/db/index.js`, `src/services/timeline.js`, `src/services/sessions.js`, `src/server/routes/timeline.js`, `src/mcp/tools/query.js`, `src/client/router/index.js` — architecture patterns and integration points
+- `references/claude-transcript-schema.md` — JSONL usage object field names and structure
+- npm registry API (`npm view chart.js version`, `npm view vue-chartjs version`, all candidates) — verified versions 2026-04-06
+- npm downloads API — chart.js 35.2M/month, vue-chartjs 3.4M/month verified 2026-04-06
+- GitHub API — star counts for all charting candidates verified 2026-04-06
+- Anthropic official pricing docs — token cost multipliers (input, output, cache create 1.25x/2.0x, cache read 0.1x)
+- Anthropic Prompt Caching docs — cache tier structure and pricing
+- chart.js official docs (chartjs.org) — `setDatasetVisibility`, `isDatasetVisible`, `chart.update()`, `chart.update('none')` API
+- TradingView blog — lightweight-charts v5 "35kB base bundle, 16% reduction from v4" (official source)
+- SQLite official docs — `ALTER TABLE ADD COLUMN` behavior (schema-only change, no data back-fill)
 
 ### Secondary (MEDIUM confidence)
-- fastify-mcp plugin (haroldadmin/fastify-mcp v2.1.0) — `request.raw`/`reply.raw` pattern, session Map lifecycle
-- MCP Streamable HTTP course material — `handleRequest(req, res, body)` signature, `mcp-session-id` header usage
-- Node.js stdout buffering reference — `process.exit()` truncation behavior in pipes
-- CLI best practices (clig.dev) — stdout/stderr separation conventions
-- Harvest MCP Server reference — real-world time-tracking MCP tool naming and structure
+
+- Bundlephobia (via WebSearch) — chart.js ~65KB gzip estimate; could not fetch Bundlephobia directly
+- ccusage GitHub and docs — feature comparison and token display columns
+- Claude Code Usage Monitor GitHub — real-time feature scope and live counter anti-pattern confirmation
+- Claude Code GitHub issues #22625 and #43198 — subagent token double-reporting patterns (community-confirmed)
+- Langfuse docs — token and cost tracking UX patterns, cumulative/per-message toggle convention
+- Grafana observability patterns — multi-series chart conventions
+- ECharts tree-shaking bundle estimate (150–200KB) — no exact figure; derived from community reports
 
 ### Tertiary (LOW confidence)
-- MCP SDK v2 status — pre-alpha on main branch, v1.x production-recommended (cross-referenced with README; v2 may ship during or after development of this milestone)
+
+- ApexCharts gzip estimate (~90–100KB) — derived from 9MB unpackedSize ratio; no direct gzip measurement; rejected library
+- Priority service tier pricing multiplier — tier exists per official docs; per-token cost impact vs standard tier not confirmed
 
 ---
-*Research completed: 2026-03-25*
+
+*Research completed: 2026-04-06*
 *Ready for roadmap: yes*
