@@ -4,6 +4,10 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] - 2026-04-07
+
+First stable release. Promotes v0.8.3 as the stable v1.0.0 — marks feature completeness of the core platform: JSONL import pipeline, Gantt timeline UI, CLI subcommands, MCP server, and multi-instance coordination.
+
 ## [0.8.3] - 2026-04-03
 
 ### Fixed
