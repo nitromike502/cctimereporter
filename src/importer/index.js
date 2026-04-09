@@ -55,6 +55,28 @@ function extractMessageContent(msg) {
   return cleaned;
 }
 
+/**
+ * Extract token usage data from an assistant message for DB storage.
+ * Returns null for non-assistant messages (they should store NULL in all token columns).
+ * Ephemeral cache tiers are nested under usage.cache_creation, not at the top level.
+ *
+ * @param {object} msg - Normalized message from parseTranscript()
+ * @returns {{ input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, ephemeral_5m_input_tokens, ephemeral_1h_input_tokens }|null}
+ */
+function extractTokenUsage(msg) {
+  if (msg.type !== 'assistant') return null;
+  const usage = msg.rawMessage?.message?.usage;
+  if (!usage) return null;
+  return {
+    input_tokens:                usage.input_tokens                              ?? null,
+    output_tokens:               usage.output_tokens                             ?? null,
+    cache_creation_input_tokens: usage.cache_creation_input_tokens               ?? null,
+    cache_read_input_tokens:     usage.cache_read_input_tokens                   ?? null,
+    ephemeral_5m_input_tokens:   usage.cache_creation?.ephemeral_5m_input_tokens ?? null,
+    ephemeral_1h_input_tokens:   usage.cache_creation?.ephemeral_1h_input_tokens ?? null,
+  };
+}
+
 // Worktree-based subagent project path patterns.
 // Claude Code's EnterWorktree creates projects at paths like:
 //   /home/user/project/.claude/worktrees/tmp-pr-review-abc123/
@@ -358,19 +380,29 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
   });
 
   // 9. Insert messages
-  const messagesForDb = messages.map(msg => ({
-    uuid:           msg.uuid,
-    type:           msg.type,
-    subtype:        msg.subtype,
-    timestamp:      msg.timestamp,
-    parent_uuid:    msg.parentUuid,
-    git_branch:     msg.gitBranch,
-    is_meta:        msg.isMeta ? 1 : 0,
-    is_sidechain:   msg.isSidechain ? 1 : 0,
-    is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
-    fork_branch_id: forkData.forkBranchMap.get(msg.uuid) ?? null,
-    content:        extractMessageContent(msg),
-  }));
+  const messagesForDb = messages.map(msg => {
+    const tokens = extractTokenUsage(msg);
+    return {
+      uuid:           msg.uuid,
+      type:           msg.type,
+      subtype:        msg.subtype,
+      timestamp:      msg.timestamp,
+      parent_uuid:    msg.parentUuid,
+      git_branch:     msg.gitBranch,
+      is_meta:        msg.isMeta ? 1 : 0,
+      is_sidechain:   msg.isSidechain ? 1 : 0,
+      is_fork_branch: forkData.forkBranchUuids.has(msg.uuid) ? 1 : 0,
+      fork_branch_id: forkData.forkBranchMap.get(msg.uuid) ?? null,
+      content:        extractMessageContent(msg),
+      input_tokens:                tokens?.input_tokens                   ?? null,
+      output_tokens:               tokens?.output_tokens                  ?? null,
+      cache_creation_input_tokens: tokens?.cache_creation_input_tokens    ?? null,
+      cache_read_input_tokens:     tokens?.cache_read_input_tokens        ?? null,
+      ephemeral_5m_input_tokens:   tokens?.ephemeral_5m_input_tokens      ?? null,
+      ephemeral_1h_input_tokens:   tokens?.ephemeral_1h_input_tokens      ?? null,
+      model:                       msg.type === 'assistant' ? (msg.rawMessage?.message?.model ?? null) : null,
+    };
+  });
   // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
   const messagesWithTimestamps = messagesForDb.filter(m => m.timestamp != null);
   insertMessages(db, file.sessionId, messagesWithTimestamps);
@@ -576,19 +608,29 @@ export async function importAll(db, options = {}) {
         const agentData = await parseTranscript(agentFile.path);
         const agentMessages = agentData.messages
           .filter(m => m.timestamp)
-          .map(msg => ({
-            uuid:           msg.uuid,
-            type:           msg.type,
-            subtype:        msg.subtype,
-            timestamp:      msg.timestamp,
-            parent_uuid:    msg.parentUuid,
-            git_branch:     msg.gitBranch,
-            is_meta:        msg.isMeta ? 1 : 0,
-            is_sidechain:   1, // Agent messages are always sidechains
-            is_fork_branch: 0,
-            fork_branch_id: null, // Agent messages never have fork branches
-            content:        null, // Agent sidechain messages do not store content
-          }));
+          .map(msg => {
+            const tokens = extractTokenUsage(msg);
+            return {
+              uuid:           msg.uuid,
+              type:           msg.type,
+              subtype:        msg.subtype,
+              timestamp:      msg.timestamp,
+              parent_uuid:    msg.parentUuid,
+              git_branch:     msg.gitBranch,
+              is_meta:        msg.isMeta ? 1 : 0,
+              is_sidechain:   1, // Agent messages are always sidechains
+              is_fork_branch: 0,
+              fork_branch_id: null, // Agent messages never have fork branches
+              content:        null, // Agent sidechain messages do not store content
+              input_tokens:                tokens?.input_tokens                   ?? null,
+              output_tokens:               tokens?.output_tokens                  ?? null,
+              cache_creation_input_tokens: tokens?.cache_creation_input_tokens    ?? null,
+              cache_read_input_tokens:     tokens?.cache_read_input_tokens        ?? null,
+              ephemeral_5m_input_tokens:   tokens?.ephemeral_5m_input_tokens      ?? null,
+              ephemeral_1h_input_tokens:   tokens?.ephemeral_1h_input_tokens      ?? null,
+              model:                       msg.type === 'assistant' ? (msg.rawMessage?.message?.model ?? null) : null,
+            };
+          });
 
         if (agentMessages.length > 0) {
           insertMessages(db, agentFile.parentSessionId, agentMessages);

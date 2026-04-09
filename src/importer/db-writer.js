@@ -187,7 +187,14 @@ export function insertMessages(db, sessionId, messages) {
       is_sidechain,
       is_fork_branch,
       fork_branch_id,
-      content
+      content,
+      input_tokens,
+      output_tokens,
+      cache_creation_input_tokens,
+      cache_read_input_tokens,
+      ephemeral_5m_input_tokens,
+      ephemeral_1h_input_tokens,
+      model
     ) VALUES (
       $session_id,
       $uuid,
@@ -200,30 +207,51 @@ export function insertMessages(db, sessionId, messages) {
       $is_sidechain,
       $is_fork_branch,
       $fork_branch_id,
-      $content
+      $content,
+      $input_tokens,
+      $output_tokens,
+      $cache_creation_input_tokens,
+      $cache_read_input_tokens,
+      $ephemeral_5m_input_tokens,
+      $ephemeral_1h_input_tokens,
+      $model
     )
     ON CONFLICT(session_id, uuid) DO UPDATE SET
-      fork_branch_id  = excluded.fork_branch_id,
-      is_fork_branch  = excluded.is_fork_branch,
-      content         = excluded.content
+      fork_branch_id              = excluded.fork_branch_id,
+      is_fork_branch              = excluded.is_fork_branch,
+      content                     = excluded.content,
+      input_tokens                = excluded.input_tokens,
+      output_tokens               = excluded.output_tokens,
+      cache_creation_input_tokens = excluded.cache_creation_input_tokens,
+      cache_read_input_tokens     = excluded.cache_read_input_tokens,
+      ephemeral_5m_input_tokens   = excluded.ephemeral_5m_input_tokens,
+      ephemeral_1h_input_tokens   = excluded.ephemeral_1h_input_tokens,
+      model                       = excluded.model
   `);
 
   db.exec('BEGIN');
   try {
     for (const msg of messages) {
       stmt.run({
-        $session_id:     sessionId,
-        $uuid:           msg.uuid,
-        $type:           msg.type,
-        $subtype:        msg.subtype        ?? null,
-        $timestamp:      msg.timestamp,
-        $parent_uuid:    msg.parent_uuid    ?? null,
-        $git_branch:     msg.git_branch     ?? null,
-        $is_meta:        msg.is_meta        ?? 0,
-        $is_sidechain:   msg.is_sidechain   ?? 0,
-        $is_fork_branch: msg.is_fork_branch ?? 0,
-        $fork_branch_id: msg.fork_branch_id ?? null,
-        $content:        msg.content        ?? null,
+        $session_id:                     sessionId,
+        $uuid:                           msg.uuid,
+        $type:                           msg.type,
+        $subtype:                        msg.subtype        ?? null,
+        $timestamp:                      msg.timestamp,
+        $parent_uuid:                    msg.parent_uuid    ?? null,
+        $git_branch:                     msg.git_branch     ?? null,
+        $is_meta:                        msg.is_meta        ?? 0,
+        $is_sidechain:                   msg.is_sidechain   ?? 0,
+        $is_fork_branch:                 msg.is_fork_branch ?? 0,
+        $fork_branch_id:                 msg.fork_branch_id ?? null,
+        $content:                        msg.content        ?? null,
+        $input_tokens:                   msg.input_tokens                   ?? null,
+        $output_tokens:                  msg.output_tokens                  ?? null,
+        $cache_creation_input_tokens:    msg.cache_creation_input_tokens    ?? null,
+        $cache_read_input_tokens:        msg.cache_read_input_tokens        ?? null,
+        $ephemeral_5m_input_tokens:      msg.ephemeral_5m_input_tokens      ?? null,
+        $ephemeral_1h_input_tokens:      msg.ephemeral_1h_input_tokens      ?? null,
+        $model:                          msg.model                          ?? null,
       });
     }
     db.exec('COMMIT');
