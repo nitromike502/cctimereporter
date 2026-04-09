@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 32 — Data Foundation
-Plan: 01 of 1 in phase
-Status: Phase 32 complete — 1/1 plans done
-Last activity: 2026-04-09 — Completed 32-01-PLAN.md (schema v10, token extraction)
+Phase: 35 — Tokens Chart Page
+Plan: 01 of 2 in phase
+Status: Phase 35 plan 01 complete — 1/2 plans done
+Last activity: 2026-04-07 — Completed 35-01-PLAN.md (scaffold, nav, shared color utility)
 
-Progress: v1.1.0 in progress ░░░░░░░░░░░░░░░
-Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phases 33-35 planned.
+Progress: v1.1.0 in progress ░░░░░█░░░░░░░░░
+Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 35 plan 01 complete. Phases 33, 34, 35-02 planned.
 
 ## Performance Metrics
 
@@ -40,6 +40,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - NULL not 0 for non-assistant token columns (32-01) — avoids misleading zero aggregates in downstream queries
 - Ephemeral cache tiers at usage.cache_creation.ephemeral_* not top-level (32-01) — matches actual JSONL schema
 - Agent sidechain messages also extract token data (32-01) — preserves actual spend tracking for subagent users
+- Shared project color utility in src/client/utils/project-colors.js (35-01) — extracted from TimelinePage, ensures consistent colors across Timeline and Tokens pages
+- App.vue persistent nav excludes /components route (35-01) — dev tool, not user-facing navigation
 
 ### Pending Todos
 
@@ -59,6 +61,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-09
-Stopped at: Completed 32-01-PLAN.md — schema v10 + token extraction wired through import pipeline
+Last session: 2026-04-07
+Stopped at: Completed 35-01-PLAN.md — Tokens page scaffold, nav header, chart.js installed, shared color utility
 Resume file: None
