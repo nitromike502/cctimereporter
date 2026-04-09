@@ -22,8 +22,9 @@ export function sessionsCommand(db) {
     .option('--idle <minutes>', 'Idle threshold in minutes', '10')
     .action(async (options) => {
       const { createTimelineService } = await import('../../services/timeline.js');
-      const { outputJSON } = await import('../format.js');
+      const { createTokensService } = await import('../../services/tokens.js');
       const svc = createTimelineService(db);
+      const tokenSvc = createTokensService(db);
       const date = options.date ?? (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         outputJSON({ error: 'Invalid date format. Use YYYY-MM-DD.' }, options.pretty);
@@ -39,9 +40,27 @@ export function sessionsCommand(db) {
         ...report.unticketedSessions,
       ];
 
-      // Add workingTime string to each session and sort by startTime ascending
+      // Build per-session token lookup map from the day token data
+      const tokenData = tokenSvc.getDayTokens(date);
+      const sessionTokenMap = new Map(tokenData.sessions.map(s => [s.sessionId, s]));
+
+      // Add workingTime string and token data to each session, sort by startTime ascending
       const enrichedSessions = allSessions
-        .map(s => ({ ...s, workingTime: formatWorkingTime(s.workingTimeMs) }))
+        .map(s => {
+          const st = sessionTokenMap.get(s.sessionId);
+          return {
+            ...s,
+            workingTime: formatWorkingTime(s.workingTimeMs),
+            tokens: st ? {
+              inputTokens: st.inputTokens,
+              outputTokens: st.outputTokens,
+              cacheCreationInputTokens: st.cacheCreationInputTokens,
+              cacheReadInputTokens: st.cacheReadInputTokens,
+              totalTokens: st.totalTokens,
+              cacheHitRate: st.cacheHitRate,
+            } : null,
+          };
+        })
         .sort((a, b) => (a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0));
 
       outputJSON(enrichedSessions, options.pretty);
