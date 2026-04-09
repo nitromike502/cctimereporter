@@ -65,11 +65,11 @@ Plans:
   3. Sidechain messages (is_sidechain=1) are excluded from parent session totals — heavy subagent sessions do not double-count.
   4. The session detail panel in the web UI shows the token breakdown and cache hit rate when a session bar is clicked.
   5. The day summary panel in the web UI shows total tokens for the selected date.
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 33-01: Token service (src/services/tokens.js) with day-summary, per-session, and single-session-detail query functions
-- [ ] 33-02: API route (src/server/routes/tokens.js) and registration; session detail panel and day summary panel Vue updates
+- [ ] 33-01-PLAN.md — Token service factory and API route (service + endpoint + server registration)
+- [ ] 33-02-PLAN.md — Vue frontend token display (TimelinePage fetch, SessionDetailPanel breakdown, DaySummary total)
 
 ---
 
