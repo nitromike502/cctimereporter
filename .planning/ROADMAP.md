@@ -92,7 +92,7 @@ Plans:
 
 #### Phase 35: Tokens Chart Page
 
-**Goal**: A new `/tokens` page is accessible from the app navigation and shows a line chart with one line per session and an aggregate line, with cumulative/per-message toggle, per-session line visibility toggle, and compaction event markers.
+**Goal**: A new `/tokens` page is accessible from the app navigation and shows a line chart with one line per session and an aggregate line, with cumulative/per-message toggle, per-session line visibility toggle.
 **Depends on**: Phase 33
 **Requirements**: CHART-01, CHART-02, CHART-03, CHART-04, CHART-05, CHART-06
 **Success Criteria** (what must be TRUE):
@@ -101,11 +101,11 @@ Plans:
   3. User can toggle between "Cumulative" and "Per Message" chart views — cumulative shows monotonically increasing token totals; per-message shows token count per individual assistant message.
   4. User can click a session name in the legend to show or hide that session's line without affecting other lines.
   5. The chart renders correctly in both light and dark themes, matching the Gantt bar color palette.
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 35-01: Install chart.js + vue-chartjs as devDependencies; TokensPage.vue scaffold with date navigation and router registration
-- [ ] 35-02: Line chart implementation (per-session lines, aggregate line, cumulative/per-message toggle, session visibility toggle, session detail on click, dark mode support)
+- [ ] 35-01-PLAN.md — Install chart.js + vue-chartjs; TokensPage scaffold with date nav, app header nav, route registration
+- [ ] 35-02-PLAN.md — Line chart implementation (per-session lines, aggregate line, toggle, legend, session detail on click, dark mode)
 
 ---
 
