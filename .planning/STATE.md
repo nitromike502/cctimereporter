@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 33 — Service API Token Queries
-Plan: 02 of 2 in phase
-Status: Phase 33 complete — 2/2 plans done
-Last activity: 2026-04-09 — Completed 33-02-PLAN.md (Vue token UI wiring)
+Phase: 34 — CLI/MCP Extension
+Plan: 01 of 1 in phase
+Status: Phase 34 complete — 1/1 plans done
+Last activity: 2026-04-09 — Completed 34-01-PLAN.md (CLI and MCP token enrichment — DISP-04 through DISP-07)
 
-Progress: v1.1.0 in progress ░░░░░░██░░░░░░░
-Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 35 plan 01 complete. Phase 34, 35-02 planned.
+Progress: v1.1.0 in progress ░░░░░░███░░░░░░
+Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 34 complete (1 plan). Phase 35 plan 01 complete. Phase 35-02 planned.
 
 ## Performance Metrics
 
@@ -46,6 +46,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - SQLite aggregate null detection (33-01) — aggregate queries always return 1 row; check all individual columns null to detect "no data" vs "no session"
 - Supplementary fetch pattern (33-02) — token fetch is fire-and-forget alongside timeline fetch; failures silently null out tokenData, never propagate to timeline
 - formatTokenCount null/zero returns em dash in detail panel, null in DaySummary (conditional render vs em dash display) (33-02)
+- sessionId stripped from tokens sub-object in CLI/MCP session responses (34-01) — redundant since sessionId is already on the parent session object
+- CLI lazy import pattern for token service (34-01) — createTokensService imported inside .action() handler alongside timeline service, defers prepared-statement setup until command runs
 
 ### Pending Todos
 
@@ -66,5 +68,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-09
-Stopped at: Completed 33-02-PLAN.md — Vue token UI wiring (SessionDetailPanel 4th row, DaySummary total)
+Stopped at: Completed 34-01-PLAN.md — CLI/MCP token enrichment (DISP-04 through DISP-07)
 Resume file: None
