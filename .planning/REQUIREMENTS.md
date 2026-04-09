@@ -9,11 +9,11 @@ Requirements for token usage tracking and visualization. Each maps to roadmap ph
 
 ### Data Storage
 
-- [ ] **DATA-01**: Store input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens per assistant message in schema v10
-- [ ] **DATA-02**: Store ephemeral cache tier sub-fields (ephemeral_5m_input_tokens, ephemeral_1h_input_tokens) per assistant message
-- [ ] **DATA-03**: Store model name per assistant message
-- [ ] **DATA-04**: Schema auto-migrates from v9 to v10
-- [ ] **DATA-05**: Historical sessions backfilled with token data via re-import
+- [x] **DATA-01**: Store input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens per assistant message in schema v10
+- [x] **DATA-02**: Store ephemeral cache tier sub-fields (ephemeral_5m_input_tokens, ephemeral_1h_input_tokens) per assistant message
+- [x] **DATA-03**: Store model name per assistant message
+- [x] **DATA-04**: Schema auto-migrates from v9 to v10
+- [x] **DATA-05**: Historical sessions backfilled with token data via re-import
 
 ### Token Display
 
@@ -63,11 +63,11 @@ Deferred to later milestones. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 32 | Pending |
-| DATA-02 | Phase 32 | Pending |
-| DATA-03 | Phase 32 | Pending |
-| DATA-04 | Phase 32 | Pending |
-| DATA-05 | Phase 32 | Pending |
+| DATA-01 | Phase 32 | Complete |
+| DATA-02 | Phase 32 | Complete |
+| DATA-03 | Phase 32 | Complete |
+| DATA-04 | Phase 32 | Complete |
+| DATA-05 | Phase 32 | Complete |
 | DISP-01 | Phase 33 | Pending |
 | DISP-02 | Phase 33 | Pending |
 | DISP-03 | Phase 33 | Pending |

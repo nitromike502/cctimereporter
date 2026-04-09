@@ -50,7 +50,7 @@ Phases 28-31 delivered: service layer extraction, Commander CLI, MCP server (8 t
 **Plans**: 1 plan
 
 Plans:
-- [ ] 32-01: Schema v10 migration (7 new columns on messages) and importer extraction (three-place update: schema.js, db-writer.js, importer/index.js)
+- [x] 32-01: Schema v10 migration (7 new columns on messages) and importer extraction (three-place update: schema.js, db-writer.js, importer/index.js)
 
 ---
 
@@ -117,7 +117,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1-6. v1.0 MVP | v1.0 | 14/14 | Complete | 2026-03-01 |
 | 7-31. Service Layer, CLI, MCP | v0.8.0 | —/— | Complete | 2026-03-30 |
-| 32. Data Foundation | v1.1.0 | 0/1 | Not started | - |
+| 32. Data Foundation | v1.1.0 | 1/1 | Complete | 2026-04-08 |
 | 33. Service, API, Token Queries | v1.1.0 | 0/2 | Not started | - |
 | 34. CLI and MCP Extension | v1.1.0 | 0/1 | Not started | - |
 | 35. Tokens Chart Page | v1.1.0 | 0/2 | Not started | - |
