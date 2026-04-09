@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import { createTimelineService } from '../../services/timeline.js';
 import { createSessionsService } from '../../services/sessions.js';
+import { createTokensService } from '../../services/tokens.js';
 import { enrichWithFormattedTime } from '../../cli/format.js';
 
 /**
@@ -25,6 +26,7 @@ import { enrichWithFormattedTime } from '../../cli/format.js';
 export function registerQueryTools(server, db) {
   const timeline = createTimelineService(db);
   const sessions = createSessionsService(db);
+  const tokens = createTokensService(db);
 
   // --- Tool 1: get_day_summary ---
   server.registerTool(
@@ -39,7 +41,9 @@ export function registerQueryTools(server, db) {
     ({ date, idle_threshold_min }) => {
       const report = timeline.getTimelineReport(date, { thresholdMin: idle_threshold_min ?? 10 });
       const enriched = enrichWithFormattedTime(report);
-      return { content: [{ type: 'text', text: JSON.stringify(enriched) }] };
+      const tokenData = tokens.getDayTokens(date);
+      const withTokens = { ...enriched, tokens: tokenData.dayTotal ?? null };
+      return { content: [{ type: 'text', text: JSON.stringify(withTokens) }] };
     }
   );
 
@@ -55,7 +59,26 @@ export function registerQueryTools(server, db) {
     },
     ({ date, idle_threshold_min }) => {
       const result = timeline.getTimelineUI(date, { thresholdMin: idle_threshold_min ?? 10 });
-      return { content: [{ type: 'text', text: JSON.stringify(result.projects) }] };
+      const tokenData = tokens.getDayTokens(date);
+      const sessionTokenMap = new Map(tokenData.sessions.map(s => [s.sessionId, s]));
+      const enrichedProjects = result.projects.map(proj => ({
+        ...proj,
+        sessions: proj.sessions.map(s => {
+          const st = sessionTokenMap.get(s.sessionId);
+          return {
+            ...s,
+            tokens: st ? {
+              inputTokens: st.inputTokens,
+              outputTokens: st.outputTokens,
+              cacheCreationInputTokens: st.cacheCreationInputTokens,
+              cacheReadInputTokens: st.cacheReadInputTokens,
+              totalTokens: st.totalTokens,
+              cacheHitRate: st.cacheHitRate,
+            } : null,
+          };
+        }),
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify(enrichedProjects) }] };
     }
   );
 
