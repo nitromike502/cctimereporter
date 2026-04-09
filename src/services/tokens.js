@@ -123,6 +123,27 @@ export function createTokensService(db) {
     GROUP BY m.session_id
   `);
 
+  // Per-message token data for all sessions in a day range.
+  // Returns one row per qualifying assistant message, ordered by session + timestamp.
+  // Used by getDayTokens to embed tokenMessages arrays for chart visualization.
+  // Excludes sidechain and fork-branch messages (same filters as aggregates).
+  const perMessageStmt = db.prepare(`
+    SELECT
+      m.session_id,
+      m.input_tokens,
+      m.output_tokens,
+      COALESCE(m.input_tokens, 0) + COALESCE(m.output_tokens, 0)
+        + COALESCE(m.cache_creation_input_tokens, 0)
+        + COALESCE(m.cache_read_input_tokens, 0) AS total_tokens
+    FROM messages m
+    WHERE m.type = 'assistant'
+      AND m.is_sidechain = 0
+      AND m.is_fork_branch = 0
+      AND m.timestamp >= ?
+      AND m.timestamp <  ?
+    ORDER BY m.session_id, m.timestamp
+  `);
+
   // Single-session aggregation (no date filter).
   // Used by getSessionTokens() for future Phase 34/35 per-session detail queries.
   const singleSessionStmt = db.prepare(`
@@ -161,12 +182,27 @@ export function createTokensService(db) {
     const dayRow = dayTotalStmt.get(dayStartUTC, dayEndUTC);
     const sessionRows = perSessionStmt.all(dayStartUTC, dayEndUTC);
 
+    // Build per-message arrays grouped by session_id for chart visualization.
+    // Each entry is { inputTokens, outputTokens, totalTokens } per assistant message.
+    const messageRows = perMessageStmt.all(dayStartUTC, dayEndUTC);
+    /** @type {Map<string, Array<{inputTokens: number|null, outputTokens: number|null, totalTokens: number}>>} */
+    const messagesBySession = new Map();
+    for (const row of messageRows) {
+      if (!messagesBySession.has(row.session_id)) messagesBySession.set(row.session_id, []);
+      messagesBySession.get(row.session_id).push({
+        inputTokens:  row.input_tokens,
+        outputTokens: row.output_tokens,
+        totalTokens:  row.total_tokens,
+      });
+    }
+
     return {
       date,
       dayTotal: enrichRow(dayRow),
       sessions: sessionRows.map(r => ({
-        sessionId: r.session_id,
+        sessionId:     r.session_id,
         ...enrichRow(r),
+        tokenMessages: messagesBySession.get(r.session_id) ?? [],
       })),
     };
   }
