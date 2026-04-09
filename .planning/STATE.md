@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 35 — Tokens Chart Page
-Plan: 01 of 2 in phase
-Status: Phase 35 plan 01 complete — 1/2 plans done
-Last activity: 2026-04-07 — Completed 35-01-PLAN.md (scaffold, nav, shared color utility)
+Phase: 33 — Service API Token Queries
+Plan: 01 of 1 in phase
+Status: Phase 33 complete — 1/1 plans done
+Last activity: 2026-04-09 — Completed 33-01-PLAN.md (token service + GET /api/tokens endpoint)
 
-Progress: v1.1.0 in progress ░░░░░█░░░░░░░░░
-Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 35 plan 01 complete. Phases 33, 34, 35-02 planned.
+Progress: v1.1.0 in progress ░░░░░░█░░░░░░░░
+Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (1 plan). Phase 35 plan 01 complete. Phase 34, 35-02 planned.
 
 ## Performance Metrics
 
@@ -42,6 +42,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - Agent sidechain messages also extract token data (32-01) — preserves actual spend tracking for subagent users
 - Shared project color utility in src/client/utils/project-colors.js (35-01) — extracted from TimelinePage, ensures consistent colors across Timeline and Tokens pages
 - App.vue persistent nav excludes /components route (35-01) — dev tool, not user-facing navigation
+- createTokensService factory pattern (33-01) — prepared statements at factory time, same as timeline/sessions services
+- SQLite aggregate null detection (33-01) — aggregate queries always return 1 row; check all individual columns null to detect "no data" vs "no session"
 
 ### Pending Todos
 
@@ -61,6 +63,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-07
-Stopped at: Completed 35-01-PLAN.md — Tokens page scaffold, nav header, chart.js installed, shared color utility
+Last session: 2026-04-09
+Stopped at: Completed 33-01-PLAN.md — token aggregation service + GET /api/tokens endpoint
 Resume file: None
