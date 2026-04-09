@@ -150,6 +150,7 @@ import SessionMessagesModal from '../components/SessionMessagesModal.vue'
 import SessionEditModal from '../components/SessionEditModal.vue'
 import AppProgressBar from '../components/AppProgressBar.vue'
 import { driver } from 'driver.js'
+import { projectColor } from '../utils/project-colors.js'
 
 // --- Router ---
 
@@ -425,19 +426,6 @@ function toggleProject(projectId) {
     next.add(projectId)
   }
   hiddenProjects.value = next
-}
-
-// --- Project color assignment (djb2 hash → palette) ---
-
-const COLOR_PALETTE = [
-  '#4e9af1', '#f4a523', '#2ebd6b', '#e05c5c', '#a87fe0',
-  '#00c4bc', '#f06292', '#8bc34a', '#ff8f00', '#78909c',
-]
-
-function projectColor(projectPath) {
-  let hash = 5381
-  for (const char of projectPath) hash = (hash * 33) ^ char.charCodeAt(0)
-  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length]
 }
 
 // --- Computed: colorized + filtered projects ---

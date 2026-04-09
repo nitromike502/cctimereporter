@@ -38,9 +38,11 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
     "@vuepic/vue-datepicker": "^12.1.0",
+    "chart.js": "^4.5.1",
     "reka-ui": "^2.8.2",
     "vite": "^7.3.1",
     "vue": "^3.5.29",
+    "vue-chartjs": "^5.3.3",
     "vue-router": "^5.0.3"
   }
 }
