@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -68,6 +68,13 @@ CREATE TABLE IF NOT EXISTS messages (
   is_fork_branch  BOOLEAN DEFAULT 0,
   fork_branch_id  TEXT,
   content         TEXT,
+  input_tokens                INTEGER,
+  output_tokens               INTEGER,
+  cache_creation_input_tokens INTEGER,
+  cache_read_input_tokens     INTEGER,
+  ephemeral_5m_input_tokens   INTEGER,
+  ephemeral_1h_input_tokens   INTEGER,
+  model                       TEXT,
   UNIQUE(session_id, uuid),
   FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
@@ -186,6 +193,21 @@ CREATE TABLE IF NOT EXISTS process_locks (
   port       INTEGER,
   started_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+`;
+
+/**
+ * ALTER TABLE statements to migrate v9 → v10.
+ * Adds six token count columns and one model string column to messages.
+ * Enables per-message token usage tracking for v1.1.0.
+ */
+export const MIGRATION_V9_TO_V10 = `
+ALTER TABLE messages ADD COLUMN input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN output_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN cache_creation_input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN cache_read_input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN ephemeral_5m_input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN ephemeral_1h_input_tokens INTEGER;
+ALTER TABLE messages ADD COLUMN model TEXT;
 `;
 
 export const MIGRATION_V1_TO_V2 = `
