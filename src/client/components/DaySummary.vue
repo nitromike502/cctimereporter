@@ -2,6 +2,9 @@
   <div class="day-summary">
     <p class="summary-total">
       Total working time: <strong>{{ formatWorkingTime(totalWorkingMs) }}</strong>
+      <span v-if="formattedDayTokens" class="token-total">
+        | <strong>{{ formattedDayTokens }}</strong> tokens
+      </span>
     </p>
 
     <TabsRoot default-value="project">
@@ -84,6 +87,22 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  dayTokens: {
+    type: Object,
+    default: null, // { totalTokens, cacheHitRate, ... }
+  },
+})
+
+function formatTokenCount(n) {
+  if (n == null || n === 0) return null // return null so we can conditionally show
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
+  return n.toLocaleString()
+}
+
+const formattedDayTokens = computed(() => {
+  if (!props.dayTokens) return null
+  return formatTokenCount(props.dayTokens.totalTokens)
 })
 
 function formatWorkingTime(ms) {
@@ -189,6 +208,15 @@ const branchRows = computed(() => {
   color: var(--color-heading);
   margin-bottom: var(--spacing-md);
   margin-top: 0;
+}
+
+.token-total {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.token-total strong {
+  color: var(--color-heading);
 }
 
 .tabs-list {

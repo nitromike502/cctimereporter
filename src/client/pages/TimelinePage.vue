@@ -79,6 +79,7 @@
         :session="selectedSession || selectedForkParentSession"
         :fork="selectedFork"
         :project-name="selectedProjectName"
+        :tokens="selectedSessionTokens"
         @show-messages="onShowMessages"
         @show-messages-fork="onShowMessagesFork"
         @edit="editModalOpen = true"
@@ -117,7 +118,7 @@
       />
 
       <!-- Day summary: total time + per-project/ticket/branch breakdowns -->
-      <DaySummary :projects="timelineData.projects" />
+      <DaySummary :projects="timelineData.projects" :day-tokens="tokenData?.dayTotal ?? null" />
     </div>
 
     <!-- Session messages modal -->
@@ -189,6 +190,8 @@ const showForks = ref(localStorage.getItem(SHOW_FORKS_KEY) !== 'false')
 const selectedFork = ref(null)
 // Parent session of the currently selected fork
 const selectedForkParentSession = ref(null)
+// Token data for the selected date: { dayTotal: {...}, sessions: [...] }
+const tokenData = ref(null)
 
 function setIdleThreshold(val) {
   idleThreshold.value = val
@@ -285,6 +288,24 @@ function navigateToDate(dateStr) {
 }
 
 // --- Data fetching ---
+
+async function fetchTokens() {
+  try {
+    const res = await fetch(`/api/tokens?date=${selectedDate.value}`)
+    if (!res.ok) return // fail silently — tokens are supplementary
+    tokenData.value = await res.json()
+  } catch {
+    // Token fetch failure should not affect timeline
+    tokenData.value = null
+  }
+}
+
+const selectedSessionTokens = computed(() => {
+  if (!tokenData.value?.sessions) return null
+  const sessionId = (selectedSession.value ?? selectedForkParentSession.value)?.sessionId
+  if (!sessionId) return null
+  return tokenData.value.sessions.find(s => s.sessionId === sessionId) ?? null
+})
 
 async function fetchTimeline() {
   loading.value = true
@@ -480,6 +501,7 @@ function triggerImport({ full = false } = {}) {
       localStorage.setItem(MIGRATION_DISMISSED_KEY, String(schemaVersion.value))
     }
     fetchTimeline()
+    fetchTokens()
   })
 
   source.addEventListener('error', () => {
@@ -500,7 +522,7 @@ watch(messagesModalOpen, (isOpen) => {
 
 // --- Lifecycle ---
 
-onMounted(fetchTimeline)
+onMounted(() => { fetchTimeline(); fetchTokens() })
 onUnmounted(() => { importEventSource.value?.close() })
 watch(() => route.query.date, () => {
   selectedSession.value = null
@@ -508,6 +530,7 @@ watch(() => route.query.date, () => {
   selectedForkParentSession.value = null
   zoomLevel.value = 1
   fetchTimeline()
+  fetchTokens()
 })
 </script>
 

@@ -88,6 +88,26 @@
         <span class="detail-label">End:</span>
         <span class="detail-value">{{ displayEndTime || '\u00A0' }}</span>
       </div>
+
+      <!-- Row 4: Token usage -->
+      <div class="detail-item">
+        <span class="detail-label">Tokens:</span>
+        <span class="detail-value">
+          {{ (tokens && formatTokenCount(tokens.totalTokens)) || '\u00A0' }}
+          <span v-if="tokenBreakdownLabel" class="token-breakdown">{{ tokenBreakdownLabel }}</span>
+        </span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Cache Hit:</span>
+        <span class="detail-value">{{ (tokens && formatCacheHitRate(tokens.cacheHitRate)) || '\u00A0' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Cache:</span>
+        <span class="detail-value">
+          {{ (tokens && tokens.cacheReadInputTokens != null) ? formatTokenCount(tokens.cacheReadInputTokens) + ' read' : '\u00A0' }}
+          <span v-if="tokens?.cacheCreationInputTokens" class="token-breakdown">{{ formatTokenCount(tokens.cacheCreationInputTokens) }} created</span>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -122,12 +142,36 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  tokens: {
+    type: Object,
+    default: null, // { inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, totalTokens, cacheHitRate }
+  },
 })
 
 /** Abbreviated session ID: first 12 chars + ellipsis */
 const sessionIdShort = computed(() => {
   if (!props.session) return ''
   return props.session.sessionId.slice(0, 12) + '...'
+})
+
+function formatTokenCount(n) {
+  if (n == null || n === 0) return '\u2014' // em dash
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
+  return n.toLocaleString()
+}
+
+function formatCacheHitRate(rate) {
+  if (rate == null) return '\u2014'
+  return rate.toFixed(1) + '%'
+}
+
+const tokenBreakdownLabel = computed(() => {
+  if (!props.tokens) return ''
+  const parts = []
+  if (props.tokens.inputTokens != null) parts.push(formatTokenCount(props.tokens.inputTokens) + ' in')
+  if (props.tokens.outputTokens != null) parts.push(formatTokenCount(props.tokens.outputTokens) + ' out')
+  return parts.join(' / ')
 })
 
 /**
@@ -200,7 +244,7 @@ const displayEndTime = computed(() => {
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, auto);
+  grid-template-rows: repeat(4, auto);
   grid-auto-flow: column;
   gap: var(--spacing-xs) var(--spacing-lg);
   width: 100%;
@@ -279,6 +323,13 @@ const displayEndTime = computed(() => {
 }
 
 .elapsed-time {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  font-weight: 400;
+  margin-left: var(--spacing-xs);
+}
+
+.token-breakdown {
   font-size: var(--font-size-xs);
   color: var(--color-muted);
   font-weight: 400;
