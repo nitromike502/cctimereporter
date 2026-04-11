@@ -21,7 +21,6 @@
     </div>
 
     <template v-else>
-      <!-- Session detail panel — always visible when content is present -->
       <SessionDetailPanel
         :session="selectedSession"
         :project-name="selectedProjectName"
@@ -29,55 +28,64 @@
         @show-messages="onShowMessages"
       />
 
+      <!-- Project filter bar (matches TimelinePage pattern) -->
+      <div class="filter-bar" v-if="colorizedProjects.length > 1">
+        <span class="filter-label">Projects:</span>
+        <AppCheckbox
+          v-for="p in colorizedProjects"
+          :key="p.projectPath"
+          :model-value="!hiddenProjects.has(p.projectPath)"
+          :label="p.displayName"
+          @update:model-value="toggleProject(p.projectPath)"
+        />
+      </div>
+
+      <!-- Legend (same GanttLegend component as TimelinePage) -->
+      <GanttLegend
+        v-if="legendItems.length > 0"
+        :projects="legendItems"
+      />
+
       <div class="tokens-content">
-        <!-- Chart controls: segmented view toggle -->
         <div class="chart-controls">
           <div class="view-toggle" role="group" aria-label="Chart view mode">
             <button
               class="toggle-btn"
-              :class="{ active: viewMode === 'cumulative' }"
-              @click="viewMode = 'cumulative'"
+              :class="{ active: viewMode === 'sessions' }"
+              @click="viewMode = 'sessions'"
             >
-              Cumulative
+              Session Totals
             </button>
             <button
               class="toggle-btn"
-              :class="{ active: viewMode === 'per-message' }"
-              @click="viewMode = 'per-message'"
+              :class="{ active: viewMode === 'timeline' }"
+              @click="viewMode = 'timeline'"
             >
               Per Message
             </button>
           </div>
+
+          <label v-if="viewMode === 'timeline'" class="bucket-control">
+            <span class="bucket-label">Interval:</span>
+            <select v-model.number="bucketMinutes" class="bucket-select">
+              <option :value="1">1 min</option>
+              <option :value="5">5 min</option>
+              <option :value="10">10 min</option>
+              <option :value="15">15 min</option>
+              <option :value="30">30 min</option>
+              <option :value="60">1 hour</option>
+            </select>
+          </label>
         </div>
 
-        <!-- Token usage chart -->
-        <TokenChart :chart-data="chartData" :chart-options="chartOptions" />
-
-        <!-- Custom HTML legend with session visibility toggle -->
-        <div class="token-legend" role="list" aria-label="Session legend">
-          <div
-            v-for="(session, idx) in enrichedSessions"
-            :key="session.sessionId"
-            class="legend-item"
-            :class="{ 'legend-item--hidden': hiddenSessions.has(idx) }"
-            role="listitem"
-            tabindex="0"
-            :title="hiddenSessions.has(idx) ? 'Click to show' : 'Click to hide'"
-            @click="toggleSession(idx)"
-            @keydown.enter.prevent="toggleSession(idx)"
-            @keydown.space.prevent="toggleSession(idx)"
-          >
-            <span
-              class="legend-color"
-              :style="{ backgroundColor: projectColor(session.projectPath) }"
-            ></span>
-            <span class="legend-label">{{ resolveSessionLabel(session) }}</span>
-          </div>
-        </div>
+        <TokenChart
+          :chart-data="chartData"
+          :chart-options="chartOptions"
+          :chart-type="viewMode === 'sessions' ? 'bar' : 'line'"
+        />
       </div>
     </template>
 
-    <!-- Session messages modal -->
     <SessionMessagesModal
       v-model:open="messagesModalOpen"
       :session-id="messagesModalSessionId"
@@ -90,36 +98,33 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TimelineToolbar from '../components/TimelineToolbar.vue'
 import AppButton from '../components/AppButton.vue'
+import AppCheckbox from '../components/AppCheckbox.vue'
 import TokenChart from '../components/TokenChart.vue'
 import SessionDetailPanel from '../components/SessionDetailPanel.vue'
 import SessionMessagesModal from '../components/SessionMessagesModal.vue'
-import { projectColor } from '../utils/project-colors.js'
+import GanttLegend from '../components/GanttLegend.vue'
+import { projectColor, resetProjectColors } from '../utils/project-colors.js'
 import { useTheme } from '../composables/useTheme.js'
-
-// --- Router ---
 
 const route = useRoute()
 const router = useRouter()
-
-// --- Theme ---
-
 const { isDark } = useTheme()
 
 // --- State ---
 
-const tokensData = ref(null)       // Raw /api/tokens response
-const timelineData = ref(null)     // Raw /api/timeline response (for session metadata)
+const tokensData = ref(null)
+const timelineData = ref(null)
 const loading = ref(false)
 const error = ref(null)
 
-// Chart/interaction state
-const viewMode = ref('cumulative') // 'cumulative' | 'per-message'
-const hiddenSessions = ref(new Set())
+const viewMode = ref('sessions')        // 'sessions' | 'timeline'
+const bucketMinutes = ref(5)
+const hiddenProjects = ref(new Set())   // Set of projectPath strings
 const selectedSession = ref(null)
 const messagesModalOpen = ref(false)
 const messagesModalSessionId = ref('')
 
-// --- Date management (URL-synced, mirrors TimelinePage) ---
+// --- Date management ---
 
 function todayStr() {
   const d = new Date()
@@ -141,13 +146,11 @@ async function fetchData() {
   timelineData.value = null
 
   try {
-    // Fetch tokens and timeline in parallel — timeline provides session metadata (project path, name, etc.)
     const [tokRes, tlRes] = await Promise.all([
       fetch(`/api/tokens?date=${selectedDate.value}`),
       fetch(`/api/timeline?date=${selectedDate.value}`),
     ])
     if (!tokRes.ok) throw new Error(`Tokens API: HTTP ${tokRes.status}`)
-    // Timeline failure is non-fatal — we still show the chart without project metadata
     const [tokJson, tlJson] = await Promise.all([
       tokRes.json(),
       tlRes.ok ? tlRes.json() : Promise.resolve(null),
@@ -161,12 +164,8 @@ async function fetchData() {
   }
 }
 
-// --- Session metadata helpers ---
+// --- Session metadata ---
 
-/**
- * Build a Map from sessionId → timeline session object.
- * Used to enrich token sessions with project path, display name, timestamps, etc.
- */
 const timelineSessionMap = computed(() => {
   const map = new Map()
   if (!timelineData.value?.projects) return map
@@ -182,10 +181,6 @@ const timelineSessionMap = computed(() => {
   return map
 })
 
-/**
- * Enriched session array: token sessions merged with timeline metadata.
- * Only includes sessions that have at least one assistant message with token data.
- */
 const enrichedSessions = computed(() => {
   const sessions = tokensData.value?.sessions ?? []
   return sessions
@@ -193,7 +188,6 @@ const enrichedSessions = computed(() => {
     .map(s => {
       const tl = timelineSessionMap.value.get(s.sessionId) ?? {}
       return {
-        // Token aggregate fields
         sessionId: s.sessionId,
         inputTokens: s.inputTokens,
         outputTokens: s.outputTokens,
@@ -202,8 +196,7 @@ const enrichedSessions = computed(() => {
         totalTokens: s.totalTokens,
         cacheHitRate: s.cacheHitRate,
         tokenMessages: s.tokenMessages,
-        // Timeline metadata (gracefully absent)
-        projectPath: tl.projectPath ?? s.sessionId, // fallback to sessionId for color hash
+        projectPath: tl.projectPath ?? s.sessionId,
         projectName: tl.projectName ?? '',
         userLabel: tl.userLabel ?? null,
         customTitle: tl.customTitle ?? null,
@@ -219,14 +212,35 @@ const enrichedSessions = computed(() => {
     })
 })
 
-// --- Session detail ---
+// --- Project filtering (matches TimelinePage pattern) ---
 
-const selectedProjectName = computed(() => {
-  if (!selectedSession.value) return ''
-  return selectedSession.value.projectName ?? ''
+const colorizedProjects = computed(() => {
+  const seen = new Set()
+  const items = []
+  for (const s of enrichedSessions.value) {
+    if (seen.has(s.projectPath)) continue
+    seen.add(s.projectPath)
+    items.push({
+      projectPath: s.projectPath,
+      displayName: s.projectName || s.projectPath.split('/').filter(Boolean).pop() || s.projectPath,
+      color: projectColor(s.projectPath),
+    })
+  }
+  return items
 })
 
-/** Token aggregate object for the selected session — fed to SessionDetailPanel :tokens prop */
+const visibleSessions = computed(() =>
+  enrichedSessions.value.filter(s => !hiddenProjects.value.has(s.projectPath))
+)
+
+const legendItems = computed(() =>
+  colorizedProjects.value.map(p => ({ displayName: p.displayName, color: p.color }))
+)
+
+// --- Session detail ---
+
+const selectedProjectName = computed(() => selectedSession.value?.projectName ?? '')
+
 const selectedSessionTokens = computed(() => {
   if (!selectedSession.value) return null
   const s = selectedSession.value
@@ -246,7 +260,7 @@ function onShowMessages() {
   messagesModalOpen.value = true
 }
 
-// --- Session label resolution ---
+// --- Helpers ---
 
 function resolveSessionLabel(session) {
   if (session.userLabel) return session.userLabel
@@ -254,132 +268,73 @@ function resolveSessionLabel(session) {
   return session.sessionId.slice(0, 8) + '...'
 }
 
-// --- Legend toggle ---
-
-function toggleSession(idx) {
-  const next = new Set(hiddenSessions.value)
-  if (next.has(idx)) next.delete(idx)
-  else next.add(idx)
-  hiddenSessions.value = next
+function toggleProject(projectPath) {
+  const next = new Set(hiddenProjects.value)
+  if (next.has(projectPath)) next.delete(projectPath)
+  else next.add(projectPath)
+  hiddenProjects.value = next
 }
 
-// --- Chart data helpers ---
-
-function buildTokenSeries(messages, mode) {
-  if (mode === 'cumulative') {
-    let running = 0
-    return messages.map(m => {
-      running += m.totalTokens ?? 0
-      return running
-    })
-  }
-  // per-message mode
-  return messages.map(m => m.totalTokens ?? 0)
+function formatTickValue(value) {
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M'
+  if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K'
+  return value
 }
-
-// --- chartData computed ---
-
-const AGGREGATE_DATASET_INDEX = 0
-
-const chartData = computed(() => {
-  if (!enrichedSessions.value.length) return { labels: [], datasets: [] }
-
-  const sessions = enrichedSessions.value
-  const maxMessages = Math.max(...sessions.map(s => s.tokenMessages.length), 0)
-  const labels = Array.from({ length: maxMessages }, (_, i) => i + 1)
-
-  // Per-session datasets (offset by 1 since aggregate is at index 0)
-  const sessionDatasets = sessions.map((session, idx) => {
-    const series = buildTokenSeries(session.tokenMessages, viewMode.value)
-    const padded = series.concat(Array(Math.max(0, maxMessages - series.length)).fill(null))
-    return {
-      label: resolveSessionLabel(session),
-      data: padded,
-      borderColor: projectColor(session.projectPath),
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 2,
-      pointHoverRadius: 5,
-      tension: 0,
-      hidden: hiddenSessions.value.has(idx),
-    }
-  })
-
-  // Aggregate "All Sessions" line — sum of all VISIBLE sessions at each message index
-  const aggregateData = Array.from({ length: maxMessages }, (_, i) => {
-    let sum = 0
-    let hasAny = false
-    sessionDatasets.forEach((ds, idx) => {
-      if (!hiddenSessions.value.has(idx) && ds.data[i] != null) {
-        sum += ds.data[i]
-        hasAny = true
-      }
-    })
-    return hasAny ? sum : null
-  })
-
-  // Resolve aggregate line color from CSS token for theme support
-  const aggregateColor =
-    getComputedStyle(document.documentElement).getPropertyValue('--color-muted').trim() || '#6e7c87'
-
-  const aggregateDataset = {
-    label: 'All Sessions',
-    data: aggregateData,
-    borderColor: aggregateColor,
-    backgroundColor: 'transparent',
-    borderWidth: 3,
-    borderDash: [6, 4],
-    pointRadius: 0,
-    tension: 0,
-    hidden: false,
-  }
-
-  return {
-    labels,
-    datasets: [aggregateDataset, ...sessionDatasets],
-  }
-})
-
-// --- CSS token helper ---
 
 function getToken(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-// --- chartOptions computed (theme-reactive via isDark dependency) ---
+// --- Session Totals Bar Chart ---
 
-const chartOptions = computed(() => {
-  void isDark.value // reactive dependency — options recompute on theme switch
+const sessionTotalsData = computed(() => {
+  const sessions = visibleSessions.value
+  const labels = sessions.map(s => resolveSessionLabel(s))
 
-  const mutedColor  = getToken('--color-muted')  || '#6e7c87'
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Input Tokens',
+        data: sessions.map(s => s.inputTokens ?? 0),
+        backgroundColor: sessions.map(s => projectColor(s.projectPath)),
+        borderWidth: 0,
+        borderSkipped: false,
+      },
+      {
+        label: 'Output Tokens',
+        data: sessions.map(s => s.outputTokens ?? 0),
+        backgroundColor: sessions.map(s => {
+          const base = projectColor(s.projectPath)
+          return base + '99'  // 60% opacity for output tokens layer
+        }),
+        borderWidth: 0,
+        borderSkipped: false,
+      },
+    ],
+  }
+})
+
+const sessionTotalsOptions = computed(() => {
+  void isDark.value
+  const mutedColor = getToken('--color-muted') || '#6e7c87'
   const borderColor = getToken('--color-border') || '#d0d7de'
   const bgSecondary = getToken('--color-bg-secondary') || '#f6f8fa'
   const headingColor = getToken('--color-heading') || '#243846'
-  const bodyColor   = getToken('--color-body-text') || '#3e4d56'
+  const bodyColor = getToken('--color-body-text') || '#3e4d56'
 
   return {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
     onClick: (_event, activeElements) => {
       if (!activeElements.length) return
-      const { datasetIndex } = activeElements[0]
-      if (datasetIndex === AGGREGATE_DATASET_INDEX) return // ignore aggregate click
-      const sessionIdx = datasetIndex - 1 // offset by 1 (aggregate is index 0)
-      const session = enrichedSessions.value[sessionIdx]
+      const idx = activeElements[0].index
+      const session = visibleSessions.value[idx]
       if (!session) return
-      // Toggle: clicking same session deselects
-      if (selectedSession.value?.sessionId === session.sessionId) {
-        selectedSession.value = null
-      } else {
-        selectedSession.value = session
-      }
+      selectedSession.value = selectedSession.value?.sessionId === session.sessionId ? null : session
     },
     plugins: {
-      legend: { display: false }, // custom HTML legend instead
+      legend: { display: false },
       tooltip: {
         backgroundColor: bgSecondary,
         titleColor: headingColor,
@@ -387,59 +342,210 @@ const chartOptions = computed(() => {
         borderColor,
         borderWidth: 1,
         callbacks: {
-          title: (items) => `Message ${items[0]?.label ?? ''}`,
           label: (context) => {
             const value = context.parsed.y
             if (value == null) return null
-            const formatted = value >= 1_000_000
-              ? (value / 1_000_000).toFixed(1) + 'M'
-              : value >= 1_000
-              ? (value / 1_000).toFixed(0) + 'K'
-              : value.toLocaleString()
-            return `${context.dataset.label}: ${formatted} tokens`
+            return `${context.dataset.label}: ${formatTickValue(value)}`
           },
         },
       },
     },
     scales: {
       x: {
-        title: {
-          display: true,
-          text: 'Assistant Message Index',
-          color: mutedColor,
-        },
-        ticks: { color: mutedColor },
-        grid: { color: borderColor },
+        stacked: true,
+        ticks: { color: mutedColor, maxRotation: 45 },
+        grid: { display: false },
       },
       y: {
-        title: {
-          display: true,
-          text: viewMode.value === 'cumulative' ? 'Cumulative Tokens' : 'Tokens per Message',
-          color: mutedColor,
-        },
-        ticks: {
-          color: mutedColor,
-          callback: (value) => {
-            if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M'
-            if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K'
-            return value
-          },
-        },
+        stacked: true,
+        title: { display: true, text: 'Tokens', color: mutedColor },
+        ticks: { color: mutedColor, callback: formatTickValue },
         grid: { color: borderColor },
       },
     },
   }
 })
 
-// --- Reset interaction state on date change ---
+// --- Timeline Bucketed Chart ---
+
+/**
+ * Convert a UTC timestamp to local-time "minutes since midnight" for bucketing.
+ * This ensures bucket boundaries align to local clock times (e.g., 9:00, 9:05).
+ */
+function localMinuteOfDay(ts) {
+  const d = new Date(ts)
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+function formatLocalTime(minuteOfDay) {
+  const h = Math.floor(minuteOfDay / 60)
+  const m = minuteOfDay % 60
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`
+}
+
+function bucketMessages(sessions, bucketMin) {
+  // Collect all message local-time minutes across all sessions (including hidden, for consistent axis)
+  const allMinutes = []
+  sessions.forEach(s => {
+    for (const msg of s.tokenMessages) {
+      if (msg.timestamp) allMinutes.push(localMinuteOfDay(msg.timestamp))
+    }
+  })
+
+  if (allMinutes.length === 0) return { labels: [], bucketMap: new Map() }
+
+  const minMinute = Math.min(...allMinutes)
+  const maxMinute = Math.max(...allMinutes)
+
+  // Align bucket start to interval boundary
+  const startBucket = Math.floor(minMinute / bucketMin) * bucketMin
+  const endBucket = Math.floor(maxMinute / bucketMin) * bucketMin
+
+  // Generate labels (local time strings)
+  const labels = []
+  const bucketStarts = []
+  for (let m = startBucket; m <= endBucket; m += bucketMin) {
+    bucketStarts.push(m)
+    labels.push(formatLocalTime(m))
+  }
+
+  // Bucket messages per session
+  const bucketMap = new Map()
+  sessions.forEach((s, idx) => {
+    const buckets = new Array(bucketStarts.length).fill(null).map(() => ({ input: 0, output: 0 }))
+    for (const msg of s.tokenMessages) {
+      if (!msg.timestamp) continue
+      const minute = localMinuteOfDay(msg.timestamp)
+      const bucketIdx = Math.floor((minute - startBucket) / bucketMin)
+      if (bucketIdx >= 0 && bucketIdx < buckets.length) {
+        buckets[bucketIdx].input += msg.inputTokens ?? 0
+        buckets[bucketIdx].output += msg.outputTokens ?? 0
+      }
+    }
+    bucketMap.set(idx, buckets)
+  })
+
+  return { labels, bucketStarts, bucketMap }
+}
+
+const timelineChartData = computed(() => {
+  const sessions = visibleSessions.value
+  const { labels, bucketMap } = bucketMessages(sessions, bucketMinutes.value)
+
+  if (labels.length === 0) return { labels: [], datasets: [] }
+
+  // One line per visible session showing total tokens per time bucket
+  const datasets = []
+  sessions.forEach((session, idx) => {
+    const buckets = bucketMap.get(idx)
+    if (!buckets) return
+
+    const color = projectColor(session.projectPath)
+    const rawData = buckets.map(b => b.input + b.output)
+
+    // Find first and last bucket with data for this session
+    let first = -1, last = -1
+    for (let i = 0; i < rawData.length; i++) {
+      if (rawData[i] > 0) { if (first === -1) first = i; last = i }
+    }
+
+    // null outside the session's range, 0 for idle gaps within it
+    const data = rawData.map((v, i) => {
+      if (first === -1) return null          // no data at all
+      if (i < first || i > last) return null // before/after session
+      return v                               // 0 for idle gaps, value otherwise
+    })
+
+    datasets.push({
+      label: resolveSessionLabel(session),
+      data,
+      borderColor: color,
+      backgroundColor: color + '33',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.2,
+      fill: false,
+      spanGaps: false,
+      sessionIndex: idx,
+    })
+  })
+
+  return { labels, datasets }
+})
+
+const timelineChartOptions = computed(() => {
+  void isDark.value
+  const mutedColor = getToken('--color-muted') || '#6e7c87'
+  const borderColor = getToken('--color-border') || '#d0d7de'
+  const bgSecondary = getToken('--color-bg-secondary') || '#f6f8fa'
+  const headingColor = getToken('--color-heading') || '#243846'
+  const bodyColor = getToken('--color-body-text') || '#3e4d56'
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    onClick: (_event, activeElements) => {
+      if (!activeElements.length) return
+      const ds = timelineChartData.value.datasets[activeElements[0].datasetIndex]
+      if (ds?.sessionIndex == null) return
+      const session = visibleSessions.value[ds.sessionIndex]
+      if (!session) return
+      selectedSession.value = selectedSession.value?.sessionId === session.sessionId ? null : session
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: bgSecondary,
+        titleColor: headingColor,
+        bodyColor,
+        borderColor,
+        borderWidth: 1,
+        callbacks: {
+          label: (context) => {
+            const value = context.parsed.y
+            if (value == null || value === 0) return null
+            return `${context.dataset.label}: ${formatTickValue(value)}`
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Time of Day', color: mutedColor },
+        ticks: { color: mutedColor, maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },
+        grid: { color: borderColor },
+      },
+      y: {
+        title: { display: true, text: 'Tokens per Interval', color: mutedColor },
+        ticks: { color: mutedColor, callback: formatTickValue },
+        grid: { color: borderColor },
+        beginAtZero: true,
+      },
+    },
+  }
+})
+
+// --- Computed chart routing ---
+
+const chartData = computed(() =>
+  viewMode.value === 'sessions' ? sessionTotalsData.value : timelineChartData.value
+)
+
+const chartOptions = computed(() =>
+  viewMode.value === 'sessions' ? sessionTotalsOptions.value : timelineChartOptions.value
+)
+
+// --- Watchers ---
 
 watch(() => route.query.date, () => {
   selectedSession.value = null
-  hiddenSessions.value = new Set()
+  hiddenProjects.value = new Set()
+  resetProjectColors()
   fetchData()
 })
-
-// --- Lifecycle ---
 
 onMounted(fetchData)
 </script>
@@ -496,14 +602,12 @@ onMounted(fetchData)
   flex: 1;
 }
 
-/* Chart controls */
 .chart-controls {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
-/* Segmented view toggle */
 .view-toggle {
   display: inline-flex;
   border: 1px solid var(--color-border);
@@ -537,57 +641,39 @@ onMounted(fetchData)
   font-weight: 600;
 }
 
-/* Custom HTML legend */
-.token-legend {
+.bucket-control {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs) var(--spacing-md);
-  max-height: 120px;
-  overflow-y: auto;
-  padding: var(--spacing-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-}
-
-.legend-item {
-  display: flex;
-  flex-direction: row;
   align-items: center;
   gap: var(--spacing-xs);
-  cursor: pointer;
-  padding: 2px var(--spacing-xs);
-  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  color: var(--color-body-text);
-  transition: opacity var(--transition-fast), background var(--transition-fast);
-  user-select: none;
+  color: var(--color-muted);
 }
 
-.legend-item:hover {
+.bucket-select {
+  padding: 2px var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-bg);
+  color: var(--color-body-text);
+  cursor: pointer;
 }
 
-.legend-item:focus-visible {
-  outline: 2px solid var(--color-link);
-  outline-offset: 1px;
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-.legend-item--hidden {
-  opacity: 0.4;
-}
-
-.legend-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.legend-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 220px;
+.filter-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+  margin-right: var(--spacing-xs);
 }
 </style>

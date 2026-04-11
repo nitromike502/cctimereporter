@@ -1,6 +1,7 @@
 <template>
   <div class="token-chart-container">
-    <Line ref="chartRef" :data="chartData" :options="chartOptions" />
+    <Bar v-if="chartType === 'bar'" ref="chartRef" :data="chartData" :options="chartOptions" />
+    <Line v-else ref="chartRef" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
@@ -11,29 +12,23 @@ import {
   Tooltip,
   Legend,
   LineElement,
+  BarElement,
   CategoryScale,
   LinearScale,
   PointElement,
 } from 'chart.js'
-import { Line } from 'vue-chartjs'
+import { Line, Bar } from 'vue-chartjs'
 import { ref } from 'vue'
 
-// Register chart.js modules at module level — idempotent, safe to call multiple times.
-ChartJS.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement)
+ChartJS.register(Title, Tooltip, Legend, LineElement, BarElement, CategoryScale, LinearScale, PointElement)
 
-const props = defineProps({
-  chartData: {
-    type: Object,
-    required: true,
-  },
-  chartOptions: {
-    type: Object,
-    required: true,
-  },
+defineProps({
+  chartData: { type: Object, required: true },
+  chartOptions: { type: Object, required: true },
+  chartType: { type: String, default: 'bar' },
 })
 
 const chartRef = ref(null)
-
 defineExpose({ chartRef })
 </script>
 

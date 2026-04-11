@@ -151,7 +151,7 @@ import SessionMessagesModal from '../components/SessionMessagesModal.vue'
 import SessionEditModal from '../components/SessionEditModal.vue'
 import AppProgressBar from '../components/AppProgressBar.vue'
 import { driver } from 'driver.js'
-import { projectColor } from '../utils/project-colors.js'
+import { projectColor, resetProjectColors } from '../utils/project-colors.js'
 
 // --- Router ---
 
@@ -529,6 +529,7 @@ watch(() => route.query.date, () => {
   selectedFork.value = null
   selectedForkParentSession.value = null
   zoomLevel.value = 1
+  resetProjectColors()
   fetchTimeline()
   fetchTokens()
 })

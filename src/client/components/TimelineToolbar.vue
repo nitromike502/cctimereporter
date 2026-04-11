@@ -9,6 +9,12 @@
       <span class="date-display">{{ formatDate(date) }}</span>
     </div>
 
+    <!-- Center: page navigation -->
+    <div class="page-nav">
+      <RouterLink class="page-nav-link" :to="navTo('/timeline')">Timeline</RouterLink>
+      <RouterLink class="page-nav-link" :to="navTo('/tokens')">Tokens</RouterLink>
+    </div>
+
     <!-- Right group: Theme toggle + Threshold + DatePicker + Import -->
     <div class="right-group">
       <button
@@ -109,6 +115,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import AppButton from './AppButton.vue'
 import AppDatePicker from './AppDatePicker.vue'
@@ -154,6 +161,12 @@ onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
 const { isDark, toggle } = useTheme()
+
+const currentRoute = useRoute()
+function navTo(path) {
+  const query = currentRoute.query.date ? { date: currentRoute.query.date } : {}
+  return { path, query }
+}
 
 const showIdleInfo = ref(false)
 
@@ -220,6 +233,34 @@ function yesterdayStr() {
   font-size: var(--font-size-lg);
   color: var(--color-heading);
   margin-left: var(--spacing-xs);
+}
+
+.page-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.page-nav-link {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-decoration: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.page-nav-link:hover {
+  background: color-mix(in srgb, var(--color-link) 10%, transparent);
+  color: var(--color-link);
+}
+
+.page-nav-link.router-link-active {
+  background: var(--color-bg);
+  color: var(--color-heading);
+  font-weight: 600;
 }
 
 .right-group {

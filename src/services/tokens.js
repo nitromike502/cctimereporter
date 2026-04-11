@@ -130,6 +130,7 @@ export function createTokensService(db) {
   const perMessageStmt = db.prepare(`
     SELECT
       m.session_id,
+      m.timestamp,
       m.input_tokens,
       m.output_tokens,
       COALESCE(m.input_tokens, 0) + COALESCE(m.output_tokens, 0)
@@ -190,6 +191,7 @@ export function createTokensService(db) {
     for (const row of messageRows) {
       if (!messagesBySession.has(row.session_id)) messagesBySession.set(row.session_id, []);
       messagesBySession.get(row.session_id).push({
+        timestamp:    row.timestamp,
         inputTokens:  row.input_tokens,
         outputTokens: row.output_tokens,
         totalTokens:  row.total_tokens,
