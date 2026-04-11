@@ -83,10 +83,10 @@ Plans:
   2. `node bin/cli.js sessions --date YYYY-MM-DD --pretty` JSON output includes per-session token totals alongside existing session fields.
   3. The MCP `get_day_summary` tool response includes token totals without changing existing field names or structure.
   4. The MCP `get_sessions` tool response includes per-session token totals as additive fields — existing MCP consumers can ignore the new fields without error.
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 34-01: CLI summary and sessions command token enrichment; MCP get_day_summary and get_sessions token field additions
+- [ ] 34-01-PLAN.md — CLI and MCP token enrichment (summary, sessions, get_day_summary, get_sessions)
 
 ---
 
@@ -109,6 +109,18 @@ Plans:
 
 ---
 
+#### Phase 36: Tokens Chart Message Drill-Down
+
+**Goal**: Double-clicking a point on the Per Message line chart opens a modal showing the messages from that session's time bucket, with token counts on assistant messages, enabling users to understand exactly what caused a token usage spike.
+**Depends on**: Phase 35
+**Plans**: 2 plans
+
+Plans:
+- [ ] 36-01-PLAN.md — Backend: timestamp-range query mode for messages API (from/to params, output_tokens in response)
+- [ ] 36-02-PLAN.md — Frontend: double-click handler on line chart, bucket-to-timestamp resolution, SessionMessagesModal time-range mode with token display
+
+---
+
 ## Progress
 
 **Execution Order:** 32 → 33 → 35 (Phase 34 can run in parallel with or after 33; Phase 35 depends on 33 only)
@@ -121,3 +133,4 @@ Plans:
 | 33. Service, API, Token Queries | v1.1.0 | 0/2 | Not started | - |
 | 34. CLI and MCP Extension | v1.1.0 | 0/1 | Not started | - |
 | 35. Tokens Chart Page | v1.1.0 | 0/2 | Not started | - |
+| 36. Tokens Chart Message Drill-Down | v1.1.0 | 0/2 | Not started | - |
