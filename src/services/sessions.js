@@ -5,6 +5,8 @@
  *   createSessionsService(db) → { getMessages, updateSession }
  *
  * getMessages:    Returns messages for a session with head/tail truncation.
+ *                 When `from` and `to` are provided, returns messages within
+ *                 that timestamp range with outputTokens field and isBucketView: true.
  *                 Returns null if session not found (route maps to 404).
  *
  * updateSession:  Updates user-editable fields (user_label, user_ticket).
@@ -63,6 +65,20 @@ export function createSessionsService(db) {
     ORDER BY timestamp ASC
   `);
 
+  // Time-range query: fetch messages in a specific timestamp window (for bucket drill-down).
+  // Includes output_tokens for inline token display. Primary branch only (no fork branches).
+  const timeRangeStmt = db.prepare(`
+    SELECT uuid, type, content, timestamp, is_fork_branch, fork_branch_id,
+           output_tokens
+    FROM messages
+    WHERE session_id = ?
+      AND content IS NOT NULL
+      AND timestamp >= ?
+      AND timestamp < ?
+      AND (fork_branch_id IS NULL OR fork_branch_id = '')
+    ORDER BY timestamp ASC
+  `);
+
   const findStmt = db.prepare('SELECT session_id FROM sessions WHERE session_id = ?');
 
   const updateStmt = db.prepare(`
@@ -72,16 +88,57 @@ export function createSessionsService(db) {
   `);
 
   /**
-   * Get messages for a session, with optional fork-branch filtering.
+   * Get messages for a session, with optional fork-branch filtering or timestamp range.
    * Returns first/last HEAD_COUNT/TAIL_COUNT messages with a skip count.
    *
+   * When `from` and `to` are both provided, returns messages within that timestamp
+   * range with outputTokens field and isBucketView: true (for bucket drill-down).
+   *
    * @param {string} sessionId
-   * @param {{ forkBranchId?: string }} [opts]
-   * @returns {{ messages: object[], totalCount: number, skipped: number } | null}
+   * @param {{ forkBranchId?: string, from?: string, to?: string }} [opts]
+   * @returns {{ messages: object[], totalCount: number, skipped: number, isBucketView?: boolean } | null}
    */
-  function getMessages(sessionId, { forkBranchId } = {}) {
+  function getMessages(sessionId, { forkBranchId, from, to } = {}) {
     const row = sessionExistsStmt.get(sessionId);
     if (!row) return null;
+
+    // Map DB rows to response shape (base fields, no token data).
+    const mapRow = (r) => ({
+      uuid: r.uuid,
+      role: r.type, // 'user' or 'assistant'
+      content: r.content,
+      timestamp: r.timestamp,
+      is_fork_branch: r.is_fork_branch === 1,
+      fork_branch_id: r.fork_branch_id ?? null,
+    });
+
+    // Map DB rows with token data (for time-range / bucket drill-down path).
+    const mapRowWithTokens = (r) => ({
+      uuid: r.uuid,
+      role: r.type,
+      content: r.content,
+      timestamp: r.timestamp,
+      is_fork_branch: r.is_fork_branch === 1,
+      fork_branch_id: r.fork_branch_id ?? null,
+      outputTokens: r.output_tokens ?? null,
+    });
+
+    // Time-range mode: return messages within [from, to) with token data.
+    if (from && to) {
+      const rows = timeRangeStmt.all(sessionId, from, to);
+      const allMessages = rows.map(mapRowWithTokens);
+      const total = allMessages.length;
+
+      // Apply same head/tail truncation for safety (large time ranges could still produce many messages)
+      if (total <= HEAD_COUNT + TAIL_COUNT) {
+        return { messages: allMessages, totalCount: total, skipped: 0, isBucketView: true };
+      }
+
+      const first = allMessages.slice(0, HEAD_COUNT);
+      const last = allMessages.slice(-TAIL_COUNT);
+      const skipped = total - HEAD_COUNT - TAIL_COUNT;
+      return { messages: [...first, ...last], totalCount: total, skipped, isBucketView: true };
+    }
 
     // Choose query based on forkBranchId param
     let rows;
@@ -93,18 +150,8 @@ export function createSessionsService(db) {
       rows = primaryBranchStmt.all(sessionId);
     }
 
-    // Map DB rows to response shape.
-    const isForkQuery = forkBranchId && forkBranchId !== 'all';
-    const mapRow = (r) => ({
-      uuid: r.uuid,
-      role: r.type, // 'user' or 'assistant'
-      content: r.content,
-      timestamp: r.timestamp,
-      is_fork_branch: r.is_fork_branch === 1,
-      fork_branch_id: r.fork_branch_id ?? null,
-    });
-
     // For fork branch queries, build zone-annotated response with primary branch context
+    const isForkQuery = forkBranchId && forkBranchId !== 'all';
     if (isForkQuery) {
       return buildForkContextResponse(sessionId, forkBranchId, rows, mapRow);
     }
