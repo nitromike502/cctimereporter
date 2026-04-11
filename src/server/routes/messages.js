@@ -8,6 +8,8 @@
  *   forkBranchId  - If provided, return only messages from that fork branch.
  *                   If omitted, return primary-branch messages (fork_branch_id IS NULL).
  *                   Special value "all" returns messages across all branches.
+ *   from          - ISO timestamp. If provided with `to`, return messages in time range.
+ *   to            - ISO timestamp. If provided with `from`, return messages in time range.
  */
 
 import { createSessionsService } from '../../services/sessions.js';
@@ -23,9 +25,9 @@ export async function messagesRoute(fastify, opts) {
 
   fastify.get('/api/sessions/:id/messages', async (request, reply) => {
     const sessionId = request.params.id;
-    const { forkBranchId } = request.query;
+    const { forkBranchId, from, to } = request.query;
 
-    const result = svc.getMessages(sessionId, { forkBranchId });
+    const result = svc.getMessages(sessionId, { forkBranchId, from, to });
 
     if (result === null) {
       reply.code(404);
