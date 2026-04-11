@@ -116,8 +116,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 36-01-PLAN.md — Backend: timestamp-range query mode for messages API (from/to params, output_tokens in response)
-- [ ] 36-02-PLAN.md — Frontend: double-click handler on line chart, bucket-to-timestamp resolution, SessionMessagesModal time-range mode with token display
+- [x] 36-01-PLAN.md — Backend: timestamp-range query mode for messages API (from/to params, output_tokens in response)
+- [x] 36-02-PLAN.md — Frontend: double-click handler on line chart, bucket-to-timestamp resolution, SessionMessagesModal time-range mode with token display
 
 ---
 
@@ -133,4 +133,4 @@ Plans:
 | 33. Service, API, Token Queries | v1.1.0 | 0/2 | Not started | - |
 | 34. CLI and MCP Extension | v1.1.0 | 0/1 | Not started | - |
 | 35. Tokens Chart Page | v1.1.0 | 0/2 | Not started | - |
-| 36. Tokens Chart Message Drill-Down | v1.1.0 | 0/2 | Not started | - |
+| 36. Tokens Chart Message Drill-Down | v1.1.0 | 2/2 | Complete | 2026-04-11 |

@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 36 — Tokens Chart Message Drill-Down
-Plan: 02 of N in phase
-Status: Phase 36 plan 02 complete
-Last activity: 2026-04-11 — Completed 36-02-PLAN.md (double-click bucket drill-down on Per Message chart)
+Plan: 02 of 2 in phase
+Status: Phase 36 complete — 2/2 plans done
+Last activity: 2026-04-11 — Completed Phase 36 (tokens chart message drill-down)
 
-Progress: v1.1.0 in progress ░░░░░░████░░░░░
-Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 34 complete (1 plan). Phase 35 plan 01 complete. Phase 35-02 planned. Phase 36 plan 01 complete.
+Progress: v1.1.0 in progress ░░░░░░█████░░░░
+Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 34 complete (1 plan). Phase 35 complete (2 plans). Phase 36 complete (2 plans).
 
 ## Performance Metrics
 
@@ -77,5 +77,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-11
-Stopped at: Completed 36-02-PLAN.md — double-click bucket drill-down on Per Message chart
+Stopped at: Phase 36 complete — tokens chart message drill-down verified
 Resume file: None
