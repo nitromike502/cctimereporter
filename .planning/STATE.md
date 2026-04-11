@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 36 — Tokens Chart Message Drill-Down
-Plan: 01 of N in phase
-Status: Phase 36 plan 01 complete
-Last activity: 2026-04-11 — Completed 36-01-PLAN.md (timestamp-range messages API for bucket drill-down)
+Plan: 02 of N in phase
+Status: Phase 36 plan 02 complete
+Last activity: 2026-04-11 — Completed 36-02-PLAN.md (double-click bucket drill-down on Per Message chart)
 
 Progress: v1.1.0 in progress ░░░░░░████░░░░░
 Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 34 complete (1 plan). Phase 35 plan 01 complete. Phase 35-02 planned. Phase 36 plan 01 complete.
@@ -50,6 +50,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 - CLI lazy import pattern for token service (34-01) — createTokensService imported inside .action() handler alongside timeline service, defers prepared-statement setup until command runs
 - mapRowWithTokens variant for time-range path (36-01) — separate mapper prevents outputTokens leaking into existing response shape; no risk of breaking existing callers
 - No from/to validation in HTTP layer (36-01) — invalid ISO strings safely return 0 rows from SQLite timestamp comparison; validation adds complexity for no safety gain
+- Native dblclick + getElementsAtEventForMode for chart drill-down (36-02) — Chart.js has no built-in onDblClick; native event with mode detection is the correct pattern
+- timelineBucketState computed exposes bucketStarts/bucketMap (36-02) — single source of truth for both chart rendering and double-click handler without recalculation
+- isBucketView API flag guards token display in modal (36-02) — API is authoritative about whether token data was fetched; prop presence alone is insufficient
 
 ### Pending Todos
 
@@ -74,5 +77,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-11
-Stopped at: Completed 36-01-PLAN.md — timestamp-range messages API for bucket drill-down
+Stopped at: Completed 36-02-PLAN.md — double-click bucket drill-down on Per Message chart
 Resume file: None
