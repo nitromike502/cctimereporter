@@ -78,17 +78,23 @@
           </label>
         </div>
 
-        <TokenChart
-          :chart-data="chartData"
-          :chart-options="chartOptions"
-          :chart-type="viewMode === 'sessions' ? 'bar' : 'line'"
-        />
+        <div @dblclick="onChartDblClick">
+          <TokenChart
+            ref="tokenChartRef"
+            :chart-data="chartData"
+            :chart-options="chartOptions"
+            :chart-type="viewMode === 'sessions' ? 'bar' : 'line'"
+          />
+        </div>
       </div>
     </template>
 
     <SessionMessagesModal
       v-model:open="messagesModalOpen"
       :session-id="messagesModalSessionId"
+      :from-timestamp="bucketModalFrom"
+      :to-timestamp="bucketModalTo"
+      :bucket-label="bucketModalLabel"
     />
   </div>
 </template>
@@ -123,6 +129,13 @@ const hiddenProjects = ref(new Set())   // Set of projectPath strings
 const selectedSession = ref(null)
 const messagesModalOpen = ref(false)
 const messagesModalSessionId = ref('')
+
+// Bucket drill-down state
+const tokenChartRef = ref(null)
+const bucketModalFrom = ref('')
+const bucketModalTo = ref('')
+const bucketModalSessionName = ref('')
+const bucketModalTokenTotal = ref(0)
 
 // --- Date management ---
 
@@ -254,9 +267,21 @@ const selectedSessionTokens = computed(() => {
   }
 })
 
+const bucketModalLabel = computed(() => {
+  if (!bucketModalFrom.value || !bucketModalTo.value) return ''
+  const fromTime = new Date(bucketModalFrom.value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const toTime = new Date(bucketModalTo.value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const tokenStr = formatBucketTokens(bucketModalTokenTotal.value)
+  return `${bucketModalSessionName.value} \u00B7 ${fromTime}\u2013${toTime} \u00B7 ${tokenStr}`
+})
+
 function onShowMessages() {
   if (!selectedSession.value) return
   messagesModalSessionId.value = selectedSession.value.sessionId
+  bucketModalFrom.value = ''
+  bucketModalTo.value = ''
+  bucketModalSessionName.value = ''
+  bucketModalTokenTotal.value = 0
   messagesModalOpen.value = true
 }
 
@@ -279,6 +304,68 @@ function formatTickValue(value) {
   if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M'
   if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K'
   return value
+}
+
+function formatBucketTokens(n) {
+  if (n == null || n === 0) return '0 tokens'
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M tokens'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K tokens'
+  return n.toLocaleString() + ' tokens'
+}
+
+function minuteOfDayToISO(dateStr, minuteOfDay) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const d = new Date(year, month - 1, day, Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0)
+  return d.toISOString()
+}
+
+function onChartDblClick(event) {
+  // Only drill-down on Per Message (timeline) view
+  if (viewMode.value !== 'timeline') return
+
+  const chartInstance = tokenChartRef.value?.chartRef?.chart
+  if (!chartInstance) return
+
+  const elements = chartInstance.getElementsAtEventForMode(
+    event, 'nearest', { intersect: true }, false
+  )
+  if (!elements.length) return
+
+  const { datasetIndex, index: bucketIndex } = elements[0]
+  const ds = timelineChartData.value.datasets[datasetIndex]
+  if (ds?.sessionIndex == null) return
+
+  // Check the data value — ignore zero-token points
+  const value = ds.data[bucketIndex]
+  if (value == null || value === 0) return
+
+  const session = visibleSessions.value[ds.sessionIndex]
+  if (!session) return
+
+  const { bucketStarts, bucketMap } = timelineBucketState.value
+  if (!bucketStarts || bucketIndex >= bucketStarts.length) return
+
+  const bucketStartMinute = bucketStarts[bucketIndex]
+  const bucketEndMinute = bucketStartMinute + bucketMinutes.value
+
+  const from = minuteOfDayToISO(selectedDate.value, bucketStartMinute)
+  const to = minuteOfDayToISO(selectedDate.value, bucketEndMinute)
+
+  // Also select the session in the detail panel (consistent with single-click)
+  selectedSession.value = session
+
+  // Compute bucket token total from the raw bucket data
+  const sessionBuckets = bucketMap.get(ds.sessionIndex)
+  const bucket = sessionBuckets?.[bucketIndex]
+  const bucketTotal = bucket ? (bucket.input + bucket.output) : 0
+
+  // Set modal state
+  messagesModalSessionId.value = session.sessionId
+  bucketModalFrom.value = from
+  bucketModalTo.value = to
+  bucketModalSessionName.value = resolveSessionLabel(session)
+  bucketModalTokenTotal.value = bucketTotal
+  messagesModalOpen.value = true
 }
 
 function getToken(name) {
@@ -430,9 +517,14 @@ function bucketMessages(sessions, bucketMin) {
   return { labels, bucketStarts, bucketMap }
 }
 
+const timelineBucketState = computed(() => {
+  const sessions = visibleSessions.value
+  return bucketMessages(sessions, bucketMinutes.value)
+})
+
 const timelineChartData = computed(() => {
   const sessions = visibleSessions.value
-  const { labels, bucketMap } = bucketMessages(sessions, bucketMinutes.value)
+  const { labels, bucketMap } = timelineBucketState.value
 
   if (labels.length === 0) return { labels: [], datasets: [] }
 
@@ -544,6 +636,10 @@ watch(() => route.query.date, () => {
   selectedSession.value = null
   hiddenProjects.value = new Set()
   resetProjectColors()
+  bucketModalFrom.value = ''
+  bucketModalTo.value = ''
+  bucketModalSessionName.value = ''
+  bucketModalTokenTotal.value = 0
   fetchData()
 })
 

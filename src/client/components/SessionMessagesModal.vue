@@ -4,8 +4,13 @@
       <DialogOverlay class="modal-overlay" />
       <DialogContent class="modal-content">
         <DialogTitle class="modal-title">
-          {{ props.forkBranchId ? 'Fork Branch Messages' : 'Session Messages' }}
-          <span v-if="totalCount > 0" class="modal-title-count">{{ totalCount }} messages with text</span>
+          <template v-if="props.bucketLabel">
+            {{ props.bucketLabel }}
+          </template>
+          <template v-else>
+            {{ props.forkBranchId ? 'Fork Branch Messages' : 'Session Messages' }}
+            <span v-if="totalCount > 0" class="modal-title-count">{{ totalCount }} messages with text</span>
+          </template>
         </DialogTitle>
         <div v-if="props.forkBranchId" class="modal-fork-subtitle">
           Showing messages from fork branch {{ props.forkBranchId.slice(0, 8) }}&hellip;
@@ -50,6 +55,8 @@
               <span class="message-role">
                 {{ msg.role === 'user' ? 'User' : 'Assistant' }}
                 <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+                <span v-if="isBucketView && msg.role === 'assistant' && formatTokenCount(msg.outputTokens)"
+                      class="message-tokens">{{ formatTokenCount(msg.outputTokens) }}</span>
               </span>
               <pre
                 :ref="setContentRef('zone-' + i)"
@@ -76,6 +83,8 @@
             <span class="message-role">
               {{ msg.role === 'user' ? 'User' : 'Assistant' }}
               <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+              <span v-if="isBucketView && msg.role === 'assistant' && formatTokenCount(msg.outputTokens)"
+                    class="message-tokens">{{ formatTokenCount(msg.outputTokens) }}</span>
             </span>
             <pre
               :ref="setContentRef('first-' + i)"
@@ -102,6 +111,8 @@
             <span class="message-role">
               {{ msg.role === 'user' ? 'User' : 'Assistant' }}
               <span v-if="msg.timestamp" class="message-timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
+              <span v-if="isBucketView && msg.role === 'assistant' && formatTokenCount(msg.outputTokens)"
+                    class="message-tokens">{{ formatTokenCount(msg.outputTokens) }}</span>
             </span>
             <pre
               :ref="setContentRef('last-' + i)"
@@ -136,6 +147,9 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   sessionId: { type: String, default: '' },
   forkBranchId: { type: String, default: '' },
+  fromTimestamp: { type: String, default: '' },
+  toTimestamp: { type: String, default: '' },
+  bucketLabel: { type: String, default: '' },
 })
 
 defineEmits(['update:open'])
@@ -145,6 +159,7 @@ const totalCount = ref(0)
 const skipped = ref(0)
 const forkSkipped = ref(0)
 const hasForkContext = ref(false)
+const isBucketView = ref(false)
 const loading = ref(false)
 const error = ref(null)
 
@@ -187,6 +202,13 @@ function formatContent(msg) {
     return cleanUserMessage(msg.content)
   }
   return msg.content
+}
+
+function formatTokenCount(n) {
+  if (n == null || n === 0) return null
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M tokens'
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K tokens'
+  return n.toLocaleString() + ' tokens'
 }
 
 /**
@@ -236,7 +258,7 @@ function isForkTailStart(i) {
 }
 
 watch(
-  () => [props.open, props.sessionId, props.forkBranchId],
+  () => [props.open, props.sessionId, props.forkBranchId, props.fromTimestamp, props.toTimestamp],
   async ([isOpen, id]) => {
     if (!isOpen || !id) return
     loading.value = true
@@ -246,14 +268,18 @@ watch(
     skipped.value = 0
     forkSkipped.value = 0
     hasForkContext.value = false
+    isBucketView.value = false
     Object.keys(expandedMessages).forEach(k => delete expandedMessages[k])
     Object.keys(overflowMessages).forEach(k => delete overflowMessages[k])
     contentRefs.value = {}
     try {
       let url = `/api/sessions/${encodeURIComponent(id)}/messages`
-      if (props.forkBranchId) {
-        url += `?forkBranchId=${encodeURIComponent(props.forkBranchId)}`
-      }
+      const params = new URLSearchParams()
+      if (props.forkBranchId) params.set('forkBranchId', props.forkBranchId)
+      if (props.fromTimestamp) params.set('from', props.fromTimestamp)
+      if (props.toTimestamp) params.set('to', props.toTimestamp)
+      const qs = params.toString()
+      if (qs) url += '?' + qs
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
@@ -262,6 +288,7 @@ watch(
       skipped.value = data.skipped ?? 0
       forkSkipped.value = data.forkSkipped ?? 0
       hasForkContext.value = data.hasForkContext ?? false
+      isBucketView.value = data.isBucketView ?? false
       detectOverflows()
     } catch (e) {
       error.value = e.message
@@ -403,6 +430,14 @@ watch(
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.message-tokens {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-muted);
   opacity: 0.7;
 }
 
