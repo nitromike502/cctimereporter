@@ -2,57 +2,35 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-30)
+See: .planning/PROJECT.md (updated 2026-05-09)
 
-**Core value:** A user runs one command and immediately see a clear visual timeline of their Claude Code sessions for any given day
-**Current focus:** v1.1.0 Token Usage Tracking & Visualization
+**Core value:** A user runs one command and immediately sees a clear visual timeline of their Claude Code sessions for any given day
+**Current focus:** v1.1.0 shipped — planning next milestone
 
 ## Current Position
 
-Phase: 36 — Tokens Chart Message Drill-Down
-Plan: 02 of 2 in phase
-Status: Phase 36 complete — 2/2 plans done
-Last activity: 2026-04-11 — Completed Phase 36 (tokens chart message drill-down)
+Phase: None (between milestones)
+Plan: None
+Status: Ready to plan next milestone
+Last activity: 2026-05-09 — v1.1.0 milestone complete
 
-Progress: v1.1.0 in progress ░░░░░░█████░░░░
-Overall:  Phases 1-31 complete (v1.0 through v0.8.2 shipped). Phase 32 complete (1 plan). Phase 33 complete (2 plans). Phase 34 complete (1 plan). Phase 35 complete (2 plans). Phase 36 complete (2 plans).
+Progress: v1.1.0 ████████ shipped (5 phases, 8 plans, 28 commits, 3 days)
+Overall: Phases 1-36 complete (v1.0, v0.8.0, v1.1.0 shipped). Run `/gsd:new-milestone` for next.
 
 ## Performance Metrics
 
-**v0.8.0 Velocity:**
-- Total plans completed: 7 (Phases 28-31)
-- Phases: 4
-- Timeline: 4 days (2026-03-26 → 2026-03-30)
+**v1.1.0 Velocity:**
+- Total plans completed: 8 (Phases 32-36)
+- Phases: 5 (including 1 bonus mid-milestone)
+- Timeline: 3 days (2026-04-08 → 2026-04-10)
+- Commits: 28
+- LOC delta: +6,428 / -129
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions logged in PROJECT.md Key Decisions table.
-
-**v1.1.0 Key Decisions:**
-- Token columns on messages table (not sessions) — import raw, derive at query time; avoids repeating the dead tool_use_count mistake
-- chart.js 4.5.1 + vue-chartjs 5.3.3 as devDependencies only — bundled by Vite, not runtime npm deps; avoids inflating CLI node_modules
-- Sidechain exclusion (is_sidechain=0) as default for all token aggregates — parent-only totals prevent 2-5x double-count for subagent users
-- Fork branch exclusion (is_fork_branch=0) for "actual spend" totals — abandoned branches had real API calls but should not count as user spend
-- Re-import via import_log deletion for last 30 days during v10 migration — automatic backfill without blocking startup or forcing --all on heavy users
-- Numeric message index as x-axis (not time-based) — avoids chartjs-adapter-date-fns dependency for initial implementation
-- NULL not 0 for non-assistant token columns (32-01) — avoids misleading zero aggregates in downstream queries
-- Ephemeral cache tiers at usage.cache_creation.ephemeral_* not top-level (32-01) — matches actual JSONL schema
-- Agent sidechain messages also extract token data (32-01) — preserves actual spend tracking for subagent users
-- Shared project color utility in src/client/utils/project-colors.js (35-01) — extracted from TimelinePage, ensures consistent colors across Timeline and Tokens pages
-- App.vue persistent nav excludes /components route (35-01) — dev tool, not user-facing navigation
-- createTokensService factory pattern (33-01) — prepared statements at factory time, same as timeline/sessions services
-- SQLite aggregate null detection (33-01) — aggregate queries always return 1 row; check all individual columns null to detect "no data" vs "no session"
-- Supplementary fetch pattern (33-02) — token fetch is fire-and-forget alongside timeline fetch; failures silently null out tokenData, never propagate to timeline
-- formatTokenCount null/zero returns em dash in detail panel, null in DaySummary (conditional render vs em dash display) (33-02)
-- sessionId stripped from tokens sub-object in CLI/MCP session responses (34-01) — redundant since sessionId is already on the parent session object
-- CLI lazy import pattern for token service (34-01) — createTokensService imported inside .action() handler alongside timeline service, defers prepared-statement setup until command runs
-- mapRowWithTokens variant for time-range path (36-01) — separate mapper prevents outputTokens leaking into existing response shape; no risk of breaking existing callers
-- No from/to validation in HTTP layer (36-01) — invalid ISO strings safely return 0 rows from SQLite timestamp comparison; validation adds complexity for no safety gain
-- Native dblclick + getElementsAtEventForMode for chart drill-down (36-02) — Chart.js has no built-in onDblClick; native event with mode detection is the correct pattern
-- timelineBucketState computed exposes bucketStarts/bucketMap (36-02) — single source of truth for both chart rendering and double-click handler without recalculation
-- isBucketView API flag guards token display in modal (36-02) — API is authoritative about whether token data was fetched; prop presence alone is insufficient
+All decisions logged in PROJECT.md Key Decisions table. v1.1.0 milestone-specific decisions archived in `milestones/v1.1.0-ROADMAP.md` "Key Decisions" section.
 
 ### Pending Todos
 
@@ -60,11 +38,28 @@ None.
 
 ### Roadmap Evolution
 
-- Phase 36 added: Click point on Tokens line chart and view messages inside the selected interval (2026-04-10)
+- v1.1.0 milestone complete (2026-05-09)
+- Next milestone planning open
 
 ### Blockers/Concerns
 
 None.
+
+### Tech Debt Carried Forward
+
+From v1.1.0 (logged in `milestones/v1.1.0-MILESTONE-AUDIT.md`):
+- CHART-04 literal "all sessions" aggregate overlay line (substituted with Session Totals bar view) — revisit if literal-spec compliance needed
+- CHART-05 toggle wording deviates from original ("Session Totals ↔ Per Message" vs "Cumulative ↔ Per Message")
+- CHART-06 visibility is per-project rather than per-session
+- Phase 35 visual rendering in light/dark themes never received explicit human smoke test (Phase 36 shipped on top → indirect functional confirmation)
+
+From v0.8.0:
+- GET /api/projects route registered but unused by frontend
+- AppTooltip and AppBadge components in library but not used in production UI
+- SessionDetailPanel has dead `.detail-placeholder` CSS class
+- tool_use_count on sessions: computed at import, never queried or displayed
+- start_server TOCTOU race: claimLock return not checked after listen()
+- maxAgeDays defaults inconsistent: web API 30 days, CLI/MCP 2 days
 
 ### Quick Tasks Completed
 
@@ -76,6 +71,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-11
-Stopped at: Phase 36 complete — tokens chart message drill-down verified
+Last session: 2026-05-09
+Stopped at: v1.1.0 milestone shipped, archives created, ready to commit + tag
 Resume file: None

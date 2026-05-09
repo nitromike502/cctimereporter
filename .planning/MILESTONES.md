@@ -1,5 +1,33 @@
 # Project Milestones: CC Time Reporter
 
+## v1.1.0 Token Usage Tracking & Visualization (Shipped: 2026-05-09)
+
+**Delivered:** Token counts and cache hit rates flow from JSONL transcripts through the import pipeline, SQLite schema v10, a new tokens service, and into every consumer surface — session detail panel, day summary, CLI JSON output, MCP tools, and a new `/tokens` chart page with Session Totals + Per Message views and double-click bucket drill-down.
+
+**Phases completed:** 32-36 (8 plans total)
+
+**Key accomplishments:**
+
+- Schema v10 migration: 7 new token columns on messages table (input/output/cache_creation/cache_read/ephemeral_5m/ephemeral_1h/model) with v9→v10 auto-migration and 30-day re-import backfill
+- Token aggregation service with sidechain/fork exclusion + cache hit rate; GET /api/tokens endpoint, single source of truth shared across HTTP/CLI/MCP
+- Token breakdown in SessionDetailPanel (4th grid row), day total in DaySummary, non-blocking supplementary fetch pattern in TimelinePage
+- CLI summary/sessions and MCP get_day_summary/get_sessions extended with additive `tokens` object — zero breaking changes
+- New /tokens page with chart.js + vue-chartjs: Session Totals stacked bars, Per Message time-of-day line chart, project-level visibility filter, dark-mode reactive
+- Phase 36 bonus: double-click bucket drill-down opens SessionMessagesModal in time-range mode with inline token counts on assistant messages
+
+**Stats:**
+
+- 45 files changed, +6,428 / -129 LOC
+- 10,902 lines of JS/Vue/CSS (total codebase)
+- 5 phases, 8 plans, 28 commits
+- 3 days (2026-04-08 → 2026-04-10)
+
+**Git range:** `feat(32-01)` → `docs(36-02)` (commit `8e7639d` → `4deb1cd`)
+
+**What's next:** TBD — candidates: cost estimation (COST-01/02), token overlay on Gantt bars (VIZ-01), Claude Desktop session import, daily time review/logging integration
+
+---
+
 ## v0.8.0 Programmatic Data Access (Shipped: 2026-03-30)
 
 **Delivered:** Session data exposed through a stdio MCP server (8 tools) and CLI subcommands (summary, sessions, import) with multi-instance coordination via DB-based locks — enabling Claude agents to pull time logs programmatically.

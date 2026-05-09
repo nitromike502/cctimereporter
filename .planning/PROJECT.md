@@ -71,18 +71,19 @@ A user can run one command and immediately see a clear visual timeline of their 
 - ✓ `get_dates` tool for discovering available session dates — v0.8.0
 - ✓ `start_server`/`stop_server`/`server_status` MCP tools for web server lifecycle management — v0.8.0
 
+- ✓ Schema v10 with 7 new token columns on messages (input/output/cache_creation/cache_read/ephemeral_5m/ephemeral_1h/model) + v9→v10 auto-migration + 30-day re-import backfill — v1.1.0
+- ✓ Token aggregation service with sidechain/fork exclusion and cache hit rate (cache_read / (cache_read + input) × 100) — v1.1.0
+- ✓ GET /api/tokens endpoint with per-session and day-total aggregates — v1.1.0
+- ✓ Session detail panel shows input/output/cache token breakdown and cache hit rate — v1.1.0
+- ✓ Day summary panel shows total tokens for the selected date — v1.1.0
+- ✓ CLI `summary` + `sessions` commands include `tokens` object in JSON output (additive) — v1.1.0
+- ✓ MCP `get_day_summary` + `get_sessions` tools include token totals (additive) — v1.1.0
+- ✓ /tokens page with Session Totals stacked bar chart and Per Message time-of-day line chart, project-level visibility filter, dark-mode reactive — v1.1.0
+- ✓ Double-click bucket drill-down on Per Message chart opens SessionMessagesModal in time-range mode with inline token counts — v1.1.0 (Phase 36 bonus)
+
 ### Active
 
-**Current Milestone: v1.1.0 Token Usage Tracking & Visualization**
-
-**Goal:** Store token usage data from JSONL transcripts and visualize consumption patterns with interactive charts.
-
-**Target features:**
-- Store all `usage` fields from assistant messages in the DB (schema v10 migration)
-- New `/tokens` page with line chart (cumulative + per-message toggle)
-- One line per session + aggregate "all sessions" line, x-axis is time of day
-- Per-session token totals in session detail panel and day summary
-- Token stats exposed in CLI `summary`/`sessions` commands and MCP tools
+**Next milestone: TBD** — candidates documented in deferred features list below.
 
 ### Out of Scope
 
@@ -95,9 +96,9 @@ A user can run one command and immediately see a clear visual timeline of their 
 
 ## Context
 
-**Shipped v0.8.0** with ~9,078 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
-Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Commander 14, @modelcontextprotocol/sdk 1.28, Reka UI, driver.js, Vite 7.
-Database: SQLite with WAL mode, busy_timeout=5000ms, schema v9, auto-migration (v1→v9).
+**Shipped v1.1.0** with ~10,902 LOC (JS/Vue/CSS) + 2,257 LOC (Python PoC reference).
+Tech stack: Node.js 22+ (node:sqlite), Fastify 5, Vue 3, Commander 14, @modelcontextprotocol/sdk 1.28, Reka UI, driver.js, Vite 7, chart.js 4.5 + vue-chartjs 5.3.
+Database: SQLite with WAL mode, busy_timeout=5000ms, schema v10, auto-migration (v1→v10).
 Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 
 **Python PoC:** The `scripts/` directory contains the original proof-of-concept. It uses a separate database (`~/.claude/transcripts.db`) and is not a runtime dependency.
@@ -179,6 +180,16 @@ Config: `~/.cctimereporter/config.json` for app settings (import debug logging).
 | Commander.js for CLI dispatch | Positional subcommands, automatic --help, serve as default | ✓ Good |
 | PID liveness via process.kill(pid, 0) | Cross-platform, one-line, no /proc parsing | ✓ Good |
 | Import raw, derive at query time | Kept from v0.7.0 — minimizes import-time transformations | ✓ Good |
+| Token columns on messages table (not sessions) | Aggregate at query time, avoids dead tool_use_count mistake | ✓ Good |
+| chart.js + vue-chartjs as devDependencies only | Bundled by Vite, not runtime npm deps; avoids inflating CLI node_modules | ✓ Good |
+| Sidechain (is_sidechain=0) + fork (is_fork_branch=0) exclusion on aggregates | Parent-only totals, prevent 2-5x double-count for subagent users | ✓ Good |
+| Re-import via import_log deletion for last 30 days during v10 migration | Auto-backfill without blocking startup or forcing --all | ✓ Good |
+| Single token shape across HTTP/CLI/MCP via `enrichRow` | One source of truth for {inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, totalTokens, cacheHitRate} | ✓ Good |
+| Supplementary fetch pattern (TimelinePage tokens) | Token fetch is fire-and-forget alongside timeline; failures silently null out tokenData | ✓ Good |
+| Time-of-day x-axis with bucket interval (35-02 rework) | Better UX than message-index; foundation for Phase 36 drill-down | ✓ Good |
+| Native dblclick + getElementsAtEventForMode for chart drill-down (36-02) | Chart.js has no built-in onDblClick; this is the correct pattern | ✓ Good |
+| isBucketView API flag guards token display in modal (36-02) | API is authoritative about whether token data was fetched; prop presence alone insufficient | ✓ Good |
+| CHART-04/05/06 UX evolutions accepted | Session Totals bars instead of aggregate overlay line; per-project visibility instead of per-session toggle; "Session Totals ↔ Per Message" wording | ⚠️ Revisit if literal-spec compliance needed |
 
 ---
-*Last updated: 2026-04-06 after v1.1.0 Token Usage milestone started*
+*Last updated: 2026-05-09 after v1.1.0 milestone shipped*
