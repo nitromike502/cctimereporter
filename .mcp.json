@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cctimereporter": {
+      "command": "node",
+      "args": ["/home/claude/cctimereporter/bin/cli.js", "--mcp"]
+    }
+  }
+}
