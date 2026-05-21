@@ -2,6 +2,10 @@
   <div class="day-summary">
     <p class="summary-total">
       Total working time: <strong>{{ formatWorkingTime(totalWorkingMs) }}</strong>
+      <span class="agent-total"
+        title="Strict agent time across all sessions today: union of per-turn intervals, no threshold padding. Null when no turn_duration data is available for a session.">
+        | Agent time: <strong>{{ totalAgentMs == null ? '—' : formatWorkingTime(totalAgentMs) }}</strong>
+      </span>
       <span v-if="formattedDayTokens" class="token-total">
         | <strong>{{ formattedDayTokens }}</strong> tokens
       </span>
@@ -21,6 +25,7 @@
               <th>Project</th>
               <th class="col-right">Sessions</th>
               <th class="col-right">Working Time</th>
+              <th class="col-right">Agent Time</th>
             </tr>
           </thead>
           <tbody>
@@ -28,6 +33,7 @@
               <td>{{ row.displayName }}</td>
               <td class="col-right">{{ row.sessionCount }}</td>
               <td class="col-right">{{ formatWorkingTime(row.workingTimeMs) }}</td>
+              <td class="col-right">{{ row.agentTimeMs == null ? '—' : formatWorkingTime(row.agentTimeMs) }}</td>
             </tr>
           </tbody>
         </table>
@@ -41,6 +47,7 @@
               <th>Project</th>
               <th class="col-right">Sessions</th>
               <th class="col-right">Working Time</th>
+              <th class="col-right">Agent Time</th>
             </tr>
           </thead>
           <tbody>
@@ -49,6 +56,7 @@
               <td>{{ row.projects }}</td>
               <td class="col-right">{{ row.sessionCount }}</td>
               <td class="col-right">{{ formatWorkingTime(row.workingTimeMs) }}</td>
+              <td class="col-right">{{ row.agentTimeMs == null ? '—' : formatWorkingTime(row.agentTimeMs) }}</td>
             </tr>
           </tbody>
         </table>
@@ -62,6 +70,7 @@
               <th>Project</th>
               <th class="col-right">Sessions</th>
               <th class="col-right">Working Time</th>
+              <th class="col-right">Agent Time</th>
             </tr>
           </thead>
           <tbody>
@@ -70,6 +79,7 @@
               <td>{{ row.projects }}</td>
               <td class="col-right">{{ row.sessionCount }}</td>
               <td class="col-right">{{ formatWorkingTime(row.workingTimeMs) }}</td>
+              <td class="col-right">{{ row.agentTimeMs == null ? '—' : formatWorkingTime(row.agentTimeMs) }}</td>
             </tr>
           </tbody>
         </table>
@@ -114,6 +124,22 @@ function formatWorkingTime(ms) {
 }
 
 /**
+ * Sum agentTimeMs across sessions. Returns null if no session has a value
+ * (all turn_duration data absent), otherwise the sum of contributing values.
+ */
+function sumAgentTime(sessions) {
+  let total = 0
+  let seen = false
+  for (const s of sessions) {
+    if (s.agentTimeMs != null) {
+      total += s.agentTimeMs
+      seen = true
+    }
+  }
+  return seen ? total : null
+}
+
+/**
  * Groups sessions by a key function and returns a Map<key, session[]>.
  * Null/undefined keys are preserved as null.
  */
@@ -137,12 +163,15 @@ const totalWorkingMs = computed(() =>
   allSessions.value.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0)
 )
 
+const totalAgentMs = computed(() => sumAgentTime(allSessions.value))
+
 const projectRows = computed(() =>
   props.projects
     .map(p => ({
       displayName: p.displayName,
       sessionCount: p.sessions.length,
       workingTimeMs: p.sessions.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0),
+      agentTimeMs: sumAgentTime(p.sessions),
     }))
     .sort((a, b) => b.workingTimeMs - a.workingTimeMs)
 )
@@ -157,6 +186,7 @@ const ticketRows = computed(() => {
       ticket,
       sessionCount: sessions.length,
       workingTimeMs: sessions.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0),
+      agentTimeMs: sumAgentTime(sessions),
       projects: [...new Set(sessions.map(s => s.projectDisplayName))].sort().join(', '),
     }
     if (ticket === null) {
@@ -181,6 +211,7 @@ const branchRows = computed(() => {
       branch,
       sessionCount: sessions.length,
       workingTimeMs: sessions.reduce((sum, s) => sum + (s.workingTimeMs ?? 0), 0),
+      agentTimeMs: sumAgentTime(sessions),
       projects: [...new Set(sessions.map(s => s.projectDisplayName))].sort().join(', '),
     }
     if (branch === null) {
@@ -208,6 +239,15 @@ const branchRows = computed(() => {
   color: var(--color-heading);
   margin-bottom: var(--spacing-md);
   margin-top: 0;
+}
+
+.agent-total {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.agent-total strong {
+  color: var(--color-heading);
 }
 
 .token-total {
