@@ -77,8 +77,13 @@
         <span class="detail-label">Working Time:</span>
         <span class="detail-value">
           {{ workingTimeLabel || '\u00A0' }}
-          <span v-if="agentWorkingTimeLabel" class="elapsed-time" title="Union of parent and team-subagent activity (counted once when overlapping)">/ {{ agentWorkingTimeLabel }} w/ teammates</span>
           <span v-if="elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
+        </span>
+      </div>
+      <div v-if="!fork" class="detail-item">
+        <span class="detail-label">Agent Time:</span>
+        <span class="detail-value" title="Strict union of per-turn intervals — actual time agents (main + sub + teammates) were producing output. No threshold padding. Always ≤ Working Time.">
+          {{ agentTimeLabel || '—' }}
         </span>
       </div>
       <div class="detail-item">
@@ -195,13 +200,12 @@ const workingTimeLabel = computed(() => {
   return formatDuration(props.session.workingTimeMs)
 })
 
-/** Agent working time — parent + team-subagent activity, union, day-clamped.
- *  Hidden in fork view (fork is scoped to a branch, not whole-session). */
-const agentWorkingTimeLabel = computed(() => {
+/** Agent Time — strict union of per-turn activity intervals across parent + teammates,
+ *  no threshold padding. Hidden in fork view; null when no turn_duration data exists. */
+const agentTimeLabel = computed(() => {
   if (props.fork) return ''
-  if (!props.session || props.session.agentWorkingTimeMs == null) return ''
-  if (props.session.agentWorkingTimeMs === props.session.workingTimeMs) return ''
-  return formatDuration(props.session.agentWorkingTimeMs)
+  if (!props.session || props.session.agentTimeMs == null) return ''
+  return formatDuration(props.session.agentTimeMs)
 })
 
 /** Elapsed wall-clock time */

@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3, MIGRATION_V3_TO_V4, MIGRATION_V4_TO_V5, MIGRATION_V5_TO_V6, MIGRATION_V6_TO_V7, MIGRATION_V7_TO_V8, MIGRATION_V8_TO_V9, MIGRATION_V9_TO_V10 } from './schema.js';
+import { SCHEMA_DDL, SCHEMA_VERSION, MIGRATION_V1_TO_V2, MIGRATION_V2_TO_V3, MIGRATION_V3_TO_V4, MIGRATION_V4_TO_V5, MIGRATION_V5_TO_V6, MIGRATION_V6_TO_V7, MIGRATION_V7_TO_V8, MIGRATION_V8_TO_V9, MIGRATION_V9_TO_V10, MIGRATION_V10_TO_V11 } from './schema.js';
 
 export const DB_DIR = join(homedir(), '.cctimereporter');
 export const DB_PATH = join(DB_DIR, 'data.db');
@@ -83,6 +83,10 @@ function migrateV9toV10(db) {
   runMigration(db, MIGRATION_V9_TO_V10);
 }
 
+function migrateV10toV11(db) {
+  runMigration(db, MIGRATION_V10_TO_V11);
+}
+
 /**
  * Opens the database, creating it if it doesn't exist.
  * Handles schema version mismatches:
@@ -117,6 +121,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 2) {
@@ -129,6 +134,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 3) {
@@ -140,6 +146,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 4) {
@@ -150,6 +157,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 5) {
@@ -159,6 +167,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 6) {
@@ -167,6 +176,7 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 7) {
@@ -174,17 +184,25 @@ export function openDatabase() {
       migrateV7toV8(db);
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 8) {
       // Auto-migrate v8 → v9 → v10.
       migrateV8toV9(db);
       migrateV9toV10(db);
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion === 9) {
-      // Auto-migrate v9 → v10.
+      // Auto-migrate v9 → v10 → v11.
       migrateV9toV10(db);
+      migrateV10toV11(db);
+      db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      migrated = true;
+    } else if (existingVersion === 10) {
+      // Auto-migrate v10 → v11.
+      migrateV10toV11(db);
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       migrated = true;
     } else if (existingVersion !== 0 && existingVersion !== SCHEMA_VERSION) {

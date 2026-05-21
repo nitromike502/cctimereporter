@@ -194,7 +194,8 @@ export function insertMessages(db, sessionId, messages) {
       cache_read_input_tokens,
       ephemeral_5m_input_tokens,
       ephemeral_1h_input_tokens,
-      model
+      model,
+      duration_ms
     ) VALUES (
       $session_id,
       $uuid,
@@ -214,7 +215,8 @@ export function insertMessages(db, sessionId, messages) {
       $cache_read_input_tokens,
       $ephemeral_5m_input_tokens,
       $ephemeral_1h_input_tokens,
-      $model
+      $model,
+      $duration_ms
     )
     ON CONFLICT(session_id, uuid) DO UPDATE SET
       fork_branch_id              = excluded.fork_branch_id,
@@ -226,7 +228,8 @@ export function insertMessages(db, sessionId, messages) {
       cache_read_input_tokens     = excluded.cache_read_input_tokens,
       ephemeral_5m_input_tokens   = excluded.ephemeral_5m_input_tokens,
       ephemeral_1h_input_tokens   = excluded.ephemeral_1h_input_tokens,
-      model                       = excluded.model
+      model                       = excluded.model,
+      duration_ms                 = excluded.duration_ms
   `);
 
   db.exec('BEGIN');
@@ -252,6 +255,7 @@ export function insertMessages(db, sessionId, messages) {
         $ephemeral_5m_input_tokens:      msg.ephemeral_5m_input_tokens      ?? null,
         $ephemeral_1h_input_tokens:      msg.ephemeral_1h_input_tokens      ?? null,
         $model:                          msg.model                          ?? null,
+        $duration_ms:                    msg.duration_ms                    ?? null,
       });
     }
     db.exec('COMMIT');

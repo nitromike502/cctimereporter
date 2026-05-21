@@ -125,6 +125,11 @@ export async function parseTranscript(filePath) {
       isCompactSummary: msg.isCompactSummary || false,
       agentId: msg.agentId || null,
       sourceToolAssistantUuid: msg.sourceToolAssistantUUID || null, // Note: uppercase UUID in source
+      // durationMs on system/turn_duration messages carries Claude Code's
+      // per-turn wall-clock duration. Used for strict Agent Time computation.
+      durationMs: (msg.type === 'system' && msg.subtype === 'turn_duration' && typeof msg.durationMs === 'number')
+        ? msg.durationMs
+        : null,
       rawMessage: msg,
     });
   }

@@ -15,6 +15,7 @@
 import {
   computeWorkingTime,
   computeIdleGaps,
+  sumIntervalUnion,
   getDisplayName,
   getWorktreeParentPath,
 } from '../utils/timeline-utils.js';
@@ -119,7 +120,7 @@ export function createTimelineService(db) {
 
   // Timestamps of team-member subagents that ran on behalf of a parent session.
   // Heuristic link: same project + time-range overlap with parent. Used to compute
-  // agentWorkingTimeMs (union of activity across parent + teammates).
+  // Working Time (merged threshold-padded view).
   const teamSubagentTimestampsStmt = db.prepare(`
     SELECT m.timestamp
     FROM messages m
@@ -130,6 +131,31 @@ export function createTimelineService(db) {
       AND s.last_message_at  >= ?
       AND m.type IN ('user', 'assistant')
       AND m.timestamp IS NOT NULL
+  `);
+
+  // Per-turn (timestamp, duration_ms) records for a given session_id.
+  // Each row corresponds to a system/turn_duration message; timestamp is the end of
+  // the turn, duration_ms its wall-clock length. Used to derive strict Agent Time
+  // intervals [timestamp - duration_ms, timestamp].
+  const sessionTurnIntervalsStmt = db.prepare(`
+    SELECT timestamp, duration_ms
+    FROM messages
+    WHERE session_id = ?
+      AND subtype = 'turn_duration'
+      AND duration_ms IS NOT NULL
+  `);
+
+  // Same as above for all team-member subagent sessions overlapping a parent.
+  const teamTurnIntervalsStmt = db.prepare(`
+    SELECT m.timestamp, m.duration_ms
+    FROM messages m
+    JOIN sessions s ON m.session_id = s.session_id
+    WHERE s.project_id = ?
+      AND s.is_subagent = 1
+      AND s.first_message_at <= ?
+      AND s.last_message_at  >= ?
+      AND m.subtype = 'turn_duration'
+      AND m.duration_ms IS NOT NULL
   `);
 
   const totalSessionsStmt = db.prepare('SELECT COUNT(*) AS cnt FROM sessions');
@@ -229,36 +255,59 @@ export function createTimelineService(db) {
       // Skip sessions with no messages on this day
       if (clampedTimestamps.length === 0) continue;
 
-      const workingTimeMs = computeWorkingTime(clampedTimestamps, thresholdMs);
-
-      // Agent working time: union of activity across parent + team-member subagents,
-      // day-clamped. Counts overlapping intervals once. Inline + background subagents
-      // are already merged into the parent session_id at import time, so they're
-      // already in allTimestamps; only team-member subagents (separate sessions) need
-      // to be merged in here.
-      const teamTimestampRows = teamSubagentTimestampsStmt.all(
-        row.project_id,
-        row.last_message_at,
-        row.first_message_at,
-      );
-      let agentWorkingTimeMs = workingTimeMs;
-      if (teamTimestampRows.length > 0) {
-        const merged = allTimestamps.concat(teamTimestampRows.map(r => r.timestamp));
-        merged.sort();
-        const clampedMerged = merged.filter(t => t >= dayStartUTC && t < dayEndUTC);
-        agentWorkingTimeMs = computeWorkingTime(clampedMerged, thresholdMs);
-      }
-
       // For overnight sessions, use first/last in-day message instead of midnight
       const continuesFromPrevDay = row.first_message_at < dayStartUTC;
       const continuesIntoNextDay = row.last_message_at  >= dayEndUTC;
       const clampedStart = continuesFromPrevDay ? (clampedTimestamps[0] ?? dayStartUTC) : row.first_message_at;
       const clampedEnd   = continuesIntoNextDay ? (clampedTimestamps.at(-1) ?? dayEndUTC) : row.last_message_at;
 
-      // Compute idle gaps from clamped timestamps
-      const idleGaps = computeIdleGaps(clampedTimestamps, thresholdMs);
+      // Pull team-member subagent timestamps (separate sessions, linked heuristically by
+      // same project + time-range overlap with the parent's displayed window). Inline +
+      // background subagents are already merged into the parent session_id at import time.
+      const teamTimestampRows = teamSubagentTimestampsStmt.all(
+        row.project_id,
+        clampedEnd,
+        clampedStart,
+      );
+      const mergedTimestamps = teamTimestampRows.length === 0
+        ? clampedTimestamps
+        : clampedTimestamps
+            .concat(teamTimestampRows.map(r => r.timestamp).filter(t => t >= clampedStart && t <= clampedEnd))
+            .sort();
+
+      // Working Time: threshold-padded union across parent + teammates. Matches the
+      // filled-in gantt bar; gaps shorter than the threshold count as continuous work.
+      const workingTimeMs = computeWorkingTime(mergedTimestamps, thresholdMs);
+
+      // Idle gaps drive the gantt's idle/active segments. Use merged timestamps so
+      // teammate activity visually fills in gaps where the parent was waiting on them.
+      const idleGaps = computeIdleGaps(mergedTimestamps, thresholdMs);
 
       const elapsedTimeMs = new Date(clampedEnd).getTime() - new Date(clampedStart).getTime();
+
+      // Agent Time: strict union of per-turn intervals [turnEnd - durationMs, turnEnd]
+      // across parent + teammates, clamped to the displayed window. No threshold padding —
+      // idle waits between turns are excluded even when shorter than the threshold.
+      // Null when no turn_duration data is available (older sessions / sources removed).
+      const parentTurnRows = sessionTurnIntervalsStmt.all(row.session_id);
+      const teamTurnRows = teamTurnIntervalsStmt.all(row.project_id, clampedEnd, clampedStart);
+      let agentTimeMs = null;
+      if (parentTurnRows.length > 0 || teamTurnRows.length > 0) {
+        const intervals = [];
+        for (const r of parentTurnRows) {
+          const end = new Date(r.timestamp).getTime();
+          intervals.push({ start: end - r.duration_ms, end });
+        }
+        for (const r of teamTurnRows) {
+          const end = new Date(r.timestamp).getTime();
+          intervals.push({ start: end - r.duration_ms, end });
+        }
+        agentTimeMs = sumIntervalUnion(
+          intervals,
+          new Date(clampedStart).getTime(),
+          new Date(clampedEnd).getTime(),
+        );
+      }
 
       // Compute fork segments (empty array for sessions with no real forks)
       const rawForkRows = forkRowsBySession.get(row.session_id) ?? [];
@@ -275,7 +324,7 @@ export function createTimelineService(db) {
         continuesFromPrevDay,
         continuesIntoNextDay,
         workingTimeMs,
-        agentWorkingTimeMs,
+        agentTimeMs,
         elapsedTimeMs,
         idleGaps,
         forkSegments,

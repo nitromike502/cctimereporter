@@ -401,6 +401,7 @@ async function importFile(db, file, projectId, options, sessionIndex = new Map()
       ephemeral_5m_input_tokens:   tokens?.ephemeral_5m_input_tokens      ?? null,
       ephemeral_1h_input_tokens:   tokens?.ephemeral_1h_input_tokens      ?? null,
       model:                       msg.type === 'assistant' ? (msg.rawMessage?.message?.model ?? null) : null,
+      duration_ms:                 msg.durationMs                         ?? null,
     };
   });
   // Filter null-timestamp messages (system metadata) — explicit rather than relying on NOT NULL constraint
@@ -629,6 +630,7 @@ export async function importAll(db, options = {}) {
               ephemeral_5m_input_tokens:   tokens?.ephemeral_5m_input_tokens      ?? null,
               ephemeral_1h_input_tokens:   tokens?.ephemeral_1h_input_tokens      ?? null,
               model:                       msg.type === 'assistant' ? (msg.rawMessage?.message?.model ?? null) : null,
+              duration_ms:                 msg.durationMs                         ?? null,
             };
           });
 

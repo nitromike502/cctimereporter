@@ -5,81 +5,77 @@ type: execute
 wave: 1
 ---
 
-# Plan 005: Session Agent Working Time
+# Plan 005: Working Time (merged) + Agent Time (strict)
 
 ## Context
 
-Display, in SessionDetailPanel, how much **actual agent time** a session consumed for the selected day. "Agent time" = union of active intervals across the parent session and all subagents that worked on its behalf (inline foreground sidechains, background subagents, team-member subagents), counted **once** when they overlap.
+A session's "agent activity" needs to be reported correctly when subagents and teammates run in parallel with the main agent. Two distinct numbers express different things, and both should be visible in SessionDetailPanel.
 
-Day-scoped (clamped to selected day) so the value reconciles with the rest of the timeline UI.
+## Locked terminology
 
-## What the data tells us
+| Term | Definition | Computation |
+|---|---|---|
+| **Gantt time** (visual) | The shaded bar in the gantt — represents working time on the timeline. Idle gaps shorter than the threshold are filled in as part of the bar. | Driven by `idleGaps` derived from merged timestamps. |
+| **Working Time** (number) | The numeric value of the gantt bar's shaded area. Threshold-padded union of activity across the main agent and all subagents (inline, background, teammates). | `computeWorkingTime(mergedTimestamps, thresholdMs)` |
+| **Agent Time** | Total elapsed time during which any agent was actively producing output. No threshold padding. Strictly **≤ elapsed time**. | `sumIntervalUnion(turnIntervals across parent + teammates, clampedStart, clampedEnd)` where each turn contributes `[timestamp − durationMs, timestamp]`. |
+| **Elapsed time** | Wall-clock span of the displayed session window (`clampedEnd − clampedStart`). | Unchanged. |
 
-| Subagent type | Already in parent's `allTimestamps`? |
-|---|---|
-| Inline foreground sidechain (Task tool) | Yes — same JSONL file |
-| Background subagent (`subagents/agent-*.jsonl`) | Yes — importer merges into parent session_id at `src/importer/index.js:636` |
-| Team-member subagent (separate session, `is_subagent=1`, `team_name` set) | **No** — filtered out at `src/services/timeline.js:105` |
+Key relationships:
+- Gantt time ≡ Working Time (different views of the same number)
+- Agent Time ≤ Elapsed Time (always)
+- Agent Time may be ≤ or ≥ Working Time depending on data (turn durations vs. message-gap heuristic)
 
-Explicit parent↔team-subagent linkage is unreliable in the DB: 0 of 144 sessions have `has_subagents=1` set; parents typically don't carry `team_name`. We use a heuristic: same `project_id` + overlapping message-time-range.
+## Data: `turn_duration` messages
 
-## Approach
+Claude Code emits `system / turn_duration` messages after every agent turn with `durationMs`. Each is a real, authoritative measurement of one turn's wall-clock duration. We persist `durationMs` so Agent Time can be computed from real intervals instead of a timestamp heuristic.
 
-Service-layer change only. No schema migration, no importer change.
-
-Reuse `computeWorkingTime()` from `src/utils/timeline-utils.js` — when given a merged, sorted timestamp array across parent + linked team subagents, it naturally yields the union of active intervals (close timestamps = no gap = counted).
+Coverage caveat: 70% of sessions in this DB have `turn_duration` rows; of those, only sessions whose source JSONLs still exist on disk get backfilled. Sessions without data show Agent Time as `—`.
 
 ## Changes
 
-### 1. `src/services/timeline.js`
+### Schema v11 (`src/db/schema.js`, `src/db/index.js`)
+- Add `messages.duration_ms INTEGER`.
+- Migration `MIGRATION_V10_TO_V11`, plumbed through all version branches.
 
-In `createTimelineService()`:
+### Importer (`src/importer/parser.js`, `src/importer/index.js`, `src/importer/db-writer.js`)
+- Parser: capture `msg.durationMs` on `system/turn_duration` messages.
+- index.js: include `duration_ms` in both the main message mapping and the Pattern A subagent loop.
+- db-writer: add `duration_ms` to INSERT and `ON CONFLICT DO UPDATE`.
+- Force re-import (`force: true`) on existing JSONLs to backfill.
 
-- Add a prepared statement that fetches team-subagent message timestamps overlapping a parent session, same project:
+### Service (`src/services/timeline.js`, `src/utils/timeline-utils.js`)
+- Add `sumIntervalUnion(intervals, windowStart, windowEnd)` helper in `timeline-utils.js` — sorts by start, sweeps & merges overlapping intervals, sums.
+- Add two prepared statements: `sessionTurnIntervalsStmt` (per-session turn rows) and `teamTurnIntervalsStmt` (teammate turn rows linked by project + time overlap).
+- Rewrite `_querySessions()` per-session computation:
+  - `workingTimeMs` = `computeWorkingTime(mergedTimestamps, thresholdMs)` (was parent-only — now merged)
+  - `idleGaps` = `computeIdleGaps(mergedTimestamps, thresholdMs)` (gantt-visible)
+  - `agentTimeMs` = `sumIntervalUnion(turnIntervals, clampedStart, clampedEnd)`, or `null` if no turn data
+- Remove `agentWorkingTimeMs` (replaced by the new pair).
 
-```sql
-SELECT m.timestamp
-FROM messages m
-JOIN sessions s ON m.session_id = s.session_id
-WHERE s.project_id = ?
-  AND s.is_subagent = 1
-  AND s.first_message_at <= ?
-  AND s.last_message_at  >= ?
-  AND m.type IN ('user', 'assistant')
-  AND m.timestamp IS NOT NULL
-```
-
-In `_querySessions()`, per session:
-
-- After loading `allTimestamps` (line 209), query team-subagent timestamps using parent's `project_id`, `first_message_at`, `last_message_at`.
-- Merge into a new sorted array, day-clamp.
-- Compute `agentWorkingTimeMs = computeWorkingTime(clampedMerged, thresholdMs)`.
-- Add `agentWorkingTimeMs` to the session object.
-- Keep existing `workingTimeMs` (parent-only).
-
-### 2. `src/client/components/SessionDetailPanel.vue`
-
-- Compute `agentWorkingTimeLabel` formatted via the existing duration formatter used for `workingTimeMs`.
-- Display below the existing Working Time row as a new field: **"Agent Working Time"** with tooltip noting it includes subagents.
-- Fork view: hide (fork view is fork-scoped).
-
-### 3. `src/server/routes/timeline.js`
-
-No change if it passes through what `_querySessions` returns. Verify the field flows through.
+### UI (`src/client/components/SessionDetailPanel.vue`)
+- Working Time row gets a clarifying tooltip but is otherwise unchanged.
+- New Agent Time row directly below — shows formatted duration or `—` when null. Hidden in fork view.
+- Drop the inline "/ X w/ teammates" badge (no longer needed; Agent Time is its own row).
 
 ## Trade-offs
 
-- **Heuristic linkage** may over-attribute when two parent sessions ran teammates in the same project simultaneously. Acceptable for v1.
-- **`turn_duration` data unused** — 70% of sessions have rows but `durationMs` value not persisted (schema gap). Deferred.
-- **Day-clamping**: team-subagent messages on a different day than parent's selected day don't contribute. Correct per "day-scoped" decision.
+- **Teammate linkage** remains heuristic (same project + overlapping range). Could over-attribute for two parents running teammates in the same project simultaneously.
+- **Agent Time coverage** limited by source data on disk — sessions whose JSONLs have been deleted show `—`. This is honest; we don't fabricate.
+- **Backwards data**: existing sessions get backfilled when their JSONLs still exist (~10% of total sessions in the current DB). New sessions get data automatically.
 
 ## Tasks
 
-1. Service: add team-subagent query + merge logic in `src/services/timeline.js._querySessions()`. Output `agentWorkingTimeMs`.
-2. UI: display `agentWorkingTimeMs` in `src/client/components/SessionDetailPanel.vue`.
-3. Smoke test: session with `team_name='v030-session-polish'` (2026-03-05) — expect agentWorkingTimeMs > workingTimeMs.
+1. Schema v11 migration + DDL update
+2. Importer: persist durationMs from turn_duration messages
+3. Re-import (force) to backfill
+4. Service: add sumIntervalUnion; rework workingTimeMs / agentTimeMs / idleGaps in `_querySessions`
+5. UI: Working Time tooltip + new Agent Time row
+6. Verify end-to-end via API + UI
 
-## Files to modify
+## Files touched
 
+- `src/db/schema.js`, `src/db/index.js`
+- `src/importer/parser.js`, `src/importer/index.js`, `src/importer/db-writer.js`
+- `src/utils/timeline-utils.js`
 - `src/services/timeline.js`
 - `src/client/components/SessionDetailPanel.vue`

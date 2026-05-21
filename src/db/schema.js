@@ -4,7 +4,7 @@
  * additional columns on sessions and messages for fork detection.
  */
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS projects (
@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS messages (
   ephemeral_5m_input_tokens   INTEGER,
   ephemeral_1h_input_tokens   INTEGER,
   model                       TEXT,
+  duration_ms                 INTEGER,
   UNIQUE(session_id, uuid),
   FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
@@ -208,6 +209,16 @@ ALTER TABLE messages ADD COLUMN cache_read_input_tokens INTEGER;
 ALTER TABLE messages ADD COLUMN ephemeral_5m_input_tokens INTEGER;
 ALTER TABLE messages ADD COLUMN ephemeral_1h_input_tokens INTEGER;
 ALTER TABLE messages ADD COLUMN model TEXT;
+`;
+
+/**
+ * ALTER TABLE statements to migrate v10 → v11.
+ * Adds duration_ms column to messages so the importer can persist
+ * Claude Code's per-turn duration (system/turn_duration messages).
+ * Enables strict "Agent Time" computation from real per-turn intervals.
+ */
+export const MIGRATION_V10_TO_V11 = `
+ALTER TABLE messages ADD COLUMN duration_ms INTEGER;
 `;
 
 export const MIGRATION_V1_TO_V2 = `

@@ -45,6 +45,42 @@ export function computeIdleGaps(timestamps, thresholdMs) {
   return gaps;
 }
 
+/**
+ * Sum the union of a set of half-open intervals [start, end), clamped to a window.
+ * Used for strict "Agent Time" computation from per-turn durations: overlapping
+ * intervals (parallel agent activity) are counted once.
+ *
+ * @param {{start: number, end: number}[]} intervals - epoch-ms intervals (start < end)
+ * @param {number} windowStart - epoch-ms inclusive lower bound
+ * @param {number} windowEnd   - epoch-ms inclusive upper bound
+ * @returns {number} total covered milliseconds within the window
+ */
+export function sumIntervalUnion(intervals, windowStart, windowEnd) {
+  if (intervals.length === 0 || windowEnd <= windowStart) return 0;
+  const clipped = [];
+  for (const { start, end } of intervals) {
+    const s = Math.max(start, windowStart);
+    const e = Math.min(end, windowEnd);
+    if (e > s) clipped.push([s, e]);
+  }
+  if (clipped.length === 0) return 0;
+  clipped.sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let [curS, curE] = clipped[0];
+  for (let i = 1; i < clipped.length; i++) {
+    const [s, e] = clipped[i];
+    if (s <= curE) {
+      if (e > curE) curE = e;
+    } else {
+      total += curE - curS;
+      curS = s;
+      curE = e;
+    }
+  }
+  total += curE - curS;
+  return total;
+}
+
 // Generic build directory names — use parent directory for display instead
 export const BUILD_DIR_NAMES = new Set(['httpdocs', 'htdocs', 'public_html', 'www', 'dist', 'build']);
 
