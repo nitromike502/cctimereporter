@@ -4,6 +4,31 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-05-20
+
+Working Time and Agent Time are now distinct concepts surfaced across the entire stack. Working Time keeps its historical "filled gantt-bar" meaning but now spans the whole team of agents (main + inline sidechains + background subagents + teammate sessions). Agent Time is new: the strict union of real per-turn intervals — no idle-threshold padding — telling you exactly how much wall-clock time agents spent producing output for a session.
+
+### Added
+
+- **Schema v11:** `messages.duration_ms` column. Auto-migration from v10.
+- **Importer:** captures Claude Code's per-turn `durationMs` from `system/turn_duration` messages. Coverage limited to sessions whose JSONLs are still on disk; pre-existing sessions without source files show Agent Time as `—`.
+- **`sumIntervalUnion(intervals, windowStart, windowEnd)`** helper in `timeline-utils.js` for overlap-aware interval merging.
+- **Two new fields** on every session record: `agentTimeMs` (strict per-turn union, day-clamped to the displayed window) and a matching `agentTime` formatted string.
+- **Session detail panel** shows Agent Time as a dedicated row, with tooltips explaining the difference from Working Time. Cache Hit and Cache rows collapsed into a single "Cache" row to keep the field count at 12.
+- **Day summary panel:** total Agent Time appears beside total Working Time; the By Project, By Ticket, and By Branch tables each get an Agent Time column.
+- **CLI:** `summary` and `sessions` subcommands include `agentTime` / `agentTimeMs` per session, per-ticket group, and at the day total.
+- **MCP:** `get_day_summary` and `get_sessions` tools include the new fields. Additive only.
+
+### Changed
+
+- **`workingTimeMs` semantics:** now reflects threshold-padded activity across the parent session AND any team-member subagents (heuristically linked by same project + overlapping time window), matching what the gantt bar visually fills. Previously parent-only. Existing API consumers continue to receive the same field name and shape but with broader coverage.
+- **Gantt idle gaps** are computed from the merged (parent + teammate) timestamp set so the bar's filled portion now reflects subagent activity that was previously rendered as idle.
+- **Session detail panel layout:** Tokens and Working Time swap positions; Agent Time and Cache swap positions. End layout (4×3 column-major): identity in col 1, context+cache in col 2, time-related in col 3.
+
+### Fixed
+
+- **Importer skips `~/.claude/projects/-tmp/`** — Claude Code's scratch directory for cwd-less invocations (e.g. /remember, /compact skill processes). These sessions had no recoverable project context and previously appeared as standalone `-tmp` bars on the gantt.
+
 ## [1.1.0] - 2026-05-09
 
 Token usage tracking and visualization. Token counts and cache hit rates flow from JSONL transcripts through schema v10 into every consumer surface — session detail, day summary, CLI, MCP, and a new `/tokens` chart page with double-click bucket drill-down.
