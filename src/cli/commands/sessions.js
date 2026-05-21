@@ -51,6 +51,7 @@ export function sessionsCommand(db) {
           return {
             ...s,
             workingTime: formatWorkingTime(s.workingTimeMs),
+            agentTime: s.agentTimeMs == null ? null : formatWorkingTime(s.agentTimeMs),
             tokens: st ? {
               inputTokens: st.inputTokens,
               outputTokens: st.outputTokens,

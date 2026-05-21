@@ -36,20 +36,25 @@ export function formatWorkingTime(ms) {
  * @returns {object} Enriched report with workingTime strings added
  */
 export function enrichWithFormattedTime(report) {
+  const fmtAgent = ms => ms == null ? null : formatWorkingTime(ms);
   return {
     ...report,
     workingTime: formatWorkingTime(report.workingTimeMs),
+    agentTime:   fmtAgent(report.agentTimeMs),
     byTicket: report.byTicket.map(group => ({
       ...group,
       workingTime: formatWorkingTime(group.workingTimeMs),
+      agentTime:   fmtAgent(group.agentTimeMs),
       sessions: group.sessions.map(s => ({
         ...s,
         workingTime: formatWorkingTime(s.workingTimeMs),
+        agentTime:   fmtAgent(s.agentTimeMs),
       })),
     })),
     unticketedSessions: report.unticketedSessions.map(s => ({
       ...s,
       workingTime: formatWorkingTime(s.workingTimeMs),
+      agentTime:   fmtAgent(s.agentTimeMs),
     })),
   };
 }

@@ -416,6 +416,10 @@ export function createTimelineService(db) {
         ticketMap.set(ticketKey, {
           ticket: ticketKey,
           workingTimeMs: 0,
+          // Sum of non-null per-session Agent Times. null when no contributing session
+          // has any turn_duration data — preserved at the end of the loop.
+          agentTimeMs: 0,
+          _agentTimeMsSeen: false,
           sessionCount: 0,
           projects: [],
           sessions: [],
@@ -424,6 +428,10 @@ export function createTimelineService(db) {
 
       const group = ticketMap.get(ticketKey);
       group.workingTimeMs += session.workingTimeMs;
+      if (session.agentTimeMs != null) {
+        group.agentTimeMs += session.agentTimeMs;
+        group._agentTimeMsSeen = true;
+      }
       group.sessionCount++;
       if (!group.projects.includes(displayName)) {
         group.projects.push(displayName);
@@ -434,6 +442,7 @@ export function createTimelineService(db) {
         ticket:       ticketKey,
         branch:       session.branch,
         workingTimeMs: session.workingTimeMs,
+        agentTimeMs:  session.agentTimeMs ?? null,
         summary:      session.summary,
         customTitle:  session.customTitle,
         startTime:    session.startTime,
@@ -443,7 +452,17 @@ export function createTimelineService(db) {
       });
     }
 
+    // Collapse per-ticket Agent Time totals: null when nothing contributed.
+    for (const group of ticketMap.values()) {
+      if (!group._agentTimeMsSeen) group.agentTimeMs = null;
+      delete group._agentTimeMsSeen;
+    }
+
     const totalWorkingTimeMs = sessions.reduce((sum, s) => sum + s.workingTimeMs, 0);
+    const agentTimesPresent = sessions.filter(s => s.agentTimeMs != null);
+    const totalAgentTimeMs = agentTimesPresent.length === 0
+      ? null
+      : agentTimesPresent.reduce((sum, s) => sum + s.agentTimeMs, 0);
 
     // Separate ticketed from unticketed
     const byTicket = [];
@@ -463,6 +482,7 @@ export function createTimelineService(db) {
     return {
       date,
       workingTimeMs: totalWorkingTimeMs,
+      agentTimeMs: totalAgentTimeMs,
       byTicket,
       unticketedSessions,
     };
