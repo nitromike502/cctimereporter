@@ -49,3 +49,15 @@ See `.planning/milestones/v1.1.0-ROADMAP.md` for full phase details.
 | 1-6 MVP | v1.0 | 14/14 | Complete | 2026-03-01 |
 | 7-31 Service Layer, CLI, MCP | v0.8.0 | —/— | Complete | 2026-03-30 |
 | 32-36 Token Usage | v1.1.0 | 8/8 | Complete | 2026-05-09 |
+
+---
+
+## Backlog (unscheduled)
+
+Ideas captured before milestone assignment. Promote into a phase when scope is ready.
+
+- **Configurable ticket-pattern filtering.** The importer scores tickets using a generic `[A-Z]{2,8}-\d+` regex (`src/importer/ticket-scorer.js`), which produces noisy matches against unrelated strings in branch names, summaries, or content. Add a user config (e.g. `~/.cctimereporter/config.json`) where a project can specify:
+  - allow-list of valid ticket prefixes (e.g. `STORY`, `BUG`, `COMPUTE`)
+  - deny-list of known noise prefixes (e.g. `CVE`, `RFC`, `HTTP`)
+  - or a fully custom regex per project
+  Importer applies the filter when scoring; matches that fail the filter are not stored as ticket candidates. Existing sessions get re-evaluated on next import or via a force-rescore command.
