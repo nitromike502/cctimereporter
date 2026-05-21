@@ -74,16 +74,18 @@
 
       <!-- Column 3: Timing — uses fork times when a fork is selected -->
       <div class="detail-item">
-        <span class="detail-label">Working Time:</span>
+        <span class="detail-label">Tokens:</span>
         <span class="detail-value">
-          {{ workingTimeLabel || '\u00A0' }}
-          <span v-if="elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
+          {{ (tokens && formatTokenCount(tokens.totalTokens)) || '\u00A0' }}
+          <span v-if="tokenBreakdownLabel" class="token-breakdown">{{ tokenBreakdownLabel }}</span>
         </span>
       </div>
-      <div v-if="!fork" class="detail-item">
-        <span class="detail-label">Agent Time:</span>
-        <span class="detail-value" title="Strict union of per-turn intervals — actual time agents (main + sub + teammates) were producing output. No threshold padding. Always ≤ Working Time.">
-          {{ agentTimeLabel || '—' }}
+      <div class="detail-item">
+        <span class="detail-label">Cache:</span>
+        <span class="detail-value">
+          {{ (tokens && formatCacheHitRate(tokens.cacheHitRate)) || ' ' }}
+          <span v-if="tokens?.cacheReadInputTokens != null" class="token-breakdown">{{ formatTokenCount(tokens.cacheReadInputTokens) }} read</span>
+          <span v-if="tokens?.cacheCreationInputTokens" class="token-breakdown">{{ formatTokenCount(tokens.cacheCreationInputTokens) }} created</span>
         </span>
       </div>
       <div class="detail-item">
@@ -97,21 +99,16 @@
 
       <!-- Row 4: Token usage -->
       <div class="detail-item">
-        <span class="detail-label">Tokens:</span>
+        <span class="detail-label">Working Time:</span>
         <span class="detail-value">
-          {{ (tokens && formatTokenCount(tokens.totalTokens)) || '\u00A0' }}
-          <span v-if="tokenBreakdownLabel" class="token-breakdown">{{ tokenBreakdownLabel }}</span>
+          {{ workingTimeLabel || '\u00A0' }}
+          <span v-if="elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
         </span>
       </div>
-      <div class="detail-item">
-        <span class="detail-label">Cache Hit:</span>
-        <span class="detail-value">{{ (tokens && formatCacheHitRate(tokens.cacheHitRate)) || '\u00A0' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Cache:</span>
-        <span class="detail-value">
-          {{ (tokens && tokens.cacheReadInputTokens != null) ? formatTokenCount(tokens.cacheReadInputTokens) + ' read' : '\u00A0' }}
-          <span v-if="tokens?.cacheCreationInputTokens" class="token-breakdown">{{ formatTokenCount(tokens.cacheCreationInputTokens) }} created</span>
+      <div v-if="!fork" class="detail-item">
+        <span class="detail-label">Agent Time:</span>
+        <span class="detail-value" title="Strict union of per-turn intervals \u2014 actual time agents (main + sub + teammates) were producing output. No threshold padding. Always \u2264 Working Time.">
+          {{ agentTimeLabel || '\u2014' }}
         </span>
       </div>
     </div>
