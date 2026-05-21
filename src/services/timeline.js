@@ -117,6 +117,21 @@ export function createTimelineService(db) {
     ORDER BY timestamp
   `);
 
+  // Timestamps of team-member subagents that ran on behalf of a parent session.
+  // Heuristic link: same project + time-range overlap with parent. Used to compute
+  // agentWorkingTimeMs (union of activity across parent + teammates).
+  const teamSubagentTimestampsStmt = db.prepare(`
+    SELECT m.timestamp
+    FROM messages m
+    JOIN sessions s ON m.session_id = s.session_id
+    WHERE s.project_id = ?
+      AND s.is_subagent = 1
+      AND s.first_message_at <= ?
+      AND s.last_message_at  >= ?
+      AND m.type IN ('user', 'assistant')
+      AND m.timestamp IS NOT NULL
+  `);
+
   const totalSessionsStmt = db.prepare('SELECT COUNT(*) AS cnt FROM sessions');
   const allProjectPathsStmt = db.prepare('SELECT project_path FROM projects');
 
@@ -216,6 +231,24 @@ export function createTimelineService(db) {
 
       const workingTimeMs = computeWorkingTime(clampedTimestamps, thresholdMs);
 
+      // Agent working time: union of activity across parent + team-member subagents,
+      // day-clamped. Counts overlapping intervals once. Inline + background subagents
+      // are already merged into the parent session_id at import time, so they're
+      // already in allTimestamps; only team-member subagents (separate sessions) need
+      // to be merged in here.
+      const teamTimestampRows = teamSubagentTimestampsStmt.all(
+        row.project_id,
+        row.last_message_at,
+        row.first_message_at,
+      );
+      let agentWorkingTimeMs = workingTimeMs;
+      if (teamTimestampRows.length > 0) {
+        const merged = allTimestamps.concat(teamTimestampRows.map(r => r.timestamp));
+        merged.sort();
+        const clampedMerged = merged.filter(t => t >= dayStartUTC && t < dayEndUTC);
+        agentWorkingTimeMs = computeWorkingTime(clampedMerged, thresholdMs);
+      }
+
       // For overnight sessions, use first/last in-day message instead of midnight
       const continuesFromPrevDay = row.first_message_at < dayStartUTC;
       const continuesIntoNextDay = row.last_message_at  >= dayEndUTC;
@@ -242,6 +275,7 @@ export function createTimelineService(db) {
         continuesFromPrevDay,
         continuesIntoNextDay,
         workingTimeMs,
+        agentWorkingTimeMs,
         elapsedTimeMs,
         idleGaps,
         forkSegments,

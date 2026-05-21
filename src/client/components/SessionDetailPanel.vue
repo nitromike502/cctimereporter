@@ -77,6 +77,7 @@
         <span class="detail-label">Working Time:</span>
         <span class="detail-value">
           {{ workingTimeLabel || '\u00A0' }}
+          <span v-if="agentWorkingTimeLabel" class="elapsed-time" title="Union of parent and team-subagent activity (counted once when overlapping)">/ {{ agentWorkingTimeLabel }} w/ teammates</span>
           <span v-if="elapsedTimeLabel" class="elapsed-time">/ {{ elapsedTimeLabel }} elapsed</span>
         </span>
       </div>
@@ -192,6 +193,15 @@ const workingTimeLabel = computed(() => {
   if (props.fork) return formatDuration(props.fork.workingTimeMs)
   if (!props.session) return ''
   return formatDuration(props.session.workingTimeMs)
+})
+
+/** Agent working time — parent + team-subagent activity, union, day-clamped.
+ *  Hidden in fork view (fork is scoped to a branch, not whole-session). */
+const agentWorkingTimeLabel = computed(() => {
+  if (props.fork) return ''
+  if (!props.session || props.session.agentWorkingTimeMs == null) return ''
+  if (props.session.agentWorkingTimeMs === props.session.workingTimeMs) return ''
+  return formatDuration(props.session.agentWorkingTimeMs)
 })
 
 /** Elapsed wall-clock time */
