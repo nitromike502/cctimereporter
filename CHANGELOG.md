@@ -4,6 +4,28 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-05-09
+
+Token usage tracking and visualization. Token counts and cache hit rates flow from JSONL transcripts through schema v10 into every consumer surface — session detail, day summary, CLI, MCP, and a new `/tokens` chart page with double-click bucket drill-down.
+
+### Added
+
+- **Schema v10:** 7 new token columns on `messages` table (`input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `ephemeral_5m_input_tokens`, `ephemeral_1h_input_tokens`, `model`). Auto-migration from v9 with automatic 30-day re-import backfill.
+- **Token aggregation service:** `createTokensService(db)` factory with `getDayTokens` / `getSessionTokens`. Sidechain (`is_sidechain=0`) and fork (`is_fork_branch=0`) exclusion on aggregates. JS-computed cache hit rate (`cache_read / (cache_read + input) × 100`).
+- **`GET /api/tokens?date=YYYY-MM-DD`** endpoint returning per-session and day-total aggregates with cache hit rate.
+- **Session detail panel** shows input/output token breakdown, cache hit rate, and cache read/created totals.
+- **Day summary panel** shows total tokens for the selected date.
+- **CLI:** `summary` includes top-level `tokens` object; `sessions` includes per-session `tokens` field. Additive only — no breaking changes to existing JSON shape.
+- **MCP:** `get_day_summary` and `get_sessions` tools include `tokens`. Additive only — existing consumers ignore new fields without error.
+- **`/tokens` page** with chart.js + vue-chartjs. Session Totals stacked bar chart (input + output per session) and Per Message line chart with time-of-day x-axis and configurable bucket interval. Project-level visibility checkboxes. Custom HTML legend. Dark-mode reactive chart options.
+- **Per Message bucket drill-down:** Double-click a bucket on the Per Message chart to open `SessionMessagesModal` in time-range mode (`?from=ISO&to=ISO`) with inline output token counts on assistant message headers.
+- **Page navigation** moved into `TimelineToolbar` (Timeline | Tokens, centered). Date persists across page navigation via query param.
+
+### Changed
+
+- App.vue nav bar removed in favor of toolbar-integrated nav.
+- Project color collision dedup is now assignment-based (`src/client/utils/project-colors.js`) and resets on date change.
+
 ## [1.0.0] - 2026-04-07
 
 First stable release. Promotes v0.8.3 as the stable v1.0.0 — marks feature completeness of the core platform: JSONL import pipeline, Gantt timeline UI, CLI subcommands, MCP server, and multi-instance coordination.
