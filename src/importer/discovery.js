@@ -87,6 +87,12 @@ export function discoverProjects() {
         continue;
       }
 
+      // Skip Claude Code's scratch directory: sessions started without a cwd
+      // (e.g. skill invocations like /remember, /compact) land in `~/.claude/projects/-tmp/`
+      // with cwd=null. They have no recoverable project context and shouldn't
+      // appear in the timeline.
+      if (name === '-tmp') continue;
+
       if (!byTranscriptDir.has(fullPath)) {
         // Orphaned: use directory name as projectPath without decoding
         byTranscriptDir.set(fullPath, { projectPath: name, transcriptDir: fullPath });
