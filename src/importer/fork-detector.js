@@ -32,9 +32,9 @@ export function detectForks(messages) {
     }
     if (parentUuid && uuid) {
       if (!childrenMap.has(parentUuid)) {
-        childrenMap.set(parentUuid, []);
+        childrenMap.set(parentUuid, new Set());
       }
-      childrenMap.get(parentUuid).push(uuid);
+      childrenMap.get(parentUuid).add(uuid);
     }
   }
 
@@ -46,7 +46,8 @@ export function detectForks(messages) {
   const forkBranchMap = new Map();
 
   // Find fork points: parents with 2+ children
-  for (const [, childUuids] of childrenMap) {
+  for (const [, childUuidSet] of childrenMap) {
+    const childUuids = [...childUuidSet];
     if (childUuids.length < 2) continue;
 
     forkCount++;
@@ -57,8 +58,11 @@ export function detectForks(messages) {
     // Check each child: if it and ALL its descendants are progress/snapshot types, it's a progress branch.
     function isProgressBranch(startUuid) {
       const stack = [startUuid];
+      const seen = new Set();
       while (stack.length > 0) {
         const current = stack.pop();
+        if (seen.has(current)) continue;
+        seen.add(current);
         const msg = msgByUuid.get(current);
         const t = msg?.type;
         if (t !== 'progress' && t !== 'file_history_snapshot') return false;
@@ -84,8 +88,11 @@ export function detectForks(messages) {
     function countDescendants(startUuid) {
       let count = 0;
       const stack = [startUuid];
+      const seen = new Set();
       while (stack.length > 0) {
         const current = stack.pop();
+        if (seen.has(current)) continue;
+        seen.add(current);
         count++;
         const children = childrenMap.get(current);
         if (children) {
@@ -108,6 +115,7 @@ export function detectForks(messages) {
       const stack = [childUuid];
       while (stack.length > 0) {
         const current = stack.pop();
+        if (forkBranchUuids.has(current)) continue;
         forkBranchUuids.add(current);
         forkBranchMap.set(current, branchId);
         const children = childrenMap.get(current);
