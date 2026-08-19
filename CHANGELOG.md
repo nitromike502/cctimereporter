@@ -4,6 +4,18 @@ All notable changes to CC Time Reporter are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.1] - 2026-08-19
+
+Bug-fix release. Import could hang indefinitely on transcripts containing duplicated message lines, stalling the entire import behind the offending file.
+
+### Fixed
+
+- **Import hang on duplicated transcript lines:** Claude Code sometimes writes the same message line twice, with an identical `uuid` and `parentUuid`. `detectForks` built its parent-to-children map with an array `push`, so a duplicated line registered as a parent with two children (a phantom fork), and the descendant walks (`isProgressBranch`, `countDescendants`, and the branch-marking loop) carried no visited set, so every duplicated level doubled the number of paths to walk. Children are now stored in a `Set` and each walk carries a visited set. On a 35.7MB transcript with 666 duplicated edges chained roughly 284 levels deep, `detectForks` went from non-terminating (100% CPU for over 22 minutes, nothing written to the database) to 1ms, reporting 5 forks instead of 667. Fork counts for transcripts without duplicated lines are unchanged.
+
+### Added
+
+- **`scripts/test-fork-detector.mjs`:** standalone self-check for `detectForks`, no test framework required. Covers duplicate-line dedup, genuine fork detection, progress-fork classification, and a deep duplicated chain as a performance regression guard.
+
 ## [1.2.0] - 2026-05-20
 
 Working Time and Agent Time are now distinct concepts surfaced across the entire stack. Working Time keeps its historical "filled gantt-bar" meaning but now spans the whole team of agents (main + inline sidechains + background subagents + teammate sessions). Agent Time is new: the strict union of real per-turn intervals — no idle-threshold padding — telling you exactly how much wall-clock time agents spent producing output for a session.
